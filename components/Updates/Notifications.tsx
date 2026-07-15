@@ -1,0 +1,346 @@
+"use client";
+
+import Image from "next/image";
+import { useDictionary } from "@/dictionaries/DictionaryProvider";
+import demoThumb from "@/assets/images/product-image.jpg";
+import { XMarkIcon } from "@heroicons/react/24/outline";
+import { useGetAllNotificationsQuery, useMarkAsReadMutation } from "@/store/services/notificationService";
+import { getUserId } from "@/utils/getUserId";
+import moment from "moment";
+import { NEW_NOTIFICATION_WINDOW_EVENT } from "@/utils/notificationRealtime";
+import { useEffect, useLayoutEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import noNotificationIcon from "@/assets/icons/no-notification.svg";
+import { useRouter } from "next/navigation";
+import { formatRequestedDateTime } from "@/utils/formatRequestedDateTime";
+
+/** Must match what the notifications API expects (see `data.limit` in the response). */
+const PAGE_LIMIT = 15;
+
+export function parsePositiveInt(value: unknown): number | undefined {
+    if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+        return Math.floor(value);
+    }
+    if (typeof value === "string" && value.trim() !== "") {
+        const n = parseInt(value, 10);
+        if (Number.isFinite(n) && n >= 0) return n;
+    }
+    return undefined;
+}
+
+export type NotificationListItem = {
+    id: string;
+    imageSrc: string | typeof demoThumb;
+    message: string;
+    timeLabel: string;
+    unread: boolean;
+};
+
+type NotificationsProps = {
+    setOpenSidebar?: (open: boolean) => void;
+    /** Sidebar badge count (same as Layout state). */
+    unreadCount?: number;
+    setReadCount?: Dispatch<SetStateAction<number>>;
+};
+
+type NotificationPayload = {
+    action?: string;
+    serviceId?: string;
+    productId?: string;
+    id?: string;
+    _id?: string;
+    request?: {
+        service?: string;
+    };
+};
+
+type NotificationApiItem = {
+    _id?: string;
+    id?: string;
+    type?: string;
+    payload?: NotificationPayload | any;
+    message?: string;
+    createdAt?: string;
+    read?: boolean;
+    image?: string;
+};
+
+function getNotificationPayload(item: NotificationApiItem): NotificationPayload | null {
+    const raw = item.payload;
+    if (raw == null) return null;
+    if (typeof raw === "string") {
+        try {
+            const parsed = JSON.parse(raw) as unknown;
+            return typeof parsed === "object" && parsed !== null
+                ? (parsed as NotificationPayload)
+                : null;
+        } catch {
+            return null;
+        }
+    }
+    return raw;
+}
+
+function getPayloadTargetId(payload: NotificationPayload | null): string | undefined {
+    if (!payload) return undefined;
+    return payload.serviceId ?? payload.productId ?? payload.id ?? payload._id ?? payload?.request?.service;
+}
+
+function Notifications({ setOpenSidebar, unreadCount = 0, setReadCount }: NotificationsProps) {
+    const { placeholders, currentLanguage } = useDictionary();
+    type PlaceholderKey = keyof typeof placeholders;
+    const ph = (key: PlaceholderKey) => placeholders[key];
+    const router = useRouter();
+
+    const [hasMounted, setHasMounted] = useState(false);
+    useEffect(() => {
+        setHasMounted(true);
+    }, []);
+
+    const userId = getUserId();
+    const [markAsRead] = useMarkAsReadMutation();
+
+    // Page 1, 2, 3… for ?page= — scroll loads the next page until we reach totalPages from the API.
+    const [page, setPage] = useState(1);
+    const [notificationItems, setNotificationItems] = useState<NotificationApiItem[]>([]);
+    const lastMergedKeyRef = useRef<string>("");
+
+    const { data, isLoading, isFetching, isUninitialized, fulfilledTimeStamp } =
+        useGetAllNotificationsQuery(
+            {
+                id: userId ?? "",
+                page,
+                limit: PAGE_LIMIT,
+            },
+            {
+                skip: !hasMounted || !userId,
+                refetchOnMountOrArgChange: true,
+            },
+        );
+    function handleNavigation(item: any) {
+        setOpenSidebar?.(false);
+        const targetId = getPayloadTargetId(getNotificationPayload(item));
+        if (!targetId) return;
+
+        switch (item.type) {
+            case "SERVICE_REQUEST":
+                if (item.payload.action === "accept" || item.payload.action === "reject" || item.payload.action === "propose") {
+                    router.push(`/profile?tab=my_requests`);
+                }
+                else {
+                    router.push(`/services`);
+                }
+                break;
+            case "ORDER":
+                router.push(`/profile?tab=my_orders`);
+                break;
+            default:
+                break;
+        }
+    }
+
+    async function handleNotificationClick(item: NotificationApiItem) {
+        const id = item._id ?? item.id;
+        if (!id) return;
+
+        if (!item.read && setReadCount) {
+            const countBeforeClick = unreadCount;
+            setReadCount((c) => Math.max(0, c - 1));
+
+            try {
+                await markAsRead({ id }).unwrap();
+                setNotificationItems((prev) =>
+                    prev.map((n) => ((n._id ?? n.id) === id ? { ...n, read: true } : n)),
+                );
+            } catch {
+                setReadCount(countBeforeClick);
+                return;
+            }
+        }
+        handleNavigation(item);
+    }
+
+    const totalPages = parsePositiveInt(data?.data?.totalPages);
+    const lastBatch =
+        (data?.data?.notifications as NotificationApiItem[] | undefined) ?? [];
+
+    useEffect(() => {
+        if (!userId) {
+            setNotificationItems([]);
+            setPage(1);
+            lastMergedKeyRef.current = "";
+            return;
+        }
+        setNotificationItems([]);
+        setPage(1);
+        lastMergedKeyRef.current = "";
+    }, [userId]);
+    useLayoutEffect(() => {
+        if (!userId || data == null || isFetching) return;
+        const rows =
+            (data?.data?.notifications as NotificationApiItem[] | undefined) ?? [];
+        const mergeKey = `${page} -${fulfilledTimeStamp ?? 0} `;
+        if (lastMergedKeyRef.current === mergeKey) return;
+        lastMergedKeyRef.current = mergeKey;
+
+        if (page === 1) {
+            setNotificationItems(rows);
+        } else {
+            setNotificationItems((prev) => [...prev, ...rows]);
+        }
+    }, [data, page, userId, isFetching, fulfilledTimeStamp]);
+
+    const canLoadMore =
+        totalPages != null ? page < totalPages : lastBatch.length >= PAGE_LIMIT;
+
+    function handleScrollNearBottom(e: React.UIEvent<HTMLUListElement>) {
+        if (!hasMounted || !userId || isFetching || !canLoadMore) return;
+        const el = e.currentTarget;
+        const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 80;
+        if (!nearBottom) return;
+        setPage((p) => p + 1);
+    }
+    const loadingInitial =
+        !hasMounted ||
+        (!!userId &&
+            notificationItems.length === 0 &&
+            (isUninitialized || isLoading || isFetching));
+
+    const showEmpty =
+        hasMounted && !loadingInitial && notificationItems.length === 0;
+
+    useEffect(() => {
+        if (!hasMounted) return;
+        const onNewNotification = () => {
+            setNotificationItems([]);
+            setPage(1);
+            lastMergedKeyRef.current = "";
+        };
+        window.addEventListener(NEW_NOTIFICATION_WINDOW_EVENT, onNewNotification);
+        return () => {
+            window.removeEventListener(NEW_NOTIFICATION_WINDOW_EVENT, onNewNotification);
+        };
+    }, [hasMounted]);
+
+    return (
+        <div
+            className="h-screen w-full bg-white  py-6 flex flex-col"
+            dir={currentLanguage === "ur" ? "rtl" : "ltr"}
+            suppressHydrationWarning
+        >
+            <div className="px-5">
+                <div className="flex justify-between items-center">
+                    <h1 className="text-[22px] font-bold leading-tight text-black-1 ">
+                        {ph("notifications_title")}
+                    </h1>
+                    <XMarkIcon
+                        className="lg:hidden w-6 h-6 cursor-pointer"
+                        onClick={() => setOpenSidebar?.(false)}
+                    />
+                </div>
+
+                <p className="mt-1 text-[15px] font-medium text-gray-8">
+                    {ph("today")}
+                </p>
+            </div>
+
+            <div className="mt-3 flex min-h-0 flex-1 flex-col">
+                {loadingInitial ? (
+                    <ul className="min-h-0 px-5 flex-1 overflow-y-auto">
+                        {Array.from({ length: 6 }).map((_, index) => (
+                            <li
+                                key={index}
+                                className="flex items-center gap-3 py-2 first:pt-2 animate-pulse"
+                            >
+                                <div className="h-[42px] w-[42px] shrink-0 rounded-[10px] bg-gray-4" />
+                                <div className="min-w-0 flex-1">
+                                    <div className="h-3 w-full rounded bg-gray-4" />
+                                    <div className="mt-2 h-3 w-1/3 rounded bg-gray-4" />
+                                </div>
+                                <div className="h-2.5 w-2.5 rounded-full bg-gray-4" />
+                            </li>
+                        ))}
+                    </ul>
+                ) : showEmpty ? (
+                    <div
+                        className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 text-center"
+                        role="status"
+                    >
+                        <Image
+                            src={noNotificationIcon}
+                            alt=""
+                            width={44}
+                            height={47}
+                            unoptimized
+                        />
+                        <h2 className="mt-4 text-[22px] font-medium text-black-1">
+                            {ph("no_notifications_yet")}
+                        </h2>
+                        <p className="mt-2 text-[14px] font-normal text-gray-8">
+                            {ph("notifications_empty_subtitle")}
+                        </p>
+                    </div>
+                ) : (
+                    <ul
+                        className="min-h-0 flex-1 overflow-y-auto"
+                        onScroll={handleScrollNearBottom}
+                    >
+                        {notificationItems.map((item, index) => (
+                            <li
+                                key={item._id ?? item.id ?? index}
+                                onClick={() => {
+                                    void handleNotificationClick(item);
+                                }}
+                                className="flex px-5 items-center gap-3 py-2 first:pt-2 hover:bg-green-4 cursor-pointer"
+                            >
+                                <div className="relative h-[42px] w-[42px] shrink-0 overflow-hidden rounded-[10px] bg-gray-5">
+                                    <Image
+                                        src={item.image ?? demoThumb}
+                                        alt=""
+                                        width={42}
+                                        height={42}
+                                        className="h-full w-full object-cover"
+                                        unoptimized={typeof item.image === "string"}
+                                    />
+                                </div>
+
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[13px] font-normal leading-snug text-[#727272]">
+                                        {item?.payload?.action === "propose" ? item.message + " " +
+                                            formatRequestedDateTime(
+                                                item?.payload?.proposedDateTime,
+                                                currentLanguage,
+                                            )
+                                            : item.message ?? ""}
+                                    </p>
+                                    <p
+                                        className="mt-1 text-[12px] font-normal text-[#414E51]"
+                                        suppressHydrationWarning
+                                    >
+                                        {moment(item.createdAt).locale(currentLanguage).fromNow()}
+                                    </p>
+                                </div>
+
+                                {!item.read && (
+                                    <div className="flex shrink-0 items-center">
+                                        <span
+                                            className="h-2.5 w-2.5 rounded-full bg-green-1"
+                                            aria-hidden
+                                        />
+                                    </div>
+                                )}
+                            </li>
+                        ))}
+                        {isFetching && notificationItems.length > 0 && (
+                            <li className="flex justify-center py-3" aria-hidden>
+                                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-4 border-t-green-1" />
+                            </li>
+                        )}
+                    </ul>
+                )
+                }
+            </div >
+        </div >
+    );
+}
+
+export default Notifications;

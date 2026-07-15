@@ -1,0 +1,186 @@
+@import "tailwindcss";
+
+
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-black-1:#030303;
+  --color-black-2:#121212;
+  --color-black-3:#284543;
+  --color-black-4:#0F172A;
+  --color-white-1:#FFFFFF;
+  --color-white-2:#EBEBEB;
+  --color-blue-1:#0195F5;
+  --color-green-1:#007781;
+  --color-green-2:#3C9197;
+  --color-green-3:#C7F1EE;
+  --color-green-4:#E6FBFB;
+  --color-gray-1:#828484;
+  --color-gray-2:#D3D3D3;
+  --color-gray-3:#747474;
+  --color-gray-4: #EFEFEF;
+  --color-gray-5: #F5F5F5;
+  --color-gray-6: #949494;
+  --color-gray-7: #C7C7C7;
+  --color-gray-8: #4B514F;
+  --color-gray-9: #E5E5E5;
+  --color-gray-10: #F6F6F6;
+  --color-gray-11:#727272;
+  --color-gray-12: #EEF2F3;
+  --color-gray-13: #9AA4A6;
+  --color-orange:#EE6134;
+  --color-red-1:#E92440;
+  --color-blue-1:#4286F8;
+  --font-plex:'IBM Plex Sans Variable', sans-serif;
+ --shadow-menu: rgba(0, 0, 0, 0.1) 0px 4px 30px -1px;
+}
+
+
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.truncate-safe {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.75;
+  padding-block: 3px;
+}
+
+.category-swiper.swiper {
+  padding-block: 4px;
+}
+
+.category-swiper .swiper-wrapper {
+    align-items: stretch;
+}
+
+.category-swiper .swiper-slide {
+    height: auto !important;
+    overflow: visible;
+}
+
+.service-category-swiper.swiper {
+  padding-block: 4px;
+}
+
+.service-category-swiper .swiper-wrapper {
+    align-items: stretch;
+}
+
+.service-category-swiper .swiper-slide {
+    height: auto !important;
+    overflow: visible;
+}
+
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+  -webkit-text-fill-color: inherit !important;
+  transition: background-color 9999s ease-in-out 0s !important;
+}
+
+/* Firefox */
+input:-moz-autofill {
+  box-shadow: 0 0 0px 1000px transparent inset !important;
+  -moz-text-fill-color: inherit !important;
+}
+
+.react-calendar__navigation {
+    background: transparent !important;
+    display: flex !important;
+    
+    /* remove nav bar background */
+}
+
+.react-calendar__navigation button {
+    background: transparent !important;
+    /* remove button bg */
+}
+
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus {
+    background: transparent !important;
+    /* no hover bg */
+}
+
+.react-calendar__month-view__weekdays {
+    text-align: center;
+    font-weight: 300;
+    font-size: 12px !important;
+    text-decoration: none !important;
+    font-family: var(--font-inter) !important;
+    color: black !important;
+    /* Tailwind blue-600 */
+    text-transform: capitalize;
+    text-decoration: unset !important;
+}
+
+
+.react-calendar__month-view__weekdays__weekday {
+    /* margin-top: 5px; */
+    color: black;
+    /* Tailwind blue-600 */
+    font-size: 12px;
+    font-weight: 400;
+    text-transform: capitalize;
+    text-decoration: unset !important ;
+
+    padding: 2px 0;
+    border-bottom: 0px;
+}
+.react-calendar__month-view__weekdays__weekday abbr:where([title]) {
+    text-decoration: none !important;
+}
+.react-calendar__month-view__days {
+    margin-top: 16px;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+}
+
+.rtl-calendar .react-calendar__month-view__days {
+    direction: rtl;
+    display: flex !important;
+    flex-direction: row-reverse;
+}
+
+/* Flip weekdays header to RTL */
+.rtl-calendar .react-calendar__month-view__weekdays {
+    direction: rtl;
+    display: flex !important;
+    flex-direction: row-reverse;
+    text-align: center;
+}
+
+.catalog-swiper .swiper-wrapper {
+    align-items: stretch;
+}
+
+.broadcast-swiper.swiper {
+    padding-block: 4px;
+}
+
+.broadcast-swiper .swiper-wrapper {
+    align-items: stretch;
+}
+
+.broadcast-swiper .swiper-slide {
+    height: auto !important;
+    overflow: visible;
+}
+
+.broadcast-swiper img {
+    -webkit-user-drag: none;
+    user-select: none;
+}
