@@ -13,7 +13,7 @@ import {
     useGetAllUsersFromAdminQuery,
 } from "@/store/services/adminService";
 import { useDeleteAccountMutation } from "@/store/services/authService";
-import { parsePositiveInt } from "@/components/Updates/Notifications";
+import { parsePositiveInt } from "@/utils/parsePositiveInt";
 
 type UserStatus = "active" | "inactive" | "deleted";
 

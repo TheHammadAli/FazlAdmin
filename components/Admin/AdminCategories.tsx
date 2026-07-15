@@ -12,7 +12,6 @@ import { useUpdateCategoryMutation } from "@/store/services/adminService";
 import threeDotsIcon from "@/assets/icons/three-dots.svg";
 import Image from "next/image";
 import { useClickOutside } from "@/custom-hooks/useClickOutside";
-import { useCategoriesQuery } from "@/custom-hooks/useCategoriesQuery";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 import { useGetAllCategoriesForAdminQuery } from "@/store/services/adminService";

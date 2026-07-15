@@ -5,7 +5,6 @@ import AuthImagePanel from "./AuthImagePanel";
 import chevDown from "@/assets/icons/chev-down-icon.svg";
 import countries from "country-list-with-dial-code-and-flag";
 import { useClickOutside } from "@/custom-hooks/useClickOutside";
-import GoogleIcon from "@/assets/icons/google-icon.svg";
 import mailIcon from "@/assets/icons/email-icon.svg";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { BeatLoader } from "react-spinners";
@@ -17,7 +16,6 @@ import toast from "react-hot-toast";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setOtpInfo, setProfileCompleted } from "@/store/reducers/authReducer";
 import { useRouter } from "next/navigation";
-import { BASE_URL } from "@/assets/content/constants";
 import { useDebounce } from "use-debounce";
 import locationIcon from "@/assets/icons/location-icon.svg";
 import { useUpdateProfileMutation } from "@/store/services/profileService";
@@ -143,7 +141,7 @@ function CompleteInfo() {
       toast.success(data?.message);
       dispatch(setProfileCompleted(true));
       const timer = setTimeout(() => {
-        router.push("/");
+        router.push("/admin/users");
       }, 500);
       return () => clearTimeout(timer);
     }

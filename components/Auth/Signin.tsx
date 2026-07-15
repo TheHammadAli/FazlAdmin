@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from "react";
-import Image from "next/image";
 import { BeatLoader } from "react-spinners";
 import AuthImagePanel from "./AuthImagePanel";
 import { useAppDispatch } from "@/store/store";
@@ -8,14 +7,12 @@ import { useRouter } from "next/navigation";
 import { useSigninMutation } from "@/store/services/authService";
 import toast from "react-hot-toast";
 import {
-  setGuest,
   setProfileCompleted,
   setToken,
   setUserId,
+  logout,
 } from "@/store/reducers/authReducer";
 import { baseApi } from "@/store/baseApi";
-import { BASE_URL } from "@/assets/content/constants";
-import GoogleIcon from "@/assets/icons/google-icon.svg";
 import DoodleButton from "@/components/Ui/DoodleButton";
 import Footer from "./Footer";
 import { useDictionary } from "@/dictionaries/DictionaryProvider";
@@ -52,7 +49,7 @@ function getSigninErrorMessage(
 function Signin() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { placeholders, error_messages } = useDictionary();
+  const { error_messages } = useDictionary();
 
   const [emailError, setEmailError] = useState("");
   const [email, setEmail] = useState("");
@@ -117,15 +114,21 @@ function Signin() {
         );
       setAdminRoleCookie(isAdmin);
 
-      // ✅ Navigation
+      if (!isAdmin) {
+        dispatch(logout());
+        toast.error("Access denied. Admin account required.", {
+          id: SIGNIN_ERROR_TOAST_ID,
+          duration: SIGNIN_ERROR_TOAST_DURATION_MS,
+        });
+        return;
+      }
+
       if (!res?.data?.user?.phone) {
         dispatch(setProfileCompleted(false));
         router.replace("/complete-info");
-      }
-
-      else {
+      } else {
         dispatch(setProfileCompleted(true));
-        router.replace(isAdmin ? "/admin/users" : "/welcome");
+        router.replace("/admin/users");
       }
     } catch (err) {
       const message = getSigninErrorMessage(
@@ -140,22 +143,17 @@ function Signin() {
     }
   };
 
-  const handleContinueAsGuest = () => {
-    dispatch(setGuest(true));
-    router.replace("/home");
-  };
-
   return (
-    <div className="flex h-screen min-h-[818px] w-full max-w-full overflow-x-hidden">
+    <div className="flex h-dvh w-full max-w-full overflow-hidden">
       {/* Left section */}
       <AuthImagePanel />
 
       {/* Right section */}
       <form
         onSubmit={handleSignin}
-        className="flex w-full min-w-0 flex-col items-center px-5 pt-[80px] sm:px-[50px] lg:w-1/2 lg:justify-between xl:px-[150px]"
+        className="flex h-full w-full min-w-0 flex-col items-center justify-between px-5 pt-[80px] pb-8 sm:px-[50px] lg:w-1/2 xl:px-[150px]"
       >
-        <div className="max-w-[500px] w-full">
+        <div className="w-full max-w-[500px]">
           <h1 className="text-black-1 font-medium text-[22px] text-center">
             Sign in
           </h1>
@@ -229,38 +227,10 @@ function Signin() {
           >
             {isLoading ? <BeatLoader color="white" size={8} /> : "Continue"}
           </DoodleButton>
-
-          <DoodleButton
-            type="button"
-            onClick={() => router.push(`${BASE_URL}/auth/google`)}
-            className="mt-6 flex h-[52px] w-full cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-blue-1 text-white"
-          >
-            <Image src={GoogleIcon} alt="google_icon" />
-            Continue with Google
-          </DoodleButton>
-          <div className="text-center text-[12px] text-gray-8 mt-5">
-            Don&apos;t have an account?{" "}
-            <span
-              className="text-green-1 cursor-pointer hover:underline"
-              onClick={() => router.push("/send-otp")}
-            >
-              Sign up
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={handleContinueAsGuest}
-            className="mt-4 h-[52px] w-full rounded-[12px] cursor-pointer    bg-gray-9 text-[16px] font-medium text-gray-8"
-          >
-            {placeholders.continue_as_guest}
-          </button>
-
-
         </div>
-        <div className="lg:mb-10 mt-14 lg:mt-0">
-          <Footer />
+        <div className="shrink-0">
+          <Footer showLinks={false} />
         </div>
-
       </form>
     </div>
   );

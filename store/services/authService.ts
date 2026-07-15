@@ -1,34 +1,10 @@
 import { baseApi } from "../baseApi";
 
-// Define or import these interfaces from the correct location
-
 export const authService = baseApi.injectEndpoints({
   endpoints: (build) => ({
     sendOtp: build.mutation({
       query: (body) => ({
         url: "/auth/send-otp",
-        method: "POST",
-        body,
-      }),
-    }),
-    verifyOtp: build.mutation({
-      query: (body) => ({
-        url: "/auth/verify-otp",
-        method: "POST",
-        body,
-      }),
-    }),
-    // this is for resed
-    verifyEmail: build.mutation({
-      query: (body) => ({
-        url: "/auth/verify-email",
-        method: "POST",
-        body,
-      }),
-    }),
-    signup: build.mutation({
-      query: (body) => ({
-        url: "/users/createUser",
         method: "POST",
         body,
       }),
@@ -62,25 +38,6 @@ export const authService = baseApi.injectEndpoints({
         };
       },
     }),
-    getUserWithProvidedToken: build.query({
-      query: ({ token }) => {
-        return {
-          url: `/auth/getCurrentUser`,
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        };
-      },
-    }),
-    getProductOwnerDetail: build.query({
-      query: (id) => {
-        return {
-          url: `/users/detail/${id}`,
-          method: "GET",
-        };
-      },
-    }),
     deleteAccount: build.mutation({
       query: ({ id }) => ({
         url: `/users/${id}/deactivate`,
@@ -92,14 +49,9 @@ export const authService = baseApi.injectEndpoints({
 });
 export const {
   useDeleteAccountMutation,
-  useGetProductOwnerDetailQuery,
-  useGetUserWithProvidedTokenQuery,
   useGetLocationsQuery,
   useResetPasswordMutation,
-  useVerifyEmailMutation,
   useForgotPasswordMutation,
   useSendOtpMutation,
-  useVerifyOtpMutation,
-  useSignupMutation,
   useSigninMutation,
 } = authService;

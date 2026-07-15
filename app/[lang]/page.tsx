@@ -1,5 +1,10 @@
-import Wellcome from "@/components/Auth/Wellcome";
+import { redirect } from "next/navigation";
 
-export default function Home() {
-  return <Wellcome />;
+export default async function LangHome({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
+  redirect(`/${lang}/signin`);
 }

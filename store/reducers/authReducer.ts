@@ -1,4 +1,3 @@
-import CompleteInfo from "@/components/Auth/CompleteInfo";
 import { createSlice } from "@reduxjs/toolkit";
 import { setCookie, getCookie, deleteCookie } from "cookies-next";
 import {
@@ -7,7 +6,6 @@ import {
   setProfileCompletedCookie,
   setUserIdCookie,
 } from "@/utils/authCookies";
-import { use } from "react";
 // import { deleteCookie } from "cookies-next";
 
 type otpInfoTypes = {

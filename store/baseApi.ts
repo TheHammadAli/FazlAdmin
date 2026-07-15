@@ -11,15 +11,10 @@ import { getRefreshToken, getToken } from "@/utils/getToken";
 import { extractAuthTokens } from "@/utils/authCookies";
 import { logout, setToken } from "./reducers/authReducer";
 import { getCookie } from "cookies-next";
-import { isGuestSession } from "@/utils/isGuestSession";
 import { i18n } from "@/i18n.config";
 
-/** Login/signup failures must not trigger refresh/logout redirects. */
+/** Login failures must not trigger refresh/logout redirects. */
 const PUBLIC_AUTH_ENDPOINTS = new Set([
-  "sendOtp",
-  "verifyOtp",
-  "verifyEmail",
-  "signup",
   "signin",
   "forgotPassword",
   "resetPassword",
@@ -72,12 +67,7 @@ export const baseQueryWithReauth: BaseQueryFn<
   let result = await rawBaseQuery(args, api, extraOptions);
 
   if (result.error && result.error.status === 401) {
-    // Wrong password / public auth errors: return to the form, do not redirect.
     if (PUBLIC_AUTH_ENDPOINTS.has(api.endpoint)) {
-      return result;
-    }
-    // Guests have no token; do not clear guest session on public API 401s.
-    if (isGuestSession()) {
       return result;
     }
 
@@ -121,21 +111,7 @@ export const baseQueryWithReauth: BaseQueryFn<
 };
 export const baseApi = createApi({
   baseQuery: baseQueryWithReauth,
-  tagTypes: [
-    "profile",
-    "PRODUCT",
-    "NOTIFICATIONS",
-    "SHOP_DETAIL",
-    "SERVICES",
-    "SERVICES_REQUESTS",
-    "Chat",
-    "REVIEW",
-    "BROADCAST",
-    "ORDERS",
-    "CATEGORIES",
-    "ADMIN_USERS",
-    "ADMIN_CATEGORIES",
-  ],
+  tagTypes: ["profile", "CATEGORIES", "ADMIN_USERS", "ADMIN_CATEGORIES"],
   endpoints: () => ({}),
 });
 

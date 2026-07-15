@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { i18n } from "@/i18n.config";
-import {
-  isGuestAllowedPathname,
-  isGuestRestrictedPathname,
-} from "@/utils/guestAccess";
 
 function isAdminPath(path: string) {
   return path === "/admin" || path.startsWith("/admin/");
@@ -26,7 +22,7 @@ export function proxy(request: NextRequest) {
   const urlSearchParams = new URLSearchParams(search);
   const params = Object.fromEntries(urlSearchParams.entries());
   const token = request.cookies.get("token")?.value || "";
-  const isGuest = request.cookies.get("isGuest")?.value === "true";
+  const isAdmin = request.cookies.get("isAdmin")?.value === "true";
   const completeProfile =
     request.cookies.get("profileCompleted")?.value === "true";
   const urlParams = "?" + new URLSearchParams(params);
@@ -44,43 +40,21 @@ export function proxy(request: NextRequest) {
   }
 
   if (isAdminPath(pathname)) {
-    const isAdmin = request.cookies.get("isAdmin")?.value === "true";
-
-    if (!token) {
+    if (!token || !isAdmin) {
       return NextResponse.redirect(new URL(`/${locale}/signin`, request.url));
-    }
-
-    if (!isAdmin) {
-      return NextResponse.redirect(new URL(`/${locale}/home`, request.url));
     }
 
     return NextResponse.next();
   }
 
-  const publicRoutes: string[] = [`/${locale}/google/auth/success`];
-
   const authRoutes: string[] = [
-    `/${locale}/send-otp`,
     `/${locale}/signin`,
-    `/${locale}/signup`,
-    `/${locale}/verify-otp`,
-    `/${locale}/signup-instructor`,
     `/${locale}/forget-password`,
-    `/${locale}/verify-email`,
     `/${locale}/reset-password`,
-    `/${locale}/set-password`,
-  ];
-  const publicInfoRoutes: string[] = [
-    `/${locale}/contact-us`,
-    `/${locale}/terms-conditions`,
-    `/${locale}/privacy-policy`,
   ];
 
   function checkPathStartsWith(path: string) {
     return authRoutes.some((p: string) => path.startsWith(p));
-  }
-  function isPublicInfoRoute(path: string) {
-    return publicInfoRoutes.some((p: string) => path.startsWith(p));
   }
 
   if (pathnameIsMissingLocale) {
@@ -89,36 +63,13 @@ export function proxy(request: NextRequest) {
     }${pathname}${urlParams}`;
     return NextResponse.redirect(new URL(pathname, request.url));
   }
-  if (
-    publicRoutes.some((p: string) => {
-      return pathname.startsWith(p);
-    })
-  ) {
-    return NextResponse.next();
+
+  if (token && isAdmin && (pathname === "/" || pathname === `/${locale}`)) {
+    return NextResponse.redirect(new URL("/admin/users", request.url));
   }
 
-  if (
-    (token || isGuest) &&
-    (pathname === "/" || pathname === `/${locale}`)
-  ) {
-    return NextResponse.redirect(new URL(`/${locale}/home`, request.url));
-  }
-
-  if (isGuest && !token && pathname.startsWith(`/${locale}/complete-info`)) {
-    return NextResponse.redirect(new URL(`/${locale}/home`, request.url));
-  }
-
-  if (
-    isGuest &&
-    !token &&
-    isGuestRestrictedPathname(pathname) &&
-    !isGuestAllowedPathname(pathname)
-  ) {
-    return NextResponse.redirect(new URL(`/${locale}/home`, request.url));
-  }
-
-  if (token && checkPathStartsWith(pathname)) {
-    return NextResponse.redirect(new URL(`/${locale}`, request.url));
+  if (token && isAdmin && checkPathStartsWith(pathname)) {
+    return NextResponse.redirect(new URL("/admin/users", request.url));
   }
 
   if (token && !completeProfile) {
@@ -128,16 +79,12 @@ export function proxy(request: NextRequest) {
       );
     }
   }
+
   if (token && completeProfile && pathname === `/${locale}/complete-info`) {
-    return NextResponse.redirect(new URL(`/${locale}/home`, request.url));
+    return NextResponse.redirect(new URL("/admin/users", request.url));
   }
 
-  if (
-    !token &&
-    !isGuest &&
-    !checkPathStartsWith(pathname) &&
-    !isPublicInfoRoute(pathname)
-  ) {
+  if (!token && !checkPathStartsWith(pathname)) {
     return NextResponse.redirect(new URL(`/${locale}/signin`, request.url));
   }
 
