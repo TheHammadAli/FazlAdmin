@@ -31,6 +31,8 @@ type Category = {
     type: CategoryType;
     icon?: string;
     parameters?: CategoryParameters;
+    sortNumber?: number;
+
 };
 
 type ApiCategory = {
@@ -42,6 +44,7 @@ type ApiCategory = {
     type?: CategoryType;
     icon?: string;
     parameters?: CategoryParameters;
+    sortNumber?: number;
 };
 
 type CategoriesResponse = {
@@ -96,6 +99,7 @@ function mapApiCategory(category: ApiCategory): Category {
                 ur: category.parameters.ur ?? [],
             }
             : undefined,
+        sortNumber: category.sortNumber,
     };
 }
 
@@ -182,9 +186,7 @@ function AdminCategories() {
         isLoading: isCategoriesLoading,
         isFetching: isCategoriesFetching,
     } = useGetAllCategoriesForAdminQuery("")
-
     const [updateCategory] = useUpdateCategoryMutation();
-
     const allCategories = useMemo(() => {
         const response = categoriesResponse as CategoriesResponse | undefined;
         return (response?.data ?? []).map(mapApiCategory);
@@ -292,7 +294,7 @@ function AdminCategories() {
                 setOpen={handleStatusModalOpen}
                 centered
             >
-                <div className="hide-scrollbar w-[92vw] max-w-[390px] rounded-[12px] bg-white p-5 shadow-xl">
+                <div className="hide-scrollbar w-[92vw] max-w-[390px] rounded-[12px] bg-white p-5 shadow-xl ">
                     <h2 className="text-[16px] font-semibold text-black-1">
                         {pendingStatusChange?.action === "activate" ? "Activate category" : "Deactivate category"}
                     </h2>
@@ -378,11 +380,18 @@ function AdminCategories() {
                             <thead className="   ">
                                 <tr className="text-left">
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Sort Number
+                                    </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         <button type="button" className="inline-flex items-center gap-1">
                                             Category Name
                                             <ChevronsUpDown className="h-4 w-4 text-gray-11" />
                                         </button>
                                     </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Type
+                                    </th>
+
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Created Date
                                     </th>
@@ -420,9 +429,18 @@ function AdminCategories() {
                                 {!loading &&
                                     paginatedCategories.map((category) => {
                                         const statusStyle = STATUS_STYLES[category.status];
+                                        console.log(category);
 
                                         return (
                                             <tr key={category.id} className="bg-white">
+                                                <td className="py-3.5 pr-4">
+                                                    <span
+                                                        className={` px-2.5 py-1 text-[12px] font-medium `}
+                                                    >
+                                                        {category.sortNumber}
+                                                    </span>
+                                                </td>
+
                                                 <td className="py-3.5 pr-4">
                                                     <div className="flex items-center gap-2">
 
@@ -434,16 +452,17 @@ function AdminCategories() {
                                                         </span>
                                                     </div>
                                                 </td>
+                                                <td className="py-3.5  pr-4 first-letter:capitalize">
+                                                    <span
+                                                        className={`  py-1 text-[12px] font-medium `}
+                                                    >
+                                                        {category.type}
+                                                    </span>
+                                                </td>
                                                 <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
                                                     {category.createdAt}
                                                 </td>
-                                                {/* <td className="py-3.5 pr-4">
-                                                    <span
-                                                        className={`inline-flex rounded-[6px] px-2.5 py-1 text-[12px] font-medium ${statusStyle.className}`}
-                                                    >
-                                                        {statusStyle.label}
-                                                    </span>
-                                                </td> */}
+
                                                 <td className="py-3.5 text-center">
                                                     <CategoryActionsMenu
                                                         category={category}

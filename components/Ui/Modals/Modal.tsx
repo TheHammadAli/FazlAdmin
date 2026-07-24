@@ -38,7 +38,7 @@ const Modal = ({
           <div
             ref={editModalRef}
             className={`  ${centered &&
-              "absolute max-h-[100vh] left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 overflow-auto"
+              "absolute max-h-[100vh] left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 overflow-auto hide-scrollbar"
               }
               `}
           >

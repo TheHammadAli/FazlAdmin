@@ -27,6 +27,7 @@ export type CategoryFormCategory = {
     type: CategoryType;
     icon?: string;
     parameters?: CategoryParameters;
+    sortNumber?: number;
 };
 
 export type CategoryFormMode = "add" | { type: "edit"; category: CategoryFormCategory };
@@ -39,6 +40,7 @@ const CATEGORY_TYPE_OPTIONS: { value: CategoryType; label: string }[] = [
 type FormErrors = {
     nameEn?: string;
     nameUr?: string;
+    sortNumber?: string;
 };
 
 function ParameterInputList({
@@ -151,6 +153,7 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
     const [nameEn, setNameEn] = useState("");
     const [nameUr, setNameUr] = useState("");
     const [type, setType] = useState<CategoryType>("product");
+    const [sortNumber, setSortNumber] = useState("1");
     const [iconPreview, setIconPreview] = useState<string | null>(null);
     const [iconFile, setIconFile] = useState<File | null>(null);
     const [parametersEn, setParametersEn] = useState<string[]>([]);
@@ -169,6 +172,11 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
         setNameEn(editCategory?.name.en ?? "");
         setNameUr(editCategory?.name.ur ?? "");
         setType(editCategory?.type ?? "product");
+        setSortNumber(
+            editCategory?.sortNumber !== undefined && editCategory?.sortNumber !== null
+                ? String(editCategory.sortNumber)
+                : "1",
+        );
         setIconPreview(editCategory?.icon ?? null);
         setIconFile(null);
         setParametersEn(editCategory?.parameters?.en ?? []);
@@ -201,6 +209,14 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
             nextErrors.nameUr = "Urdu category name is required";
         }
 
+        const trimmedSortNumber = sortNumber.trim();
+        const parsedSortNumber = trimmedSortNumber === "" ? NaN : Number(trimmedSortNumber);
+        if (trimmedSortNumber === "") {
+            nextErrors.sortNumber = "Sort number is required";
+        } else if (!Number.isInteger(parsedSortNumber) || parsedSortNumber < 1) {
+            nextErrors.sortNumber = "Sort number must be an integer starting from 1";
+        }
+
         if (Object.keys(nextErrors).length > 0) {
             setErrors(nextErrors);
             return;
@@ -210,7 +226,13 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
         const trimmedNameUr = nameUr.trim();
         const name = { en: trimmedNameEn, ur: trimmedNameUr };
         const parameters = buildParametersPayload(parametersEn, parametersUr);
-        const payload = { name, type, isDisabled: false, ...(parameters ? { parameters } : {}) };
+        const payload = {
+            name,
+            type,
+            isDisabled: false,
+            sortNumber: parsedSortNumber,
+            ...(parameters ? { parameters } : {}),
+        };
         const body = iconFile
             ? (() => {
                 const formData = new FormData();
@@ -218,6 +240,7 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
                 formData.append("type", type);
                 formData.append("icon", iconFile);
                 formData.append("isDisabled", "false");
+                formData.append("sortNumber", String(parsedSortNumber));
                 if (parameters) {
                     formData.append("parameters", JSON.stringify(parameters));
                 }
@@ -249,7 +272,7 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
 
     return (
         <Modal editModalRef={modalRef} open={open} setOpen={handleSetOpen} centered>
-            <div className="hide-scrollbar w-[92vw] max-w-[520px] rounded-[12px] bg-white p-6 shadow-xl">
+            <div className="hide-scrollbar w-[92vw] max-w-[520px] bg-white rounded-[12px] p-6 shadow-xl ">
                 <div className="flex items-start justify-between gap-4">
                     <h2 className="text-[18px] font-semibold text-[#001907]">
                         {isEdit ? "Edit category" : "Add category"}
@@ -328,8 +351,34 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
                         <ChevronDown className="pointer-events-none cursor-pointer absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-11" />
                     </div>
                 </div>
-
                 <div className="mt-8 space-y-6">
+                    <div>
+                        <label
+                            htmlFor="category-sort-number"
+                            className={`text-[14px] font-normal ${errors.sortNumber ? "text-red-1" : "text-gray-11"}`}
+                        >
+                            Sort number
+                        </label>
+                        <input
+                            id="category-sort-number"
+                            type="number"
+                            min={1}
+                            step={1}
+                            required
+                            value={sortNumber}
+                            onChange={(event) => {
+                                setSortNumber(event.target.value);
+                                if (errors.sortNumber) {
+                                    setErrors((prev) => ({ ...prev, sortNumber: undefined }));
+                                }
+                            }}
+                            placeholder="1"
+                            className={`mt-2 w-full border-0 border-b bg-transparent py-2 text-[14px] text-[#001907] outline-none ${errors.sortNumber ? "border-red-1 focus:border-red-1" : "border-gray-9 focus:border-green-1"}`}
+                        />
+                        {errors.sortNumber && (
+                            <p className="mt-1 text-[12px] font-normal text-red-1">{errors.sortNumber}</p>
+                        )}
+                    </div>
                     <div>
                         <label
                             htmlFor="category-name-en"
@@ -408,7 +457,6 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
                         />
                     </div>
                 </div>
-
                 <div className="mt-8 flex justify-end gap-3">
                     <button
                         type="button"
