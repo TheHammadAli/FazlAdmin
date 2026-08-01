@@ -141,7 +141,7 @@ function CompleteInfo() {
       toast.success(data?.message);
       dispatch(setProfileCompleted(true));
       const timer = setTimeout(() => {
-        router.push("/admin/users");
+        router.push("/admin");
       }, 500);
       return () => clearTimeout(timer);
     }

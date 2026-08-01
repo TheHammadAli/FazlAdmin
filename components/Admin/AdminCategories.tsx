@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronsUpDown, Plus } from "lucide-react";
+import { ChevronsUpDown, Plus, SquarePen } from "lucide-react";
 import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
 import Pagination from "@/components/Ui/Pagination";
@@ -9,9 +9,7 @@ import Modal from "@/components/Ui/Modals/Modal";
 import CategoryFormModal, { type CategoryParameters, type CategoryType } from "@/components/Admin/CategoryFormModal";
 import DoodleButton from "@/components/Ui/DoodleButton";
 import { useUpdateCategoryMutation } from "@/store/services/adminService";
-import threeDotsIcon from "@/assets/icons/three-dots.svg";
 import Image from "next/image";
-import { useClickOutside } from "@/custom-hooks/useClickOutside";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 import { useGetAllCategoriesForAdminQuery } from "@/store/services/adminService";
@@ -51,7 +49,7 @@ type CategoriesResponse = {
     data?: ApiCategory[];
 };
 
-const PAGE_LIMIT = 10;
+const PAGE_LIMIT = 50;
 
 const STATUS_STYLES: Record<Status, { label: string; className: string }> = {
     active: {
@@ -72,6 +70,20 @@ function mapCategoryStatus(category: ApiCategory): Status {
     return "active";
 }
 
+/** Some legacy category documents store a non-string value under name.en/name.ur
+ *  (e.g. a leftover `{ name, values }` object) — guard against that so it never
+ *  ends up in component state or gets rendered directly. */
+function toSafeString(value: unknown): string {
+    return typeof value === "string" ? value : "";
+}
+
+/** Same legacy-data risk applies to parameters.en/parameters.ur array elements —
+ *  drop anything that isn't a plain, non-empty string. */
+function toSafeStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is string => typeof item === "string" && item.trim() !== "");
+}
+
 function mapApiCategory(category: ApiCategory): Category {
     const createdAt = category.createdAt
         ? new Date(category.createdAt).toISOString().slice(0, 10)
@@ -81,8 +93,8 @@ function mapApiCategory(category: ApiCategory): Category {
         typeof category.name === "string"
             ? { en: category.name, ur: category.name }
             : {
-                en: category.name?.en ?? "",
-                ur: category.name?.ur ?? "",
+                en: toSafeString(category.name?.en),
+                ur: toSafeString(category.name?.ur),
             };
 
     return {
@@ -95,8 +107,8 @@ function mapApiCategory(category: ApiCategory): Category {
         icon: category.icon,
         parameters: category.parameters
             ? {
-                en: category.parameters.en ?? [],
-                ur: category.parameters.ur ?? [],
+                en: toSafeStringArray(category.parameters.en),
+                ur: toSafeStringArray(category.parameters.ur),
             }
             : undefined,
         sortNumber: category.sortNumber,
@@ -108,75 +120,11 @@ type PendingStatusChange = {
     action: "activate" | "deactivate";
 };
 
-function CategoryActionsMenu({
-    category,
-    isOpen,
-    onToggle,
-    onClose,
-    onEdit,
-    onStatusAction,
-}: {
-    category: Category;
-    isOpen: boolean;
-    onToggle: () => void;
-    onClose: () => void;
-    onEdit: () => void;
-    onStatusAction: () => void;
-}) {
-    const menuRef = useRef<HTMLDivElement>(null);
-    useClickOutside(menuRef, onClose);
-
-    function handleMenuAction(action: () => void) {
-        return (event: React.MouseEvent) => {
-            event.preventDefault();
-            event.stopPropagation();
-            action();
-            onClose();
-        };
-    }
-
-    return (
-        <div className="relative inline-flex" ref={menuRef}>
-            <button
-                type="button"
-                aria-label="Category actions"
-                onClick={onToggle}
-                className="inline-flex cursor-pointer h-8 w-8 items-center justify-center"
-            >
-                <Image src={threeDotsIcon} alt="" />
-            </button>
-
-            {isOpen && (
-                <div
-                    onMouseDown={(event) => event.stopPropagation()}
-                    className="absolute right-0 top-8 z-20 w-[136px] rounded-[6px] border-[0.5px] border-[#00000033] bg-white p-1 shadow-xl"
-                >
-                    <button
-                        type="button"
-                        onMouseDown={handleMenuAction(onEdit)}
-                        className="w-full cursor-pointer p-[10px] text-left text-[12px] leading-none hover:bg-green-3"
-                    >
-                        Edit Category
-                    </button>
-                    {/* <button
-                        type="button"
-                        onMouseDown={handleMenuAction(onStatusAction)}
-                        className="w-full cursor-pointer p-[10px] text-left text-[12px] leading-none hover:bg-green-3"
-                    >
-                        {category.status === "active" ? "Deactivate" : "Activate"}
-                    </button> */}
-                </div>
-            )}
-        </div>
-    );
-}
-
 function AdminCategories() {
     const [page, setPage] = useState(1);
     const [updatingCategoryId, setUpdatingCategoryId] = useState<string | null>(null);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [pendingStatusChange, setPendingStatusChange] = useState<PendingStatusChange | null>(null);
-    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
     const statusModalRef = useRef<HTMLDivElement>(null);
@@ -214,7 +162,6 @@ function AdminCategories() {
     }
 
     function openEditCategoryModal(category: Category) {
-        setOpenMenuId(null);
         setEditingCategory(category);
         setIsCategoryFormOpen(true);
     }
@@ -251,7 +198,6 @@ function AdminCategories() {
     }
 
     function openStatusModal(category: Category) {
-        setOpenMenuId(null);
         setPendingStatusChange({
             category,
             action: category.status === "active" ? "deactivate" : "activate",
@@ -358,10 +304,15 @@ function AdminCategories() {
             </Modal>
 
             <div className="bg-[#F6F8FA] pt-10 pb-5">
-                <div className="container mx-auto flex items-center justify-between gap-4 px-5 lg:px-10">
-                    <h1 className="text-[24px] font-semibold text-[#001907] sm:text-[28px]">
-                        {loading ? "..." : `${totalCategories} Categories`}
-                    </h1>
+                <div className="container mx-auto flex flex-wrap items-start justify-between gap-4 px-5 lg:px-10">
+                    <div>
+                        <h1 className="text-[20px] font-semibold text-[#001907] sm:text-[22px]">
+                            Category Management
+                        </h1>
+                        <p className="mt-1 text-[12px] font-normal text-gray-11">
+                            Manage product and service categories shown across the marketplace
+                        </p>
+                    </div>
                     <DoodleButton
                         type="button"
                         onClick={openAddCategoryModal}
@@ -464,18 +415,14 @@ function AdminCategories() {
                                                 </td>
 
                                                 <td className="py-3.5 text-center">
-                                                    <CategoryActionsMenu
-                                                        category={category}
-                                                        isOpen={openMenuId === category.id}
-                                                        onToggle={() =>
-                                                            setOpenMenuId((prev) =>
-                                                                prev === category.id ? null : category.id,
-                                                            )
-                                                        }
-                                                        onClose={() => setOpenMenuId(null)}
-                                                        onEdit={() => openEditCategoryModal(category)}
-                                                        onStatusAction={() => openStatusModal(category)}
-                                                    />
+                                                    <button
+                                                        type="button"
+                                                        aria-label="Edit category"
+                                                        onClick={() => openEditCategoryModal(category)}
+                                                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-gray-11 transition-colors hover:bg-green-4 hover:text-green-1"
+                                                    >
+                                                        <SquarePen className="h-4 w-4" strokeWidth={2} />
+                                                    </button>
                                                 </td>
                                             </tr>
                                         );

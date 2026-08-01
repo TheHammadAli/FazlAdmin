@@ -2,8 +2,30 @@ import { baseApi } from "../baseApi";
 export const adminService = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getAllUsersFromAdmin: build.query({
-      query: ({ page, limit }) => ({
-        url: `/users/allUsers?page=${page}&limit=${limit}`,
+      query: ({ page, limit, search, startDate, endDate }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (search?.trim()) {
+          params.set("search", search.trim());
+        }
+        if (startDate) {
+          params.set("startDate", startDate);
+        }
+        if (endDate) {
+          params.set("endDate", endDate);
+        }
+        return {
+          url: `/users/allUsers?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_USERS"],
+    }),
+    getUserDetail: build.query({
+      query: (id: string) => ({
+        url: `/users/detail/${id}`,
         method: "GET",
       }),
       providesTags: ["ADMIN_USERS"],
@@ -14,6 +36,82 @@ export const adminService = baseApi.injectEndpoints({
         method: "POST",
       }),
       invalidatesTags: ["ADMIN_USERS"],
+    }),
+    getAllShopsFromAdmin: build.query({
+      query: ({ page, limit, search }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (search?.trim()) {
+          params.set("search", search.trim());
+        }
+        return {
+          url: `/shops/allShops?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_SHOPS"],
+    }),
+    getShopDetail: build.query({
+      query: (id: string) => ({
+        url: `/shops/detail/${id}`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_SHOPS"],
+    }),
+    getAllServicesForAdmin: build.query({
+      query: ({ page, limit, search }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (search?.trim()) {
+          params.set("name", search.trim());
+        }
+        return {
+          url: `/search/all-services?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_SERVICES"],
+    }),
+    getServiceDetail: build.query({
+      query: (id: string) => ({
+        url: `/services/${id}`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_SERVICES"],
+    }),
+    getAllProductsForAdmin: build.query({
+      query: ({ page, limit, search }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (search?.trim()) {
+          params.set("name", search.trim());
+        }
+        return {
+          url: `/search/all-products?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_PRODUCTS"],
+    }),
+    getProductDetail: build.query({
+      query: (id: string) => ({
+        url: `/products/detail/${id}`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_PRODUCTS"],
+    }),
+    deleteProduct: build.mutation({
+      query: (id: string) => ({
+        url: `/products/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["ADMIN_PRODUCTS", "ADMIN_FEED"],
     }),
     createNewCategory: build.mutation({
       query: (body) => ({
@@ -40,12 +138,313 @@ export const adminService = baseApi.injectEndpoints({
       },
       providesTags: ["CATEGORIES", "ADMIN_CATEGORIES"],
     }),
+    getAllServiceRequestsForAdmin: build.query({
+      query: ({ page, limit, search, bookingStatus, startDate, endDate }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (search?.trim()) {
+          params.set("search", search.trim());
+        }
+        if (bookingStatus?.trim()) {
+          params.set("bookingStatus", bookingStatus.trim());
+        }
+        if (startDate) {
+          params.set("startDate", startDate);
+        }
+        if (endDate) {
+          params.set("endDate", endDate);
+        }
+        return {
+          url: `/services/bookings/all?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_BOOKINGS"],
+    }),
+    getServiceRequestDetail: build.query({
+      query: (requestId: string) => ({
+        url: `/services/requests/detail/${requestId}`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_BOOKINGS"],
+    }),
+    getServiceRequestStats: build.query({
+      query: () => ({
+        url: `/services/bookings/stats`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_BOOKINGS"],
+    }),
+    getAllBroadcastsForAdmin: build.query({
+      query: ({ page, limit, search, status }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (search?.trim()) {
+          params.set("search", search.trim());
+        }
+        if (status?.trim()) {
+          params.set("status", status.trim());
+        }
+        return {
+          url: `/broadcast/admin/all?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_BROADCASTS"],
+    }),
+    closeBroadcast: build.mutation({
+      query: (broadcastId: string) => ({
+        url: `/broadcast/admin/${broadcastId}/close`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["ADMIN_BROADCASTS"],
+    }),
+    deleteBroadcast: build.mutation({
+      query: (broadcastId: string) => ({
+        url: `/broadcast/admin/${broadcastId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["ADMIN_BROADCASTS"],
+    }),
+    getAllAdminAccounts: build.query({
+      query: ({ page, limit, search }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (search?.trim()) {
+          params.set("search", search.trim());
+        }
+        return {
+          url: `/users/admins?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_ACCOUNTS"],
+    }),
+    createAdminAccount: build.mutation({
+      query: (body: { name: string; email: string; role: string; permissions?: string[] }) => ({
+        url: `/users/admins`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_ACCOUNTS"],
+    }),
+    updateAdminAccount: build.mutation({
+      query: ({ id, body }) => ({
+        url: `/users/admins/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_ACCOUNTS"],
+    }),
+    disableAdminAccount: build.mutation({
+      query: (id: string) => ({
+        url: `/users/admins/${id}/disable`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["ADMIN_ACCOUNTS"],
+    }),
+    enableAdminAccount: build.mutation({
+      query: (id: string) => ({
+        url: `/users/admins/${id}/enable`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["ADMIN_ACCOUNTS"],
+    }),
+    resetAdminPassword: build.mutation({
+      query: ({ id, body }: { id: string; body: { newPassword?: string } }) => ({
+        url: `/users/admins/${id}/reset-password`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_ACCOUNTS"],
+    }),
+    disableShop: build.mutation({
+      query: (id: string) => ({
+        url: `/shops/${id}/disable`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["ADMIN_SHOPS"],
+    }),
+    enableShop: build.mutation({
+      query: (id: string) => ({
+        url: `/shops/${id}/enable`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["ADMIN_SHOPS"],
+    }),
+    getFeedVideos: build.query({
+      query: ({ page, limit, search }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (search?.trim()) {
+          params.set("search", search.trim());
+        }
+        return {
+          url: `/products/admin/with-videos?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_FEED"],
+    }),
+    suspendFeedVideo: build.mutation({
+      query: (id: string) => ({
+        url: `/products/${id}/disable`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["ADMIN_FEED"],
+    }),
+    enableFeedVideo: build.mutation({
+      query: (id: string) => ({
+        url: `/products/${id}/enable`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["ADMIN_FEED"],
+    }),
+    getAllMembers: build.query({
+      query: () => ({
+        url: `/users/members`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_MEMBERS"],
+    }),
+    createMember: build.mutation({
+      query: (body: { name: string; email: string }) => ({
+        url: `/users/members`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_MEMBERS"],
+    }),
+    updateMember: build.mutation({
+      query: ({ id, body }: { id: string; body: { name?: string; email?: string } }) => ({
+        url: `/users/members/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_MEMBERS"],
+    }),
+    deleteMember: build.mutation({
+      query: (id: string) => ({
+        url: `/users/members/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["ADMIN_MEMBERS", "ADMIN_TASKS"],
+    }),
+    getAllTasks: build.query({
+      query: ({ page, limit, search, status }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (search?.trim()) {
+          params.set("search", search.trim());
+        }
+        if (status?.trim()) {
+          params.set("status", status.trim());
+        }
+        return {
+          url: `/tasks?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_TASKS"],
+    }),
+    createTask: build.mutation({
+      query: (body: {
+        title: string;
+        description?: string;
+        assignees: string[];
+        priority?: string;
+        dueDate?: string;
+      }) => ({
+        url: `/tasks`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_TASKS"],
+    }),
+    updateTask: build.mutation({
+      query: ({ id, body }) => ({
+        url: `/tasks/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_TASKS"],
+    }),
+    deleteTask: build.mutation({
+      query: (id: string) => ({
+        url: `/tasks/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["ADMIN_TASKS"],
+    }),
+    getAllActivityLogs: build.query({
+      query: ({ page, limit, search, action }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (search?.trim()) {
+          params.set("search", search.trim());
+        }
+        if (action?.trim()) {
+          params.set("action", action.trim());
+        }
+        return {
+          url: `/activity-logs?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_ACTIVITY_LOGS"],
+    }),
   }),
 });
 export const {
   useGetAllCategoriesForAdminQuery,
   useGetAllUsersFromAdminQuery,
+  useGetUserDetailQuery,
+  useGetAllShopsFromAdminQuery,
+  useGetShopDetailQuery,
+  useGetAllServicesForAdminQuery,
+  useGetServiceDetailQuery,
+  useGetAllProductsForAdminQuery,
+  useGetProductDetailQuery,
+  useDeleteProductMutation,
   useActivateUserMutation,
   useCreateNewCategoryMutation,
   useUpdateCategoryMutation,
+  useGetAllServiceRequestsForAdminQuery,
+  useGetServiceRequestDetailQuery,
+  useGetServiceRequestStatsQuery,
+  useGetAllBroadcastsForAdminQuery,
+  useCloseBroadcastMutation,
+  useDeleteBroadcastMutation,
+  useGetAllAdminAccountsQuery,
+  useCreateAdminAccountMutation,
+  useUpdateAdminAccountMutation,
+  useDisableAdminAccountMutation,
+  useEnableAdminAccountMutation,
+  useResetAdminPasswordMutation,
+  useDisableShopMutation,
+  useEnableShopMutation,
+  useGetAllActivityLogsQuery,
+  useGetFeedVideosQuery,
+  useSuspendFeedVideoMutation,
+  useEnableFeedVideoMutation,
+  useGetAllMembersQuery,
+  useCreateMemberMutation,
+  useUpdateMemberMutation,
+  useDeleteMemberMutation,
+  useGetAllTasksQuery,
+  useCreateTaskMutation,
+  useUpdateTaskMutation,
+  useDeleteTaskMutation,
 } = adminService;

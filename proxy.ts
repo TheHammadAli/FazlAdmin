@@ -44,7 +44,12 @@ export function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL(`/${locale}/signin`, request.url));
     }
 
-    return NextResponse.next();
+    // Prevent the browser's back/forward cache from restoring this page after logout —
+    // without this, hitting "back" could flash the previous admin page before any
+    // client-side check catches up, since bfcache restores skip this middleware entirely.
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "no-store, must-revalidate");
+    return response;
   }
 
   const authRoutes: string[] = [
@@ -65,11 +70,11 @@ export function proxy(request: NextRequest) {
   }
 
   if (token && isAdmin && (pathname === "/" || pathname === `/${locale}`)) {
-    return NextResponse.redirect(new URL("/admin/users", request.url));
+    return NextResponse.redirect(new URL("/admin", request.url));
   }
 
   if (token && isAdmin && checkPathStartsWith(pathname)) {
-    return NextResponse.redirect(new URL("/admin/users", request.url));
+    return NextResponse.redirect(new URL("/admin", request.url));
   }
 
   if (token && !completeProfile) {
@@ -81,7 +86,7 @@ export function proxy(request: NextRequest) {
   }
 
   if (token && completeProfile && pathname === `/${locale}/complete-info`) {
-    return NextResponse.redirect(new URL("/admin/users", request.url));
+    return NextResponse.redirect(new URL("/admin", request.url));
   }
 
   if (!token && !checkPathStartsWith(pathname)) {

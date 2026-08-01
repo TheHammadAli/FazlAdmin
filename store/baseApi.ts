@@ -71,6 +71,13 @@ export const baseQueryWithReauth: BaseQueryFn<
       return result;
     }
 
+    // A deliberate logout is already navigating away — a stray request from a still-mounted
+    // component racing that transition shouldn't trigger its own redirect on top of it.
+    const state = api.getState() as { authReducer?: { isLoggingOut?: boolean } };
+    if (state.authReducer?.isLoggingOut) {
+      return result;
+    }
+
     const refreshToken = getRefreshToken();
     if (!refreshToken || refreshToken === "" || refreshToken === "undefined") {
       api.dispatch(logout());
@@ -111,7 +118,7 @@ export const baseQueryWithReauth: BaseQueryFn<
 };
 export const baseApi = createApi({
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["profile", "CATEGORIES", "ADMIN_USERS", "ADMIN_CATEGORIES"],
+  tagTypes: ["profile", "CATEGORIES", "ADMIN_USERS", "ADMIN_CATEGORIES", "ADMIN_SHOPS", "ADMIN_SERVICES", "ADMIN_PRODUCTS", "ADMIN_BOOKINGS", "ADMIN_BROADCASTS", "ADMIN_ACCOUNTS", "ADMIN_ACTIVITY_LOGS", "ADMIN_FEED", "ADMIN_MEMBERS", "ADMIN_TASKS"],
   endpoints: () => ({}),
 });
 

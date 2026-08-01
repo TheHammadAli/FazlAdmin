@@ -104,13 +104,14 @@ function Signin() {
 
       dispatch(setUserId(res.data.user.id));
 
+      const ADMIN_PANEL_ROLES = ["admin", "super_admin", "moderator"];
       const roles = res?.data?.user?.roles ?? res?.data?.roles;
       const isAdmin =
         Array.isArray(roles) &&
-        roles.some(
-          (role) =>
-            String(typeof role === "string" ? role : role?.name).toLowerCase() ===
-            "admin",
+        roles.some((role) =>
+          ADMIN_PANEL_ROLES.includes(
+            String(typeof role === "string" ? role : role?.name).toLowerCase(),
+          ),
         );
       setAdminRoleCookie(isAdmin);
 
@@ -128,7 +129,7 @@ function Signin() {
         router.replace("/complete-info");
       } else {
         dispatch(setProfileCompleted(true));
-        router.replace("/admin/users");
+        router.replace("/admin");
       }
     } catch (err) {
       const message = getSigninErrorMessage(

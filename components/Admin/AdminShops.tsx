@@ -1,123 +1,97 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronsUpDown, Eye } from "lucide-react";
-import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
+import { BeatLoader } from "react-spinners";
+import { Eye } from "lucide-react";
 import Pagination from "@/components/Ui/Pagination";
 import Modal from "@/components/Ui/Modals/Modal";
-import DoodleButton from "@/components/Ui/DoodleButton";
 import ToggleSwitch from "@/components/Ui/ToggleSwitch";
-import UserProfileModal from "@/components/Admin/UserProfileModal";
+import ShopDetailModal from "@/components/Admin/ShopDetailModal";
 import {
-    useActivateUserMutation,
-
-    useGetAllUsersFromAdminQuery,
+    useGetAllShopsFromAdminQuery,
+    useDisableShopMutation,
+    useEnableShopMutation,
 } from "@/store/services/adminService";
-import { useDeleteAccountMutation } from "@/store/services/authService";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
-import { getDateRangeForFilter } from "@/utils/getDateRangeForFilter";
 import searchIcon from "@/assets/icons/searchIcon.svg";
-import DateRangeFilter, { type DateFilterValue } from "@/components/Ui/DateRangeFilter";
+import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 
 const SEARCH_DEBOUNCE_MS = 400;
+const PAGE_LIMIT = 50;
 
-type UserStatus = "active" | "inactive" | "deleted";
+type ShopStatus = "active" | "suspended";
 
-type AdminUser = {
+type AdminShop = {
     id: string;
-    userCode: string;
-    name: string;
-    email: string;
-    joinDate: string;
-    status: UserStatus;
+    shopCode: string;
+    title: string;
+    image?: string;
+    address: string;
+    createdAt: string;
+    status: ShopStatus;
 };
 
-type ApiAdminUser = {
+type ApiAdminShop = {
     _id?: string;
     id?: string;
-    userCode?: string;
-    name?: string;
-    email?: string;
+    shopCode?: string;
+    title?: string;
+    image?: string;
+    address?: string;
     createdAt?: string;
     isDisabled?: boolean;
 };
 
-type AdminUsersResponse = {
-    data?: ApiAdminUser[];
+type AdminShopsResponse = {
+    data?: ApiAdminShop[];
     meta?: {
         total?: number | string;
         totalPages?: number | string;
     };
 };
 
-const PAGE_LIMIT = 50;
-
-const STATUS_LABELS: Record<UserStatus, string> = {
-    active: "Active",
-    inactive: "In active",
-    deleted: "Deleted",
+const STATUS_STYLES: Record<ShopStatus, { label: string; className: string }> = {
+    active: {
+        label: "Active",
+        className: "bg-[#CEF4CF] text-[#0F172A]",
+    },
+    suspended: {
+        label: "Suspended",
+        className: "bg-[#FDD5D5] text-[#0F172A]",
+    },
 };
 
-function mapUserStatus(user: ApiAdminUser): UserStatus {
-
-    if (user.isDisabled) {
-        return "inactive";
-    }
-
-    return "active";
-}
-
-function mapApiUser(user: ApiAdminUser): AdminUser {
-    const joinDate = user.createdAt
-        ? new Date(user.createdAt).toISOString().slice(0, 10)
+function mapApiShop(shop: ApiAdminShop): AdminShop {
+    const createdAt = shop.createdAt
+        ? new Date(shop.createdAt).toISOString().slice(0, 10)
         : "-";
 
     return {
-        id: user._id ?? user.id ?? "",
-        userCode: user.userCode ?? "-",
-        name: user.name ?? "-",
-        email: user.email ?? "-",
-        joinDate,
-        status: mapUserStatus(user),
+        id: shop._id ?? shop.id ?? "",
+        shopCode: shop.shopCode ?? "-",
+        title: shop.title ?? "-",
+        image: shop.image,
+        address: shop.address ?? "-",
+        createdAt,
+        status: shop.isDisabled ? "suspended" : "active",
     };
 }
 
-function getInitials(name: string) {
-    return name
-        .split(" ")
-        .map((part) => part.charAt(0))
-        .join("")
-        .slice(0, 2)
-        .toUpperCase();
-}
-
 type PendingStatusChange = {
-    user: AdminUser;
-    action: "activate" | "deactivate";
+    shop: AdminShop;
+    action: "disable" | "enable";
 };
 
-function AdminUsers() {
+function AdminShops() {
     const [page, setPage] = useState(1);
     const [searchInput, setSearchInput] = useState("");
     const [search, setSearch] = useState("");
-    const [dateFilter, setDateFilter] = useState<DateFilterValue>("all");
-    const [customStartDate, setCustomStartDate] = useState("");
-    const [customEndDate, setCustomEndDate] = useState("");
-    const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-    const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+    const [viewingShopId, setViewingShopId] = useState<string | null>(null);
     const [pendingStatusChange, setPendingStatusChange] = useState<PendingStatusChange | null>(null);
-    const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+    const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const statusModalRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const linkedUserId = params.get("viewUserId");
-        if (linkedUserId) {
-            setViewingUserId(linkedUserId);
-        }
-    }, []);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -128,83 +102,68 @@ function AdminUsers() {
         return () => clearTimeout(timer);
     }, [searchInput]);
 
-    useEffect(() => {
-        setPage(1);
-    }, [dateFilter, customStartDate, customEndDate]);
-
-    const { startDate, endDate } = getDateRangeForFilter(
-        dateFilter,
-        customStartDate,
-        customEndDate,
-    );
-
     const {
-        data: usersResponse,
+        data: shopsResponse,
         isLoading,
         isFetching,
-    } = useGetAllUsersFromAdminQuery({ page, limit: PAGE_LIMIT, search, startDate, endDate });
+    } = useGetAllShopsFromAdminQuery({ page, limit: PAGE_LIMIT, search });
 
-    const [activateUser] = useActivateUserMutation();
-    const [deleteAccount] = useDeleteAccountMutation();
-    const users = useMemo(() => {
-        const response = usersResponse as AdminUsersResponse | undefined;
-        return (response?.data ?? []).map(mapApiUser);
-    }, [usersResponse]);
+    const [disableShop, { isLoading: isDisabling }] = useDisableShopMutation();
+    const [enableShop, { isLoading: isEnabling }] = useEnableShopMutation();
+    const isChangingStatus = isDisabling || isEnabling;
 
-    const totalUsers =
-        parsePositiveInt((usersResponse as AdminUsersResponse | undefined)?.meta?.total) ??
-        users.length;
+    const shops = ((shopsResponse as AdminShopsResponse | undefined)?.data ?? []).map(mapApiShop);
+
+    const totalShops =
+        parsePositiveInt((shopsResponse as AdminShopsResponse | undefined)?.meta?.total) ??
+        shops.length;
 
     const pageCount =
-        parsePositiveInt((usersResponse as AdminUsersResponse | undefined)?.meta?.totalPages) ??
-        Math.max(1, Math.ceil(totalUsers / PAGE_LIMIT));
+        parsePositiveInt((shopsResponse as AdminShopsResponse | undefined)?.meta?.totalPages) ??
+        Math.max(1, Math.ceil(totalShops / PAGE_LIMIT));
 
     const loading = isLoading || isFetching;
 
-    async function handleStatusChange(user: AdminUser, action: "activate" | "deactivate") {
-        setUpdatingUserId(user.id);
-
+    async function handleStatusChange(shop: AdminShop, action: "disable" | "enable") {
         try {
             const response =
-                action === "activate"
-                    ? await activateUser({ id: user.id }).unwrap()
-                    : await deleteAccount({ id: user.id }).unwrap();
+                action === "disable"
+                    ? await disableShop(shop.id).unwrap()
+                    : await enableShop(shop.id).unwrap();
 
-            toast.success(response.message);
+            toast.success((response as { message?: string })?.message ?? "Shop status updated");
 
             setIsStatusModalOpen(false);
             setPendingStatusChange(null);
         } catch (err) {
             const errorData = err as { data?: { message?: string } };
             toast.error(errorData?.data?.message ?? "Something went wrong");
-        } finally {
-            setUpdatingUserId(null);
         }
     }
 
-    function openStatusModal(user: AdminUser) {
+    function openStatusModal(shop: AdminShop) {
         setPendingStatusChange({
-            user,
-            action: user.status === "active" ? "deactivate" : "activate",
+            shop,
+            action: shop.status === "active" ? "disable" : "enable",
         });
         setIsStatusModalOpen(true);
     }
 
     function closeStatusModal() {
-        if (updatingUserId) return;
+        if (isChangingStatus) return;
         setIsStatusModalOpen(false);
         setPendingStatusChange(null);
     }
 
     useEffect(() => {
-        if (!isStatusModalOpen && !updatingUserId) {
+        if (!isStatusModalOpen && !isChangingStatus) {
             setPendingStatusChange(null);
         }
-    }, [isStatusModalOpen, updatingUserId]);
+    }, [isStatusModalOpen, isChangingStatus]);
 
     return (
-        <section className="  ">
-            <UserProfileModal userId={viewingUserId} onClose={() => setViewingUserId(null)} />
+        <section>
+            <ShopDetailModal shopId={viewingShopId} onClose={() => setViewingShopId(null)} />
 
             <Modal
                 editModalRef={statusModalRef}
@@ -214,12 +173,12 @@ function AdminUsers() {
             >
                 <div className="hide-scrollbar w-[92vw] max-w-[390px] rounded-[12px] bg-white p-5 shadow-xl">
                     <h2 className="text-[16px] font-semibold text-black-1">
-                        {pendingStatusChange?.action === "activate" ? "Activate user" : "Deactivate user"}
+                        {pendingStatusChange?.action === "enable" ? "Enable shop" : "Suspend shop"}
                     </h2>
                     <p className="mt-2 text-[14px] text-gray-8">
-                        Are you sure you want to {pendingStatusChange?.action === "activate" ? "activate" : "deactivate"}{" "}
+                        Are you sure you want to {pendingStatusChange?.action === "enable" ? "enable" : "suspend"}{" "}
                         <span className="font-medium text-[#001907]">
-                            {pendingStatusChange?.user.name}
+                            {pendingStatusChange?.shop.title}
                         </span>
                         ?
                     </p>
@@ -227,48 +186,34 @@ function AdminUsers() {
                         <button
                             type="button"
                             onClick={closeStatusModal}
-                            disabled={Boolean(updatingUserId)}
+                            disabled={isChangingStatus}
                             className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-green-1 text-[14px] font-medium text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             Cancel
                         </button>
-                        {pendingStatusChange?.action === "activate" ? (
-                            <DoodleButton
+                        {pendingStatusChange?.action === "enable" ? (
+                            <button
                                 type="button"
-                                disabled={Boolean(updatingUserId)}
+                                disabled={isChangingStatus}
                                 onClick={() => {
                                     if (!pendingStatusChange) return;
-                                    handleStatusChange(
-                                        pendingStatusChange.user,
-                                        pendingStatusChange.action,
-                                    );
+                                    handleStatusChange(pendingStatusChange.shop, pendingStatusChange.action);
                                 }}
                                 className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-green-1 bg-green-1 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {updatingUserId ? (
-                                    <BeatLoader color="white" size={8} />
-                                ) : (
-                                    "Confirm"
-                                )}
-                            </DoodleButton>
+                                {isChangingStatus ? <BeatLoader color="white" size={8} /> : "Confirm"}
+                            </button>
                         ) : (
                             <button
                                 type="button"
-                                disabled={Boolean(updatingUserId)}
+                                disabled={isChangingStatus}
                                 onClick={() => {
                                     if (!pendingStatusChange) return;
-                                    handleStatusChange(
-                                        pendingStatusChange.user,
-                                        pendingStatusChange.action,
-                                    );
+                                    handleStatusChange(pendingStatusChange.shop, pendingStatusChange.action);
                                 }}
                                 className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-[#E92440] bg-[#E92440] text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {updatingUserId ? (
-                                    <BeatLoader color="white" size={8} />
-                                ) : (
-                                    "Confirm"
-                                )}
+                                {isChangingStatus ? <BeatLoader color="white" size={8} /> : "Confirm"}
                             </button>
                         )}
                     </div>
@@ -278,15 +223,15 @@ function AdminUsers() {
             <div className="bg-[#F6F8FA] pt-10 pb-5">
                 <div className="container mx-auto px-5 lg:px-10">
                     <h1 className="text-[20px] font-semibold text-[#001907] sm:text-[22px]">
-                        User Management
+                        Shop Management
                     </h1>
                     <p className="mt-1 text-[12px] font-normal text-gray-11">
-                        Manage your platform users and their access
+                        Manage all shops registered on the marketplace
                     </p>
                 </div>
 
-                <div className="container mx-auto mt-4 flex flex-wrap items-center justify-between gap-3 px-5 lg:px-10">
-                    <div className="relative max-w-[320px] flex-1">
+                <div className="container mx-auto mt-4 px-5 lg:px-10">
+                    <div className="relative max-w-[320px]">
                         <Image
                             src={searchIcon}
                             alt=""
@@ -296,48 +241,36 @@ function AdminUsers() {
                             type="text"
                             value={searchInput}
                             onChange={(event) => setSearchInput(event.target.value)}
-                            placeholder="Search by name or ID..."
+                            placeholder="Search by shop name or ID..."
                             className="h-10 w-full rounded-[8px] border border-gray-9 bg-white pl-9 pr-3 text-[14px] text-[#001907] outline-none placeholder:text-gray-11 focus:border-green-1"
                         />
                     </div>
-
-                    <DateRangeFilter
-                        value={dateFilter}
-                        onChange={setDateFilter}
-                        startDate={customStartDate}
-                        endDate={customEndDate}
-                        onStartDateChange={setCustomStartDate}
-                        onEndDateChange={setCustomEndDate}
-                    />
                 </div>
             </div>
 
             <div className="bg-white">
-                <div className="container px-5 lg:px-10 mx-auto mt-4 ">
+                <div className="container px-5 lg:px-10 mx-auto mt-4">
                     <div className="overflow-x-auto">
-                        <table className="min-w-[760px] w-full">
-                            <thead className="   ">
+                        <table className="min-w-[720px] w-full">
+                            <thead>
                                 <tr className="text-left">
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
-                                        User ID
+                                        Shop ID
                                     </th>
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
-                                        <button type="button" className="inline-flex items-center gap-1">
-                                            Name
-                                            <ChevronsUpDown className="h-4 w-4 text-gray-11" />
-                                        </button>
+                                        Shop
                                     </th>
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
-                                        Email
-                                    </th>
-                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
-                                        Join Date
+                                        Address
                                     </th>
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Status
                                     </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Created Date
+                                    </th>
                                     <th className="py-3 text-center text-[14px] font-medium text-[#001907]">
-                                        Profile
+                                        Details
                                     </th>
                                 </tr>
                             </thead>
@@ -353,67 +286,78 @@ function AdminUsers() {
                                         </tr>
                                     ))}
 
-                                {!loading && users.length === 0 && (
+                                {!loading && shops.length === 0 && (
                                     <tr>
                                         <td
                                             colSpan={6}
                                             className="py-8 text-center text-[14px] text-gray-11"
                                         >
-                                            No users found
+                                            No shops found
                                         </td>
                                     </tr>
                                 )}
 
                                 {!loading &&
-                                    users.map((user) => {
-                                        const isUpdating = updatingUserId === user.id;
+                                    shops.map((shop) => {
+                                        const statusStyle = STATUS_STYLES[shop.status];
 
                                         return (
-                                            <tr key={user.id} className="bg-white">
+                                            <tr key={shop.id} className="bg-white">
                                                 <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
-                                                    {user.userCode}
+                                                    {shop.shopCode}
                                                 </td>
                                                 <td className="py-3.5 pr-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E6FBFB] text-[11px] font-medium text-[#030303]">
-                                                            {getInitials(user.name)}
-                                                        </div>
-                                                        <span className="whitespace-nowrap first-letter:capitalize  text-[14px] font-normal text-[#001907]">
-                                                            {user.name}
+                                                        {shop.image ? (
+                                                            <Image
+                                                                src={shop.image}
+                                                                unoptimized
+                                                                alt=""
+                                                                height={32}
+                                                                width={32}
+                                                                className="h-8 w-8 shrink-0 rounded-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <Image
+                                                                src={noImageIcon}
+                                                                alt=""
+                                                                className="h-8 w-8 shrink-0 rounded-full object-cover"
+                                                            />
+                                                        )}
+                                                        <span className="whitespace-nowrap text-[14px] font-normal text-[#001907]">
+                                                            {shop.title}
                                                         </span>
                                                     </div>
                                                 </td>
                                                 <td className="py-3.5 pr-4 text-[14px] font-normal text-gray-11">
-                                                    {user.email}
-                                                </td>
-                                                <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
-                                                    {user.joinDate}
+                                                    {shop.address}
                                                 </td>
                                                 <td className="py-3.5 pr-4">
                                                     <div className="flex items-center gap-2.5">
                                                         <ToggleSwitch
-                                                            checked={user.status === "active"}
-                                                            disabled={isUpdating}
+                                                            checked={shop.status === "active"}
+                                                            disabled={isChangingStatus}
                                                             ariaLabel={
-                                                                user.status === "active"
-                                                                    ? `Deactivate ${user.name}`
-                                                                    : `Activate ${user.name}`
+                                                                shop.status === "active"
+                                                                    ? `Suspend ${shop.title}`
+                                                                    : `Enable ${shop.title}`
                                                             }
-                                                            onChange={() => openStatusModal(user)}
+                                                            onChange={() => openStatusModal(shop)}
                                                         />
-                                                        {isUpdating ? (
-                                                            <BeatLoader size={6} color="#007781" />
-                                                        ) : (
-                                                            <span className="whitespace-nowrap text-[13px] font-normal text-gray-11">
-                                                                {STATUS_LABELS[user.status]}
-                                                            </span>
-                                                        )}
+                                                        <span
+                                                            className={`inline-flex whitespace-nowrap rounded-[6px] px-2.5 py-1 text-[12px] font-medium ${statusStyle.className}`}
+                                                        >
+                                                            {statusStyle.label}
+                                                        </span>
                                                     </div>
+                                                </td>
+                                                <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
+                                                    {shop.createdAt}
                                                 </td>
                                                 <td className="py-3.5 text-center">
                                                     <button
                                                         type="button"
-                                                        onClick={() => setViewingUserId(user.id)}
+                                                        onClick={() => setViewingShopId(shop.id)}
                                                         className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-green-1 hover:underline"
                                                     >
                                                         <Eye className="h-3.5 w-3.5" />
@@ -430,18 +374,15 @@ function AdminUsers() {
 
                 {!loading && (
                     <Pagination
-                        className="container mx-auto px-5 lg:px-10 "
+                        className="container mx-auto px-5 lg:px-10"
                         pageCount={pageCount}
                         currentPage={page}
                         onPageChange={setPage}
                     />
                 )}
             </div>
-
-
-
         </section>
     );
 }
 
-export default AdminUsers;
+export default AdminShops;

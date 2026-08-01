@@ -7,7 +7,7 @@ import Image from "next/image";
 import { toast } from "react-hot-toast";
 import DoodleButton from "@/components/Ui/DoodleButton";
 import Modal from "@/components/Ui/Modals/Modal";
-import { ChevronDown, Plus, X } from "lucide-react";
+import { Check, ChevronDown, Plus, Tag, X } from "lucide-react";
 import {
     useCreateNewCategoryMutation,
     useUpdateCategoryMutation,
@@ -97,22 +97,26 @@ function ParameterInputList({
             </div>
             {values.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
-                    {values.map((value, index) => (
-                        <span
-                            key={`${value}-${index}`}
-                            className="inline-flex items-center gap-1 rounded-[6px] bg-[#E6FBFB] px-2.5 py-1 text-[12px] text-[#001907]"
-                        >
-                            <span dir={dir}>{value}</span>
-                            <button
-                                type="button"
-                                onClick={() => onRemove(index)}
-                                className="inline-flex cursor-pointer items-center justify-center text-gray-11 hover:text-red-1"
-                                aria-label={`Remove ${value}`}
+                    {values.map((value, index) => {
+                        const safeValue = typeof value === "string" ? value : "";
+
+                        return (
+                            <span
+                                key={`${safeValue}-${index}`}
+                                className="inline-flex items-center gap-1 rounded-[6px] bg-[#E6FBFB] px-2.5 py-1 text-[12px] text-[#001907]"
                             >
-                                <X className="h-3 w-3" />
-                            </button>
-                        </span>
-                    ))}
+                                <span dir={dir}>{safeValue}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => onRemove(index)}
+                                    className="inline-flex cursor-pointer items-center justify-center text-gray-11 hover:text-red-1"
+                                    aria-label={`Remove ${safeValue}`}
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </span>
+                        );
+                    })}
                 </div>
             )}
         </div>
@@ -272,9 +276,10 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
 
     return (
         <Modal editModalRef={modalRef} open={open} setOpen={handleSetOpen} centered>
-            <div className="hide-scrollbar w-[92vw] max-w-[520px] bg-white rounded-[12px] p-6 shadow-xl ">
+            <div className="hide-scrollbar w-[92vw] max-w-[600px] bg-white rounded-[12px] p-6 shadow-xl ">
                 <div className="flex items-start justify-between gap-4">
-                    <h2 className="text-[18px] font-semibold text-[#001907]">
+                    <h2 className="flex items-center gap-2 text-[18px] font-semibold text-[#001907]">
+                        <Tag className="h-5 w-5 text-green-1" strokeWidth={2} />
                         {isEdit ? "Edit category" : "Add category"}
                     </h2>
                     <button
@@ -328,30 +333,31 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
                         }}
                     />
                 </div>
-                <div className="mt-6">
-                    <label
-                        htmlFor="category-type"
-                        className="text-[14px] font-normal text-gray-11"
-                    >
-                        Type
-                    </label>
-                    <div className="relative mt-2">
-                        <select
-                            id="category-type"
-                            value={type}
-                            onChange={(event) => setType(event.target.value as CategoryType)}
-                            className="w-full appearance-none border-0 border-b border-gray-9 bg-transparent py-2 pr-8 text-[14px] text-[#001907] outline-none focus:border-green-1"
+                <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    <div>
+                        <label
+                            htmlFor="category-type"
+                            className="text-[14px] font-normal text-gray-11"
                         >
-                            {CATEGORY_TYPE_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                        <ChevronDown className="pointer-events-none cursor-pointer absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-11" />
+                            Type
+                        </label>
+                        <div className="relative mt-2">
+                            <select
+                                id="category-type"
+                                value={type}
+                                onChange={(event) => setType(event.target.value as CategoryType)}
+                                className="w-full appearance-none border-0 border-b border-gray-9 bg-transparent py-2 pr-8 text-[14px] text-[#001907] outline-none focus:border-green-1"
+                            >
+                                {CATEGORY_TYPE_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown className="pointer-events-none cursor-pointer absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-11" />
+                        </div>
                     </div>
-                </div>
-                <div className="mt-8 space-y-6">
+
                     <div>
                         <label
                             htmlFor="category-sort-number"
@@ -379,6 +385,9 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
                             <p className="mt-1 text-[12px] font-normal text-red-1">{errors.sortNumber}</p>
                         )}
                     </div>
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
                     <div>
                         <label
                             htmlFor="category-name-en"
@@ -403,6 +412,7 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
                             <p className="mt-1 text-[12px] font-normal text-red-1">{errors.nameEn}</p>
                         )}
                     </div>
+
                     <div>
                         <label
                             htmlFor="category-name-ur"
@@ -428,8 +438,13 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
                             <p className="mt-1 text-[12px] font-normal text-red-1">{errors.nameUr}</p>
                         )}
                     </div>
+                </div>
 
-                    <div className="space-y-4">
+                <div className="mt-8 border-t border-gray-9 pt-6">
+                    <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
+                        Parameters (optional)
+                    </p>
+                    <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <ParameterInputList
                             id="category-parameters-en"
                             label="Parameters (English)"
@@ -475,9 +490,15 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
                         {isSubmitting ? (
                             <BeatLoader color="white" size={8} />
                         ) : isEdit ? (
-                            "Confirm Changes"
+                            <>
+                                <Check className="h-4 w-4" strokeWidth={2} />
+                                Confirm Changes
+                            </>
                         ) : (
-                            "Add category"
+                            <>
+                                <Plus className="h-4 w-4" strokeWidth={2} />
+                                Add category
+                            </>
                         )}
                     </DoodleButton>
                 </div>

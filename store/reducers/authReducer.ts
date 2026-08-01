@@ -63,6 +63,10 @@ const authSlice = createSlice({
     userId: userId,
     profileCompleted: profileCompleted,
     isGuest: isGuest,
+    /** Set right before a deliberate logout navigates away, so any request that fires during
+     *  that brief transition (e.g. a still-mounted sidebar query) doesn't 401 into a stray
+     *  redirect racing the intentional one. Cleared again on the next successful login. */
+    isLoggingOut: false,
   },
   reducers: {
     setOtpInfo: (state, action) => {
@@ -80,6 +84,7 @@ const authSlice = createSlice({
         state.refreshToken = action.payload.refreshToken;
       }
       state.isGuest = false;
+      state.isLoggingOut = false;
       setAuthTokens({
         accessToken: action.payload.accessToken,
         refreshToken: action.payload.refreshToken ?? state.refreshToken,
@@ -105,6 +110,9 @@ const authSlice = createSlice({
       state.profileCompleted = action.payload;
       setProfileCompletedCookie(action.payload);
     },
+    beginLogout: (state) => {
+      state.isLoggingOut = true;
+    },
     logout: (state) => {
       state.token = "";
       state.refreshToken = "";
@@ -128,6 +136,7 @@ export const {
   setConfirmPwd,
   setToken,
   setUserId,
+  beginLogout,
   logout,
   setProfileCompleted,
   setGuest,

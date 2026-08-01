@@ -46,6 +46,18 @@
   display: none;
 }
 
+html,
+body,
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+}
+
 .truncate-safe {
   display: block;
   min-width: 0;
