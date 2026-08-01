@@ -8,11 +8,9 @@ function AdminLayout({ children }: { children: ReactNode }) {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
     return (
-        <div className="flex min-h-screen bg-[#F6F8FA]">
-            <aside className="hidden border-r border-gray-9 md:block md:w-64 md:shrink-0">
-                <div className="sticky top-0 h-screen">
-                    <AdminSidebar />
-                </div>
+        <div className="flex h-screen overflow-hidden bg-[#F6F8FA]">
+            <aside className="hidden h-screen border-r border-gray-9 md:block md:w-64 md:shrink-0">
+                <AdminSidebar />
             </aside>
 
             {isMobileNavOpen && (
@@ -27,7 +25,7 @@ function AdminLayout({ children }: { children: ReactNode }) {
                 </div>
             )}
 
-            <div className="flex min-h-screen flex-1 flex-col">
+            <div className="flex h-screen flex-1 flex-col overflow-y-auto">
                 <AdminHeader onMenuClick={() => setIsMobileNavOpen(true)} />
                 <main className="flex-1">{children}</main>
             </div>
