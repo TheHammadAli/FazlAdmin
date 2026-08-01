@@ -18,10 +18,8 @@ type ApiRecipient = {
 };
 
 type RecipientsResponse = {
-    data?: {
-        total?: number;
-        data?: ApiRecipient[];
-    };
+    data?: ApiRecipient[];
+    meta?: { total?: number };
 };
 
 function getInitials(name: string) {
@@ -59,8 +57,8 @@ function BroadcastRecipientsModal({ broadcastId, broadcastCode, onClose }: Broad
     );
     const loading = isLoading || isFetching;
 
-    const recipients = (data as RecipientsResponse | undefined)?.data?.data ?? [];
-    const total = (data as RecipientsResponse | undefined)?.data?.total ?? recipients.length;
+    const recipients = (data as RecipientsResponse | undefined)?.data ?? [];
+    const total = (data as RecipientsResponse | undefined)?.meta?.total ?? recipients.length;
     const errorMessage = isError
         ? (error as { data?: { message?: string }; status?: number })?.data?.message ??
           "Failed to load recipients. Please try again."
