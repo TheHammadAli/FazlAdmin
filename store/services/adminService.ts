@@ -196,6 +196,13 @@ export const adminService = baseApi.injectEndpoints({
       },
       providesTags: ["ADMIN_BROADCASTS"],
     }),
+    getBroadcastRecipients: build.query({
+      query: (broadcastId: string) => ({
+        url: `/broadcast/admin/${broadcastId}/recipients`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_BROADCASTS"],
+    }),
     closeBroadcast: build.mutation({
       query: (broadcastId: string) => ({
         url: `/broadcast/admin/${broadcastId}/close`,
@@ -425,6 +432,7 @@ export const {
   useGetServiceRequestDetailQuery,
   useGetServiceRequestStatsQuery,
   useGetAllBroadcastsForAdminQuery,
+  useGetBroadcastRecipientsQuery,
   useCloseBroadcastMutation,
   useDeleteBroadcastMutation,
   useGetAllAdminAccountsQuery,

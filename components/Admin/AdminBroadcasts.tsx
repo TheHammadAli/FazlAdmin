@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { Ban, Trash2 } from "lucide-react";
 import Pagination from "@/components/Ui/Pagination";
 import Modal from "@/components/Ui/Modals/Modal";
+import BroadcastRecipientsModal from "@/components/Admin/BroadcastRecipientsModal";
 import {
     useGetAllBroadcastsForAdminQuery,
     useCloseBroadcastMutation,
@@ -107,6 +108,7 @@ function AdminBroadcasts() {
     const [statusFilter, setStatusFilter] = useState<BroadcastStatus | "">("");
     const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [recipientsBroadcast, setRecipientsBroadcast] = useState<Broadcast | null>(null);
     const confirmModalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -214,6 +216,12 @@ function AdminBroadcasts() {
                     </div>
                 </div>
             </Modal>
+
+            <BroadcastRecipientsModal
+                broadcastId={recipientsBroadcast?.id ?? null}
+                broadcastCode={recipientsBroadcast?.broadcastCode}
+                onClose={() => setRecipientsBroadcast(null)}
+            />
 
             <div className="bg-[#F6F8FA] pt-10 pb-5">
                 <div className="container mx-auto px-5 lg:px-10">
@@ -344,7 +352,17 @@ function AdminBroadcasts() {
                                                 </span>
                                             </td>
                                             <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
-                                                {broadcast.sentTo}
+                                                {broadcast.sentTo > 0 ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setRecipientsBroadcast(broadcast)}
+                                                        className="cursor-pointer font-medium text-green-1 hover:underline"
+                                                    >
+                                                        {broadcast.sentTo}
+                                                    </button>
+                                                ) : (
+                                                    broadcast.sentTo
+                                                )}
                                             </td>
                                             <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
                                                 {broadcast.repliedSellers}

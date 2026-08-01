@@ -30,6 +30,7 @@ type AdminUser = {
     userCode: string;
     name: string;
     email: string;
+    phone: string;
     joinDate: string;
     status: UserStatus;
 };
@@ -40,6 +41,7 @@ type ApiAdminUser = {
     userCode?: string;
     name?: string;
     email?: string;
+    phone?: string;
     createdAt?: string;
     isDisabled?: boolean;
 };
@@ -79,6 +81,7 @@ function mapApiUser(user: ApiAdminUser): AdminUser {
         userCode: user.userCode ?? "-",
         name: user.name ?? "-",
         email: user.email ?? "-",
+        phone: user.phone ?? "-",
         joinDate,
         status: mapUserStatus(user),
     };
@@ -315,7 +318,7 @@ function AdminUsers() {
             <div className="bg-white">
                 <div className="container px-5 lg:px-10 mx-auto mt-4 ">
                     <div className="overflow-x-auto">
-                        <table className="min-w-[760px] w-full">
+                        <table className="min-w-[880px] w-full">
                             <thead className="   ">
                                 <tr className="text-left">
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
@@ -329,6 +332,9 @@ function AdminUsers() {
                                     </th>
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Email
+                                    </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Phone
                                     </th>
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Join Date
@@ -345,7 +351,7 @@ function AdminUsers() {
                                 {loading &&
                                     Array.from({ length: PAGE_LIMIT }).map((_, index) => (
                                         <tr key={`skeleton-${index}`} className="bg-white">
-                                            {Array.from({ length: 6 }).map((__, cellIndex) => (
+                                            {Array.from({ length: 7 }).map((__, cellIndex) => (
                                                 <td key={cellIndex} className="py-3.5 pr-4">
                                                     <div className="h-4 w-full max-w-[180px] animate-pulse rounded bg-gray-200" />
                                                 </td>
@@ -356,7 +362,7 @@ function AdminUsers() {
                                 {!loading && users.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={6}
+                                            colSpan={7}
                                             className="py-8 text-center text-[14px] text-gray-11"
                                         >
                                             No users found
@@ -385,6 +391,9 @@ function AdminUsers() {
                                                 </td>
                                                 <td className="py-3.5 pr-4 text-[14px] font-normal text-gray-11">
                                                     {user.email}
+                                                </td>
+                                                <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
+                                                    {user.phone}
                                                 </td>
                                                 <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
                                                     {user.joinDate}
