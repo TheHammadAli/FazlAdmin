@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronsUpDown, Plus, SquarePen } from "lucide-react";
+import { ChevronsUpDown, Download, Plus, SquarePen } from "lucide-react";
 import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
 import Pagination from "@/components/Ui/Pagination";
@@ -11,6 +11,7 @@ import DoodleButton from "@/components/Ui/DoodleButton";
 import { useUpdateCategoryMutation } from "@/store/services/adminService";
 import Image from "next/image";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
+import { downloadCsv } from "@/utils/downloadCsv";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 import { useGetAllCategoriesForAdminQuery } from "@/store/services/adminService";
 type Status = "active" | "inactive";
@@ -155,6 +156,25 @@ function AdminCategories() {
             setPage(pageCount);
         }
     }, [page, pageCount]);
+
+    function handleExportCsv() {
+        if (allCategories.length === 0) {
+            toast.error("No categories to export");
+            return;
+        }
+        downloadCsv(
+            `categories-${new Date().toISOString().slice(0, 10)}.csv`,
+            ["Sort Number", "Category Name (EN)", "Category Name (UR)", "Type", "Status", "Created Date"],
+            allCategories.map((category) => [
+                category.sortNumber ?? "",
+                category.name.en,
+                category.name.ur,
+                category.type,
+                STATUS_STYLES[category.status].label,
+                category.createdAt,
+            ]),
+        );
+    }
 
     function openAddCategoryModal() {
         setEditingCategory(null);
@@ -313,14 +333,24 @@ function AdminCategories() {
                             Manage product and service categories shown across the marketplace
                         </p>
                     </div>
-                    <DoodleButton
-                        type="button"
-                        onClick={openAddCategoryModal}
-                        className="inline-flex shrink-0 items-center gap-2 rounded-[10px] bg-green-1 px-4 py-2 text-[14px] font-medium text-white"
-                    >
-                        <Plus className="h-4 w-4" strokeWidth={2} />
-                        Category
-                    </DoodleButton>
+                    <div className="flex shrink-0 items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={handleExportCsv}
+                            className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] border border-gray-9 bg-white px-4 text-[14px] font-medium text-gray-8 transition-colors hover:border-green-1 hover:text-green-1"
+                        >
+                            <Download className="h-4 w-4" strokeWidth={2} />
+                            Export CSV
+                        </button>
+                        <DoodleButton
+                            type="button"
+                            onClick={openAddCategoryModal}
+                            className="inline-flex shrink-0 items-center gap-2 rounded-[10px] bg-green-1 px-4 py-2 text-[14px] font-medium text-white"
+                        >
+                            <Plus className="h-4 w-4" strokeWidth={2} />
+                            Category
+                        </DoodleButton>
+                    </div>
                 </div>
             </div>
 

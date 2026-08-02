@@ -345,6 +345,14 @@ export const adminService = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["ADMIN_MEMBERS", "ADMIN_TASKS"],
     }),
+    resetMemberPassword: build.mutation({
+      query: ({ id, body }: { id: string; body: { newPassword?: string } }) => ({
+        url: `/users/members/${id}/reset-password`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_MEMBERS"],
+    }),
     getAllTasks: build.query({
       query: ({ page, limit, search, status }) => {
         const params = new URLSearchParams({
@@ -417,18 +425,21 @@ export const adminService = baseApi.injectEndpoints({
 export const {
   useGetAllCategoriesForAdminQuery,
   useGetAllUsersFromAdminQuery,
+  useLazyGetAllUsersFromAdminQuery,
   useGetUserDetailQuery,
   useGetAllShopsFromAdminQuery,
   useGetShopDetailQuery,
   useGetAllServicesForAdminQuery,
   useGetServiceDetailQuery,
   useGetAllProductsForAdminQuery,
+  useLazyGetAllProductsForAdminQuery,
   useGetProductDetailQuery,
   useDeleteProductMutation,
   useActivateUserMutation,
   useCreateNewCategoryMutation,
   useUpdateCategoryMutation,
   useGetAllServiceRequestsForAdminQuery,
+  useLazyGetAllServiceRequestsForAdminQuery,
   useGetServiceRequestDetailQuery,
   useGetServiceRequestStatsQuery,
   useGetAllBroadcastsForAdminQuery,
@@ -451,6 +462,7 @@ export const {
   useCreateMemberMutation,
   useUpdateMemberMutation,
   useDeleteMemberMutation,
+  useResetMemberPasswordMutation,
   useGetAllTasksQuery,
   useCreateTaskMutation,
   useUpdateTaskMutation,

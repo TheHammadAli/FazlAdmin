@@ -4,16 +4,20 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { CalendarCheck, CheckCheck, CheckCircle2, Clock, Eye, XCircle } from "lucide-react";
+import { CalendarCheck, CheckCheck, CheckCircle2, Clock, Download, Eye, XCircle } from "lucide-react";
+import { BeatLoader } from "react-spinners";
+import { toast } from "react-hot-toast";
 import Pagination from "@/components/Ui/Pagination";
 import BookingDetailModal from "@/components/Admin/BookingDetailModal";
 import DateRangeFilter, { type DateFilterValue } from "@/components/Ui/DateRangeFilter";
 import {
     useGetAllServiceRequestsForAdminQuery,
+    useLazyGetAllServiceRequestsForAdminQuery,
     useGetServiceRequestStatsQuery,
 } from "@/store/services/adminService";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import { getDateRangeForFilter } from "@/utils/getDateRangeForFilter";
+import { downloadCsv } from "@/utils/downloadCsv";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 
 const SEARCH_DEBOUNCE_MS = 400;
@@ -156,9 +160,43 @@ function AdminBookings() {
     const { data: statsResponse, isLoading: isStatsLoading } = useGetServiceRequestStatsQuery(undefined);
     const stats = (statsResponse as BookingStatsResponse | undefined)?.data;
 
+    const [triggerExport, { isFetching: isExporting }] = useLazyGetAllServiceRequestsForAdminQuery();
+
     function selectStatusFilter(value: BookingStatus | "") {
         setStatusFilter(value);
         setPage(1);
+    }
+
+    async function handleExportCsv() {
+        try {
+            const response = await triggerExport({
+                page: 1,
+                limit: totalBookings > 0 ? totalBookings : 100000,
+                search,
+                bookingStatus: statusFilter,
+                startDate,
+                endDate,
+            }).unwrap();
+            const rows = ((response as BookingsResponse)?.data ?? []).map(mapApiBooking);
+            if (rows.length === 0) {
+                toast.error("No bookings to export");
+                return;
+            }
+            downloadCsv(
+                `bookings-${new Date().toISOString().slice(0, 10)}.csv`,
+                ["Booking ID", "Customer", "Provider", "Service", "Requested Date", "Status"],
+                rows.map((booking) => [
+                    booking.jobCode,
+                    booking.customerName,
+                    booking.providerName,
+                    booking.serviceTitle,
+                    booking.requestedDateTime,
+                    capitalize(booking.status),
+                ]),
+            );
+        } catch {
+            toast.error("Failed to export bookings");
+        }
     }
 
     const bookings = ((bookingsResponse as BookingsResponse | undefined)?.data ?? []).map(
@@ -251,6 +289,22 @@ function AdminBookings() {
                         onStartDateChange={setCustomStartDate}
                         onEndDateChange={setCustomEndDate}
                     />
+
+                    <button
+                        type="button"
+                        onClick={handleExportCsv}
+                        disabled={isExporting}
+                        className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] border border-gray-9 bg-white px-4 text-[14px] font-medium text-gray-8 transition-colors hover:border-green-1 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {isExporting ? (
+                            <BeatLoader size={6} color="#007781" />
+                        ) : (
+                            <>
+                                <Download className="h-4 w-4" strokeWidth={2} />
+                                Export CSV
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
 

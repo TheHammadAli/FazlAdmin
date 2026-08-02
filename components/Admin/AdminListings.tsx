@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Eye, Trash2 } from "lucide-react";
+import { Download, Eye, Trash2 } from "lucide-react";
 import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
 import Pagination from "@/components/Ui/Pagination";
@@ -11,9 +11,11 @@ import ListingDetailModal from "@/components/Admin/ListingDetailModal";
 import {
     useDeleteProductMutation,
     useGetAllProductsForAdminQuery,
+    useLazyGetAllProductsForAdminQuery,
 } from "@/store/services/adminService";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
+import { downloadCsv } from "@/utils/downloadCsv";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 
@@ -92,6 +94,7 @@ function AdminListings() {
     } = useGetAllProductsForAdminQuery({ page, limit: PAGE_LIMIT, search });
 
     const [deleteProduct] = useDeleteProductMutation();
+    const [triggerExport, { isFetching: isExporting }] = useLazyGetAllProductsForAdminQuery();
 
     const listings = (
         (listingsResponse as AdminListingsResponse | undefined)?.data?.items ?? []
@@ -106,6 +109,36 @@ function AdminListings() {
         Math.max(1, Math.ceil(totalListings / PAGE_LIMIT));
 
     const loading = isLoading || isFetching;
+
+    async function handleExportCsv() {
+        try {
+            const response = await triggerExport({
+                page: 1,
+                limit: totalListings > 0 ? totalListings : 100000,
+                search,
+            }).unwrap();
+            const rows = (
+                (response as AdminListingsResponse)?.data?.items ?? []
+            ).map(mapApiListing);
+            if (rows.length === 0) {
+                toast.error("No listings to export");
+                return;
+            }
+            downloadCsv(
+                `listings-${new Date().toISOString().slice(0, 10)}.csv`,
+                ["Listing ID", "Title", "Category", "Price", "Created Date"],
+                rows.map((listing) => [
+                    listing.listingCode,
+                    listing.title,
+                    listing.category,
+                    listing.price,
+                    listing.createdAt,
+                ]),
+            );
+        } catch {
+            toast.error("Failed to export listings");
+        }
+    }
 
     function closeDeleteModal() {
         if (isDeleting) return;
@@ -186,8 +219,8 @@ function AdminListings() {
                     </p>
                 </div>
 
-                <div className="container mx-auto mt-4 px-5 lg:px-10">
-                    <div className="relative max-w-[320px]">
+                <div className="container mx-auto mt-4 flex flex-wrap items-center justify-between gap-3 px-5 lg:px-10">
+                    <div className="relative max-w-[320px] flex-1">
                         <Image
                             src={searchIcon}
                             alt=""
@@ -201,6 +234,22 @@ function AdminListings() {
                             className="h-10 w-full rounded-[8px] border border-gray-9 bg-white pl-9 pr-3 text-[14px] text-[#001907] outline-none placeholder:text-gray-11 focus:border-green-1"
                         />
                     </div>
+
+                    <button
+                        type="button"
+                        onClick={handleExportCsv}
+                        disabled={isExporting}
+                        className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] border border-gray-9 bg-white px-4 text-[14px] font-medium text-gray-8 transition-colors hover:border-green-1 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {isExporting ? (
+                            <BeatLoader size={6} color="#007781" />
+                        ) : (
+                            <>
+                                <Download className="h-4 w-4" strokeWidth={2} />
+                                Export CSV
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
 

@@ -4,13 +4,14 @@ import { useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { BeatLoader } from "react-spinners";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { Copy, Pencil, ShieldCheck, Trash2, UserPlus } from "lucide-react";
+import { Copy, KeyRound, Pencil, RefreshCw, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
 import {
     useGetAllMembersQuery,
     useCreateMemberMutation,
     useUpdateMemberMutation,
     useDeleteMemberMutation,
+    useResetMemberPasswordMutation,
     useGetUserDetailQuery,
 } from "@/store/services/adminService";
 import { useAppSelector } from "@/store/store";
@@ -49,6 +50,14 @@ function mapApiMember(member: ApiMember): Member {
     };
 }
 
+/** Client-side suggestion only — the actual value stored is whatever's in the field on submit. */
+function generateSuggestedPassword(length = 12): string {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+    const randomValues = new Uint32Array(length);
+    window.crypto.getRandomValues(randomValues);
+    return Array.from(randomValues, (value) => chars[value % chars.length]).join("");
+}
+
 const EMPTY_FORM = { name: "", email: "" };
 
 function MemberManagement() {
@@ -76,11 +85,17 @@ function MemberManagement() {
 
     const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [passwordModalHeading, setPasswordModalHeading] = useState("Member Created");
+
+    const [isUpdatePasswordModalOpen, setIsUpdatePasswordModalOpen] = useState(false);
+    const [passwordTarget, setPasswordTarget] = useState<Member | null>(null);
+    const [passwordInput, setPasswordInput] = useState("");
 
     const createModalRef = useRef<HTMLDivElement>(null);
     const editModalRef = useRef<HTMLDivElement>(null);
     const deleteModalRef = useRef<HTMLDivElement>(null);
     const passwordModalRef = useRef<HTMLDivElement>(null);
+    const updatePasswordModalRef = useRef<HTMLDivElement>(null);
 
     const { data: membersResponse, isLoading, isFetching } = useGetAllMembersQuery(undefined, {
         skip: !canManageMembers,
@@ -89,6 +104,7 @@ function MemberManagement() {
     const [createMember, { isLoading: isCreating }] = useCreateMemberMutation();
     const [updateMember, { isLoading: isUpdating }] = useUpdateMemberMutation();
     const [deleteMember, { isLoading: isDeleting }] = useDeleteMemberMutation();
+    const [resetMemberPassword, { isLoading: isUpdatingPassword }] = useResetMemberPasswordMutation();
 
     const members = ((membersResponse as { data?: ApiMember[] } | undefined)?.data ?? []).map(
         mapApiMember,
@@ -122,12 +138,19 @@ function MemberManagement() {
         setIsDeleteModalOpen(true);
     }
 
+    function openUpdatePasswordModal(member: Member) {
+        setPasswordTarget(member);
+        setPasswordInput(generateSuggestedPassword());
+        setIsUpdatePasswordModalOpen(true);
+    }
+
     async function handleCreate(event: React.FormEvent) {
         event.preventDefault();
         try {
             const response = await createMember(createForm).unwrap();
             toast.success(response?.message ?? "Member created successfully");
             setIsCreateModalOpen(false);
+            setPasswordModalHeading("Member Created");
             setGeneratedPassword(response?.data?.generatedPassword ?? null);
             setIsPasswordModalOpen(true);
         } catch (err) {
@@ -157,6 +180,31 @@ function MemberManagement() {
             toast.success(response?.message ?? "Member deleted successfully");
             setIsDeleteModalOpen(false);
             setPendingDelete(null);
+        } catch (err) {
+            const errorData = err as { data?: { message?: string } };
+            toast.error(errorData?.data?.message ?? "Something went wrong");
+        }
+    }
+
+    async function handleUpdatePassword(event: React.FormEvent) {
+        event.preventDefault();
+        if (!passwordTarget) return;
+        const trimmed = passwordInput.trim();
+        if (trimmed.length < 8) {
+            toast.error("Password must be at least 8 characters long");
+            return;
+        }
+        try {
+            const response = await resetMemberPassword({
+                id: passwordTarget.id,
+                body: { newPassword: trimmed },
+            }).unwrap();
+            toast.success(response?.message ?? "Password updated successfully");
+            setIsUpdatePasswordModalOpen(false);
+            setPasswordTarget(null);
+            setPasswordModalHeading("Password Updated");
+            setGeneratedPassword(response?.data?.generatedPassword ?? trimmed);
+            setIsPasswordModalOpen(true);
         } catch (err) {
             const errorData = err as { data?: { message?: string } };
             toast.error(errorData?.data?.message ?? "Something went wrong");
@@ -325,7 +373,7 @@ function MemberManagement() {
                 <div className="hide-scrollbar w-[92vw] max-w-[420px] rounded-[12px] bg-white p-6 shadow-xl">
                     <h2 className="flex items-center gap-2 text-[18px] font-semibold text-[#001907]">
                         <ShieldCheck className="h-5 w-5 text-green-1" strokeWidth={2} />
-                        Member Created
+                        {passwordModalHeading}
                     </h2>
                     <p className="mt-2 text-[13px] text-gray-8">
                         Copy this password now and share it securely — it won&apos;t be shown again.
@@ -350,6 +398,75 @@ function MemberManagement() {
                             Done
                         </button>
                     </div>
+                </div>
+            </Modal>
+
+            {/* Update Password modal */}
+            <Modal
+                editModalRef={updatePasswordModalRef}
+                open={isUpdatePasswordModalOpen}
+                setOpen={setIsUpdatePasswordModalOpen}
+                centered
+            >
+                <div className="hide-scrollbar w-[92vw] max-w-[420px] rounded-[12px] bg-white p-6 shadow-xl">
+                    <div className="flex items-start justify-between gap-4">
+                        <h2 className="flex items-center gap-2 text-[18px] font-semibold text-[#001907]">
+                            <KeyRound className="h-5 w-5 text-green-1" strokeWidth={2} />
+                            Update Password
+                        </h2>
+                        <button
+                            type="button"
+                            onClick={() => setIsUpdatePasswordModalOpen(false)}
+                            aria-label="Close"
+                            className="inline-flex h-8 w-8 items-center justify-center"
+                        >
+                            <XMarkIcon className="h-5 w-5 text-[#001907]" />
+                        </button>
+                    </div>
+                    <p className="mt-2 text-[13px] text-gray-8">
+                        Set a new password for{" "}
+                        <span className="font-medium text-[#001907]">{passwordTarget?.name}</span>. A
+                        suggested password is pre-filled — use it as-is or type your own.
+                    </p>
+                    <form onSubmit={handleUpdatePassword} className="mt-4">
+                        <label className="text-[14px] font-normal text-gray-11">New Password</label>
+                        <div className="mt-2 flex items-center gap-2">
+                            <input
+                                type="text"
+                                required
+                                minLength={8}
+                                value={passwordInput}
+                                onChange={(e) => setPasswordInput(e.target.value)}
+                                className="w-full rounded-[8px] border border-gray-9 bg-white px-3 py-2 font-mono text-[14px] text-[#001907] outline-none focus:border-green-1"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setPasswordInput(generateSuggestedPassword())}
+                                aria-label="Regenerate suggested password"
+                                className="inline-flex h-[38px] shrink-0 cursor-pointer items-center gap-1 rounded-[8px] border border-gray-9 px-3 text-[13px] font-medium text-gray-8 hover:border-green-1 hover:text-green-1"
+                            >
+                                <RefreshCw className="h-3.5 w-3.5" />
+                                Regenerate
+                            </button>
+                        </div>
+                        <p className="mt-1.5 text-[12px] text-gray-11">Minimum 8 characters.</p>
+                        <div className="mt-6 flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setIsUpdatePasswordModalOpen(false)}
+                                className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-green-1 text-[14px] font-medium text-green-1"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isUpdatingPassword}
+                                className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-green-1 bg-green-1 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {isUpdatingPassword ? <BeatLoader color="white" size={8} /> : "Update Password"}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </Modal>
 
@@ -441,6 +558,14 @@ function MemberManagement() {
                                                     >
                                                         <Pencil className="h-3.5 w-3.5" />
                                                         Edit
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openUpdatePasswordModal(member)}
+                                                        className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-gray-8 hover:text-green-1 hover:underline"
+                                                    >
+                                                        <KeyRound className="h-3.5 w-3.5" />
+                                                        Password
                                                     </button>
                                                     <button
                                                         type="button"

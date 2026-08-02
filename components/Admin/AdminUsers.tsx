@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronsUpDown, Eye } from "lucide-react";
+import { ChevronsUpDown, Download, Eye } from "lucide-react";
 import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
 import Pagination from "@/components/Ui/Pagination";
@@ -14,10 +14,12 @@ import {
     useActivateUserMutation,
 
     useGetAllUsersFromAdminQuery,
+    useLazyGetAllUsersFromAdminQuery,
 } from "@/store/services/adminService";
 import { useDeleteAccountMutation } from "@/store/services/authService";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import { getDateRangeForFilter } from "@/utils/getDateRangeForFilter";
+import { downloadCsv } from "@/utils/downloadCsv";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 import DateRangeFilter, { type DateFilterValue } from "@/components/Ui/DateRangeFilter";
 
@@ -149,6 +151,7 @@ function AdminUsers() {
 
     const [activateUser] = useActivateUserMutation();
     const [deleteAccount] = useDeleteAccountMutation();
+    const [triggerExport, { isFetching: isExporting }] = useLazyGetAllUsersFromAdminQuery();
     const users = useMemo(() => {
         const response = usersResponse as AdminUsersResponse | undefined;
         return (response?.data ?? []).map(mapApiUser);
@@ -182,6 +185,37 @@ function AdminUsers() {
             toast.error(errorData?.data?.message ?? "Something went wrong");
         } finally {
             setUpdatingUserId(null);
+        }
+    }
+
+    async function handleExportCsv() {
+        try {
+            const response = await triggerExport({
+                page: 1,
+                limit: totalUsers > 0 ? totalUsers : 100000,
+                search,
+                startDate,
+                endDate,
+            }).unwrap();
+            const rows = ((response as AdminUsersResponse)?.data ?? []).map(mapApiUser);
+            if (rows.length === 0) {
+                toast.error("No users to export");
+                return;
+            }
+            downloadCsv(
+                `users-${new Date().toISOString().slice(0, 10)}.csv`,
+                ["User ID", "Name", "Email", "Phone", "Join Date", "Status"],
+                rows.map((user) => [
+                    user.userCode,
+                    user.name,
+                    user.email,
+                    user.phone,
+                    user.joinDate,
+                    STATUS_LABELS[user.status],
+                ]),
+            );
+        } catch {
+            toast.error("Failed to export users");
         }
     }
 
@@ -312,6 +346,22 @@ function AdminUsers() {
                         onStartDateChange={setCustomStartDate}
                         onEndDateChange={setCustomEndDate}
                     />
+
+                    <button
+                        type="button"
+                        onClick={handleExportCsv}
+                        disabled={isExporting}
+                        className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] border border-gray-9 bg-white px-4 text-[14px] font-medium text-gray-8 transition-colors hover:border-green-1 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {isExporting ? (
+                            <BeatLoader size={6} color="#007781" />
+                        ) : (
+                            <>
+                                <Download className="h-4 w-4" strokeWidth={2} />
+                                Export CSV
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
 
