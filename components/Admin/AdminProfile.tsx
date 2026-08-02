@@ -53,6 +53,18 @@ function capitalize(value: string) {
     return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+const ROLE_LABELS: Record<string, string> = {
+    super_admin: "Super Admin",
+    admin: "Admin",
+    moderator: "Moderator",
+};
+
+function toAdminRole(roles?: string[]): string {
+    if (roles?.includes("super_admin")) return "super_admin";
+    if (roles?.includes("moderator")) return "moderator";
+    return "admin";
+}
+
 function AdminProfile() {
     const router = useRouter();
     const dispatch = useAppDispatch();
@@ -68,7 +80,8 @@ function AdminProfile() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const deleteModalRef = useRef<HTMLDivElement>(null);
 
-    const role = user?.roles?.[0] ?? "admin";
+    const role = toAdminRole(user?.roles);
+    const roleLabel = ROLE_LABELS[role] ?? capitalize(role);
 
     async function handleConfirmDelete() {
         if (!userId) return;
@@ -90,7 +103,7 @@ function AdminProfile() {
         { label: "Full Name", value: user?.name ?? "-", icon: User },
         { label: "Email", value: user?.email ?? "-", icon: Mail },
         { label: "Phone", value: user?.phone ?? "-", icon: Phone },
-        { label: "Role", value: capitalize(role), icon: Circle },
+        { label: "Role", value: roleLabel, icon: Circle },
         { label: "Member Since", value: formatDate(user?.createdAt), icon: Calendar },
     ];
 
@@ -151,8 +164,8 @@ function AdminProfile() {
                                 <p className="mt-3 text-[16px] font-semibold text-[#001907]">
                                     {user.name ?? "-"}
                                 </p>
-                                <span className="mt-1 inline-flex rounded-full bg-green-3 px-3 py-1 text-[12px] font-medium capitalize text-green-1">
-                                    {role}
+                                <span className="mt-1 inline-flex rounded-full bg-green-3 px-3 py-1 text-[12px] font-medium text-green-1">
+                                    {roleLabel}
                                 </span>
 
                                 <div className="mt-4">

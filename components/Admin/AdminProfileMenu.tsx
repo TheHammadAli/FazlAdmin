@@ -23,6 +23,18 @@ function getInitials(name: string) {
         .toUpperCase();
 }
 
+const ROLE_LABELS: Record<string, string> = {
+    super_admin: "Super Admin",
+    admin: "Admin",
+    moderator: "Moderator",
+};
+
+function toAdminRole(roles?: string[]): string {
+    if (roles?.includes("super_admin")) return "super_admin";
+    if (roles?.includes("moderator")) return "moderator";
+    return "admin";
+}
+
 function AdminProfileMenu() {
     const [isOpen, setIsOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -32,7 +44,8 @@ function AdminProfileMenu() {
     const userId = useAppSelector((state) => state.authReducer.userId);
     const { data } = useGetUserDetailQuery(userId, { skip: !userId });
     const user = (data as { data?: ApiUserDetail } | undefined)?.data;
-    const role = user?.roles?.[0] ?? "admin";
+    const role = toAdminRole(user?.roles);
+    const roleLabel = ROLE_LABELS[role] ?? role;
 
     return (
         <div className="relative" ref={menuRef}>
@@ -56,8 +69,8 @@ function AdminProfileMenu() {
                                 {user?.name ?? "Admin"}
                             </p>
                             <p className="truncate text-[12px] text-gray-11">{user?.email ?? "-"}</p>
-                            <span className="mt-1 inline-flex rounded-[4px] bg-green-4 px-1.5 py-0.5 text-[10px] font-medium capitalize text-green-1">
-                                {role}
+                            <span className="mt-1 inline-flex rounded-[4px] bg-green-4 px-1.5 py-0.5 text-[10px] font-medium text-green-1">
+                                {roleLabel}
                             </span>
                         </div>
                     </div>
