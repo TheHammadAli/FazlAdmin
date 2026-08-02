@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
 import { useGetShopDetailQuery } from "@/store/services/adminService";
+import { getFeedCategoryLabel, type ReelCategory } from "@/utils/getFeedCategoryLabel";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 
 type ApiShopDetail = {
@@ -25,6 +26,13 @@ type ApiShopDetail = {
     banner?: string;
     address?: string;
     description?: string;
+    marketName?: string;
+    city?: string;
+    area?: string;
+    contact?: string;
+    category?: ReelCategory;
+    subcategory?: ReelCategory;
+    openingHours?: string;
     isDisabled?: boolean;
     createdAt?: string;
     productsCount?: number;
@@ -185,6 +193,54 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
                         </div>
 
                         <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+                            <div>
+                                <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
+                                    Market Name
+                                </p>
+                                <p className="mt-1 text-[14px] text-[#001907]">
+                                    {shop.marketName ?? "-"}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
+                                    Contact Number
+                                </p>
+                                <p className="mt-1 text-[14px] text-[#001907]">
+                                    {shop.contact ?? "-"}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
+                                    City
+                                </p>
+                                <p className="mt-1 text-[14px] text-[#001907]">
+                                    {shop.city ?? "-"}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
+                                    Area
+                                </p>
+                                <p className="mt-1 text-[14px] text-[#001907]">
+                                    {shop.area ?? "-"}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
+                                    Category
+                                </p>
+                                <p className="mt-1 text-[14px] text-[#001907]">
+                                    {getFeedCategoryLabel(shop.category, "en") || "-"}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
+                                    Opening Hours
+                                </p>
+                                <p className="mt-1 text-[14px] text-[#001907]">
+                                    {shop.openingHours ?? "-"}
+                                </p>
+                            </div>
                             <div>
                                 <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
                                     Address
