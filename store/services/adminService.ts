@@ -428,6 +428,7 @@ export const {
   useLazyGetAllUsersFromAdminQuery,
   useGetUserDetailQuery,
   useGetAllShopsFromAdminQuery,
+  useLazyGetAllShopsFromAdminQuery,
   useGetShopDetailQuery,
   useGetAllServicesForAdminQuery,
   useGetServiceDetailQuery,

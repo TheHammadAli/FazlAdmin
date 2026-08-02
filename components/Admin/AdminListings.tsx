@@ -15,7 +15,7 @@ import {
 } from "@/store/services/adminService";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
-import { downloadCsv } from "@/utils/downloadCsv";
+import { downloadCsv, csvText } from "@/utils/downloadCsv";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 
@@ -132,7 +132,7 @@ function AdminListings() {
                     listing.title,
                     listing.category,
                     listing.price,
-                    listing.createdAt,
+                    csvText(listing.createdAt),
                 ]),
             );
         } catch {

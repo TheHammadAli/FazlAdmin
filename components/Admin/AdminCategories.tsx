@@ -11,7 +11,7 @@ import DoodleButton from "@/components/Ui/DoodleButton";
 import { useUpdateCategoryMutation } from "@/store/services/adminService";
 import Image from "next/image";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
-import { downloadCsv } from "@/utils/downloadCsv";
+import { downloadCsv, csvText } from "@/utils/downloadCsv";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 import { useGetAllCategoriesForAdminQuery } from "@/store/services/adminService";
 type Status = "active" | "inactive";
@@ -171,7 +171,7 @@ function AdminCategories() {
                 category.name.ur,
                 category.type,
                 STATUS_STYLES[category.status].label,
-                category.createdAt,
+                csvText(category.createdAt),
             ]),
         );
     }

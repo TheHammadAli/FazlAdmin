@@ -17,7 +17,7 @@ import {
 } from "@/store/services/adminService";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import { getDateRangeForFilter } from "@/utils/getDateRangeForFilter";
-import { downloadCsv } from "@/utils/downloadCsv";
+import { downloadCsv, csvText } from "@/utils/downloadCsv";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 
 const SEARCH_DEBOUNCE_MS = 400;
@@ -190,7 +190,7 @@ function AdminBookings() {
                     booking.customerName,
                     booking.providerName,
                     booking.serviceTitle,
-                    booking.requestedDateTime,
+                    csvText(booking.requestedDateTime),
                     capitalize(booking.status),
                 ]),
             );
@@ -281,30 +281,32 @@ function AdminBookings() {
                         />
                     </div>
 
-                    <DateRangeFilter
-                        value={dateFilter}
-                        onChange={setDateFilter}
-                        startDate={customStartDate}
-                        endDate={customEndDate}
-                        onStartDateChange={setCustomStartDate}
-                        onEndDateChange={setCustomEndDate}
-                    />
+                    <div className="flex flex-wrap items-center justify-end gap-3">
+                        <DateRangeFilter
+                            value={dateFilter}
+                            onChange={setDateFilter}
+                            startDate={customStartDate}
+                            endDate={customEndDate}
+                            onStartDateChange={setCustomStartDate}
+                            onEndDateChange={setCustomEndDate}
+                        />
 
-                    <button
-                        type="button"
-                        onClick={handleExportCsv}
-                        disabled={isExporting}
-                        className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] border border-gray-9 bg-white px-4 text-[14px] font-medium text-gray-8 transition-colors hover:border-green-1 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {isExporting ? (
-                            <BeatLoader size={6} color="#007781" />
-                        ) : (
-                            <>
-                                <Download className="h-4 w-4" strokeWidth={2} />
-                                Export CSV
-                            </>
-                        )}
-                    </button>
+                        <button
+                            type="button"
+                            onClick={handleExportCsv}
+                            disabled={isExporting}
+                            className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] border border-gray-9 bg-white px-4 text-[14px] font-medium text-gray-8 transition-colors hover:border-green-1 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {isExporting ? (
+                                <BeatLoader size={6} color="#007781" />
+                            ) : (
+                                <>
+                                    <Download className="h-4 w-4" strokeWidth={2} />
+                                    Export CSV
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
 

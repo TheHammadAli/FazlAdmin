@@ -1,3 +1,11 @@
+/** Forces Excel to treat a value as literal text instead of auto-parsing it as a
+ *  number or date — prevents phone numbers turning into scientific notation and
+ *  date strings overflowing into "###". Composes with escapeCsvCell: the embedded
+ *  quotes are correctly doubled and outer-quoted by the existing CSV escaping. */
+export function csvText(value: string | number): string {
+    return `="${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
 function escapeCsvCell(value: string | number): string {
     const str = String(value ?? "");
     if (/["\n\r,]/.test(str)) {

@@ -4,17 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
 import { BeatLoader } from "react-spinners";
-import { Eye } from "lucide-react";
+import { Download, Eye } from "lucide-react";
 import Pagination from "@/components/Ui/Pagination";
 import Modal from "@/components/Ui/Modals/Modal";
 import ToggleSwitch from "@/components/Ui/ToggleSwitch";
 import ShopDetailModal from "@/components/Admin/ShopDetailModal";
 import {
     useGetAllShopsFromAdminQuery,
+    useLazyGetAllShopsFromAdminQuery,
     useDisableShopMutation,
     useEnableShopMutation,
 } from "@/store/services/adminService";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
+import { downloadCsv, csvText } from "@/utils/downloadCsv";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 
@@ -29,6 +31,11 @@ type AdminShop = {
     title: string;
     image?: string;
     address: string;
+    marketName: string;
+    city: string;
+    area: string;
+    contact: string;
+    openingHours: string;
     createdAt: string;
     status: ShopStatus;
 };
@@ -40,6 +47,11 @@ type ApiAdminShop = {
     title?: string;
     image?: string;
     address?: string;
+    marketName?: string;
+    city?: string;
+    area?: string;
+    contact?: string;
+    openingHours?: string;
     createdAt?: string;
     isDisabled?: boolean;
 };
@@ -74,6 +86,11 @@ function mapApiShop(shop: ApiAdminShop): AdminShop {
         title: shop.title ?? "-",
         image: shop.image,
         address: shop.address ?? "-",
+        marketName: shop.marketName ?? "-",
+        city: shop.city ?? "-",
+        area: shop.area ?? "-",
+        contact: shop.contact ?? "-",
+        openingHours: shop.openingHours ?? "-",
         createdAt,
         status: shop.isDisabled ? "suspended" : "active",
     };
@@ -111,12 +128,57 @@ function AdminShops() {
     const [disableShop, { isLoading: isDisabling }] = useDisableShopMutation();
     const [enableShop, { isLoading: isEnabling }] = useEnableShopMutation();
     const isChangingStatus = isDisabling || isEnabling;
+    const [triggerExport, { isFetching: isExporting }] = useLazyGetAllShopsFromAdminQuery();
 
     const shops = ((shopsResponse as AdminShopsResponse | undefined)?.data ?? []).map(mapApiShop);
 
     const totalShops =
         parsePositiveInt((shopsResponse as AdminShopsResponse | undefined)?.meta?.total) ??
         shops.length;
+
+    async function handleExportCsv() {
+        try {
+            const response = await triggerExport({
+                page: 1,
+                limit: totalShops > 0 ? totalShops : 100000,
+                search,
+            }).unwrap();
+            const rows = ((response as AdminShopsResponse)?.data ?? []).map(mapApiShop);
+            if (rows.length === 0) {
+                toast.error("No shops to export");
+                return;
+            }
+            downloadCsv(
+                `shops-${new Date().toISOString().slice(0, 10)}.csv`,
+                [
+                    "Shop ID",
+                    "Shop Name",
+                    "Market Name",
+                    "Address",
+                    "City",
+                    "Area",
+                    "Contact",
+                    "Opening Hours",
+                    "Status",
+                    "Created Date",
+                ],
+                rows.map((shop) => [
+                    shop.shopCode,
+                    shop.title,
+                    shop.marketName,
+                    shop.address,
+                    shop.city,
+                    shop.area,
+                    csvText(shop.contact),
+                    shop.openingHours,
+                    STATUS_STYLES[shop.status].label,
+                    csvText(shop.createdAt),
+                ]),
+            );
+        } catch {
+            toast.error("Failed to export shops");
+        }
+    }
 
     const pageCount =
         parsePositiveInt((shopsResponse as AdminShopsResponse | undefined)?.meta?.totalPages) ??
@@ -230,8 +292,8 @@ function AdminShops() {
                     </p>
                 </div>
 
-                <div className="container mx-auto mt-4 px-5 lg:px-10">
-                    <div className="relative max-w-[320px]">
+                <div className="container mx-auto mt-4 flex flex-wrap items-center justify-between gap-3 px-5 lg:px-10">
+                    <div className="relative max-w-[320px] flex-1">
                         <Image
                             src={searchIcon}
                             alt=""
@@ -245,6 +307,22 @@ function AdminShops() {
                             className="h-10 w-full rounded-[8px] border border-gray-9 bg-white pl-9 pr-3 text-[14px] text-[#001907] outline-none placeholder:text-gray-11 focus:border-green-1"
                         />
                     </div>
+
+                    <button
+                        type="button"
+                        onClick={handleExportCsv}
+                        disabled={isExporting}
+                        className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] border border-gray-9 bg-white px-4 text-[14px] font-medium text-gray-8 transition-colors hover:border-green-1 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {isExporting ? (
+                            <BeatLoader size={6} color="#007781" />
+                        ) : (
+                            <>
+                                <Download className="h-4 w-4" strokeWidth={2} />
+                                Export CSV
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
 
