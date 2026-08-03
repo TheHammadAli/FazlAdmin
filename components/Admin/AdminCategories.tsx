@@ -12,6 +12,7 @@ import { useUpdateCategoryMutation } from "@/store/services/adminService";
 import Image from "next/image";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
 import { downloadCsv, csvText } from "@/utils/downloadCsv";
+import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 import { useGetAllCategoriesForAdminQuery } from "@/store/services/adminService";
 type Status = "active" | "inactive";
@@ -132,6 +133,7 @@ type PendingStatusChange = {
 };
 
 function AdminCategories() {
+    const { canEdit } = useCurrentAdminPermissions();
     const [page, setPage] = useState(1);
     const [updatingCategoryId, setUpdatingCategoryId] = useState<string | null>(null);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -355,7 +357,8 @@ function AdminCategories() {
                         <DoodleButton
                             type="button"
                             onClick={openAddCategoryModal}
-                            className="inline-flex shrink-0 items-center gap-2 rounded-[10px] bg-green-1 px-4 py-2 text-[14px] font-medium text-white"
+                            disabled={!canEdit("categories")}
+                            className="inline-flex shrink-0 items-center gap-2 rounded-[10px] bg-green-1 px-4 py-2 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <Plus className="h-4 w-4" strokeWidth={2} />
                             Category
@@ -459,7 +462,8 @@ function AdminCategories() {
                                                         type="button"
                                                         aria-label="Edit category"
                                                         onClick={() => openEditCategoryModal(category)}
-                                                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-gray-11 transition-colors hover:bg-green-4 hover:text-green-1"
+                                                        disabled={!canEdit("categories")}
+                                                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-gray-11 transition-colors hover:bg-green-4 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-11"
                                                     >
                                                         <SquarePen className="h-4 w-4" strokeWidth={2} />
                                                     </button>

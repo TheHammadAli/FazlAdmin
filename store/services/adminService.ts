@@ -234,7 +234,12 @@ export const adminService = baseApi.injectEndpoints({
       providesTags: ["ADMIN_ACCOUNTS"],
     }),
     createAdminAccount: build.mutation({
-      query: (body: { name: string; email: string; role: string; permissions?: string[] }) => ({
+      query: (body: {
+        name: string;
+        email: string;
+        role: string;
+        permissions?: { page: string; actions: string[] }[];
+      }) => ({
         url: `/users/admins`,
         method: "POST",
         body,

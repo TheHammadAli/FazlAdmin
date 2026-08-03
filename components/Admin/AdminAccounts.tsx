@@ -8,6 +8,7 @@ import { Copy, KeyRound, Pencil, RefreshCw, ShieldCheck, UserPlus } from "lucide
 import Pagination from "@/components/Ui/Pagination";
 import Modal from "@/components/Ui/Modals/Modal";
 import ToggleSwitch from "@/components/Ui/ToggleSwitch";
+import PermissionsPicker, { type PermissionEntry } from "@/components/Admin/PermissionsPicker";
 import {
     useGetAllAdminAccountsQuery,
     useCreateAdminAccountMutation,
@@ -33,33 +34,6 @@ const ROLE_OPTIONS: { value: Exclude<AdminRole, "super_admin">; label: string }[
     { value: "moderator", label: "Moderator" },
 ];
 
-type AdminPermission =
-    | "users"
-    | "shops"
-    | "listings"
-    | "services"
-    | "categories"
-    | "bookings"
-    | "broadcasts"
-    | "feed"
-    | "reports"
-    | "email-logs"
-    | "settings";
-
-const PERMISSION_OPTIONS: { value: AdminPermission; label: string }[] = [
-    { value: "users", label: "Users" },
-    { value: "shops", label: "Shops" },
-    { value: "listings", label: "Listings" },
-    { value: "services", label: "Services" },
-    { value: "categories", label: "Categories" },
-    { value: "bookings", label: "Service Bookings" },
-    { value: "broadcasts", label: "Echo Broadcasts" },
-    { value: "feed", label: "Feed" },
-    { value: "reports", label: "Reports" },
-    { value: "email-logs", label: "Email Logs" },
-    { value: "settings", label: "Settings" },
-];
-
 const ROLE_LABELS: Record<AdminRole, string> = {
     super_admin: "Super Admin",
     admin: "Admin",
@@ -77,7 +51,7 @@ type AdminAccount = {
     name: string;
     email: string;
     role: AdminRole;
-    permissions: AdminPermission[];
+    permissions: PermissionEntry[];
     isDisabled: boolean;
     createdAt: string;
 };
@@ -87,7 +61,7 @@ type ApiAdminAccount = {
     name?: string;
     email?: string;
     roles?: string[];
-    permissions?: string[];
+    permissions?: PermissionEntry[];
     isDisabled?: boolean;
     createdAt?: string;
 };
@@ -129,7 +103,7 @@ function mapApiAdminAccount(account: ApiAdminAccount): AdminAccount {
         name: account.name ?? "-",
         email: account.email ?? "-",
         role: toAdminRole(account.roles),
-        permissions: (account.permissions ?? []) as AdminPermission[],
+        permissions: account.permissions ?? [],
         isDisabled: account.isDisabled ?? false,
         createdAt: formatDate(account.createdAt),
     };
@@ -139,7 +113,7 @@ type FormState = {
     name: string;
     email: string;
     role: AdminRole;
-    permissions: AdminPermission[];
+    permissions: PermissionEntry[];
 };
 
 const EMPTY_FORM: FormState = { name: "", email: "", role: "admin", permissions: [] };
@@ -235,15 +209,6 @@ function AdminAccounts() {
             permissions: admin.permissions,
         });
         setIsEditModalOpen(true);
-    }
-
-    function togglePermission(permission: AdminPermission) {
-        setForm((prev) => ({
-            ...prev,
-            permissions: prev.permissions.includes(permission)
-                ? prev.permissions.filter((p) => p !== permission)
-                : [...prev.permissions, permission],
-        }));
     }
 
     function openStatusModal(admin: AdminAccount) {
@@ -394,25 +359,10 @@ function AdminAccounts() {
                         </select>
                         {form.role !== "super_admin" && (
                             <div className="mt-4">
-                                <label className="block text-[14px] font-normal text-gray-11">
-                                    Section Access
-                                </label>
-                                <div className="mt-2 grid grid-cols-2 gap-2">
-                                    {PERMISSION_OPTIONS.map((opt) => (
-                                        <label
-                                            key={opt.value}
-                                            className="flex cursor-pointer items-center gap-2 rounded-[8px] border border-gray-9 px-3 py-2 text-[13px] text-[#001907]"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={form.permissions.includes(opt.value)}
-                                                onChange={() => togglePermission(opt.value)}
-                                                className="h-4 w-4 accent-green-1"
-                                            />
-                                            {opt.label}
-                                        </label>
-                                    ))}
-                                </div>
+                                <PermissionsPicker
+                                    value={form.permissions}
+                                    onChange={(permissions) => setForm({ ...form, permissions })}
+                                />
                             </div>
                         )}
                         <div className="mt-6 flex gap-3">
@@ -483,25 +433,10 @@ function AdminAccounts() {
                         </select>
                         {form.role !== "super_admin" && (
                             <div className="mt-4">
-                                <label className="block text-[14px] font-normal text-gray-11">
-                                    Section Access
-                                </label>
-                                <div className="mt-2 grid grid-cols-2 gap-2">
-                                    {PERMISSION_OPTIONS.map((opt) => (
-                                        <label
-                                            key={opt.value}
-                                            className="flex cursor-pointer items-center gap-2 rounded-[8px] border border-gray-9 px-3 py-2 text-[13px] text-[#001907]"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={form.permissions.includes(opt.value)}
-                                                onChange={() => togglePermission(opt.value)}
-                                                className="h-4 w-4 accent-green-1"
-                                            />
-                                            {opt.label}
-                                        </label>
-                                    ))}
-                                </div>
+                                <PermissionsPicker
+                                    value={form.permissions}
+                                    onChange={(permissions) => setForm({ ...form, permissions })}
+                                />
                             </div>
                         )}
                         <div className="mt-6 flex gap-3">

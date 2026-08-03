@@ -17,6 +17,7 @@ import {
 } from "@/store/services/adminService";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import { downloadCsv, csvText } from "@/utils/downloadCsv";
+import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 
@@ -102,6 +103,7 @@ type PendingStatusChange = {
 };
 
 function AdminShops() {
+    const { canEdit } = useCurrentAdminPermissions();
     const [page, setPage] = useState(1);
     const [searchInput, setSearchInput] = useState("");
     const [search, setSearch] = useState("");
@@ -414,7 +416,7 @@ function AdminShops() {
                                                     <div className="flex items-center gap-2.5">
                                                         <ToggleSwitch
                                                             checked={shop.status === "active"}
-                                                            disabled={isChangingStatus}
+                                                            disabled={isChangingStatus || !canEdit("shops")}
                                                             ariaLabel={
                                                                 shop.status === "active"
                                                                     ? `Suspend ${shop.title}`

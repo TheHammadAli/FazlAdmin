@@ -20,6 +20,7 @@ import { useDeleteAccountMutation } from "@/store/services/authService";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import { getDateRangeForFilter } from "@/utils/getDateRangeForFilter";
 import { downloadCsv, csvText } from "@/utils/downloadCsv";
+import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 import DateRangeFilter, { type DateFilterValue } from "@/components/Ui/DateRangeFilter";
 
@@ -104,6 +105,7 @@ type PendingStatusChange = {
 };
 
 function AdminUsers() {
+    const { canEdit, canDelete } = useCurrentAdminPermissions();
     const [page, setPage] = useState(1);
     const [searchInput, setSearchInput] = useState("");
     const [search, setSearch] = useState("");
@@ -454,7 +456,12 @@ function AdminUsers() {
                                                     <div className="flex items-center gap-2.5">
                                                         <ToggleSwitch
                                                             checked={user.status === "active"}
-                                                            disabled={isUpdating}
+                                                            disabled={
+                                                                isUpdating ||
+                                                                (user.status === "active"
+                                                                    ? !canDelete("users")
+                                                                    : !canEdit("users"))
+                                                            }
                                                             ariaLabel={
                                                                 user.status === "active"
                                                                     ? `Deactivate ${user.name}`

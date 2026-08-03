@@ -12,9 +12,8 @@ import {
     useUpdateMemberMutation,
     useDeleteMemberMutation,
     useResetMemberPasswordMutation,
-    useGetUserDetailQuery,
 } from "@/store/services/adminService";
-import { useAppSelector } from "@/store/store";
+import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 import Image from "next/image";
 
@@ -61,15 +60,9 @@ function generateSuggestedPassword(length = 12): string {
 const EMPTY_FORM = { name: "", email: "" };
 
 function MemberManagement() {
-    const currentUserId = useAppSelector((state) => state.authReducer.userId);
-    const { data: currentUserData, isLoading: isCurrentUserLoading } = useGetUserDetailQuery(
-        currentUserId,
-        { skip: !currentUserId },
-    );
-    const currentUserRoles =
-        (currentUserData as { data?: { roles?: string[] } } | undefined)?.data?.roles ?? [];
-    const isSuperAdmin = currentUserRoles.includes("super_admin");
-    const canManageMembers = isSuperAdmin || currentUserRoles.includes("admin");
+    const { isLoading: isCurrentUserLoading, isSuperAdmin, has, canEdit, canDelete } =
+        useCurrentAdminPermissions();
+    const canManageMembers = isSuperAdmin || has("members");
 
     const [searchInput, setSearchInput] = useState("");
 
@@ -497,7 +490,8 @@ function MemberManagement() {
                     <button
                         type="button"
                         onClick={openCreateModal}
-                        className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] bg-green-1 px-4 text-[14px] font-medium text-white"
+                        disabled={!canEdit("members")}
+                        className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] bg-green-1 px-4 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <UserPlus className="h-4 w-4" strokeWidth={2} />
                         Create Member
@@ -554,7 +548,8 @@ function MemberManagement() {
                                                     <button
                                                         type="button"
                                                         onClick={() => openEditModal(member)}
-                                                        className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-green-1 hover:underline"
+                                                        disabled={!canEdit("members")}
+                                                        className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-green-1 hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:no-underline"
                                                     >
                                                         <Pencil className="h-3.5 w-3.5" />
                                                         Edit
@@ -562,7 +557,8 @@ function MemberManagement() {
                                                     <button
                                                         type="button"
                                                         onClick={() => openUpdatePasswordModal(member)}
-                                                        className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-gray-8 hover:text-green-1 hover:underline"
+                                                        disabled={!canEdit("members")}
+                                                        className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-gray-8 hover:text-green-1 hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:no-underline"
                                                     >
                                                         <KeyRound className="h-3.5 w-3.5" />
                                                         Password
@@ -570,7 +566,8 @@ function MemberManagement() {
                                                     <button
                                                         type="button"
                                                         onClick={() => openDeleteModal(member)}
-                                                        className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-[#E92440] hover:underline"
+                                                        disabled={!canDelete("members")}
+                                                        className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-[#E92440] hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:no-underline"
                                                     >
                                                         <Trash2 className="h-3.5 w-3.5" />
                                                         Delete

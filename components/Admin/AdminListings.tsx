@@ -16,6 +16,7 @@ import {
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
 import { downloadCsv, csvText } from "@/utils/downloadCsv";
+import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 
@@ -70,6 +71,7 @@ function mapApiListing(product: ApiAdminListing): AdminListing {
 }
 
 function AdminListings() {
+    const { canDelete } = useCurrentAdminPermissions();
     const [page, setPage] = useState(1);
     const [searchInput, setSearchInput] = useState("");
     const [search, setSearch] = useState("");
@@ -357,7 +359,8 @@ function AdminListings() {
                                                         type="button"
                                                         aria-label="Delete listing"
                                                         onClick={() => setDeletingListing(listing)}
-                                                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-gray-11 transition-colors hover:bg-[#FDD5D5] hover:text-red-1"
+                                                        disabled={!canDelete("listings")}
+                                                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-gray-11 transition-colors hover:bg-[#FDD5D5] hover:text-red-1 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-11"
                                                     >
                                                         <Trash2 className="h-4 w-4" strokeWidth={2} />
                                                     </button>

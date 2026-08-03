@@ -5,8 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LogoutConfirmModal from "@/components/Admin/LogoutConfirmModal";
-import { useAppSelector } from "@/store/store";
-import { useGetUserDetailQuery } from "@/store/services/adminService";
+import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
 import {
     LayoutDashboard,
     Users,
@@ -57,7 +56,7 @@ const ADMIN_NAV_SECTIONS = [
         section: "Administration",
         items: [
             { label: "Admins", href: "/admin/admins", icon: ShieldCheck },
-            { label: "Members", href: "/admin/members", icon: UserCog },
+            { label: "Members", href: "/admin/members", icon: UserCog, permission: "members" },
             { label: "Tasks", href: "/admin/tasks", icon: ListTodo },
             { label: "Email Logs", href: "/admin/email-logs", icon: Mail, permission: "email-logs" },
             { label: "Activity Logs", href: "/admin/activity-logs", icon: History },
@@ -80,12 +79,7 @@ function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname();
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-    const userId = useAppSelector((state) => state.authReducer.userId);
-    const { data } = useGetUserDetailQuery(userId, { skip: !userId });
-    const currentUser = (data as { data?: { roles?: string[]; permissions?: string[] } } | undefined)?.data;
-    const currentUserRoles = currentUser?.roles ?? [];
-    const currentUserPermissions = currentUser?.permissions ?? [];
-    const isSuperAdmin = currentUserRoles.includes("super_admin");
+    const { isSuperAdmin, roles: currentUserRoles, has } = useCurrentAdminPermissions();
 
     const isAdminOrSuperAdmin = isSuperAdmin || currentUserRoles.includes("admin");
 
@@ -93,8 +87,8 @@ function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
         ...group,
         items: group.items.filter((item) => {
             if (item.href === "/admin/admins" || item.href === "/admin/activity-logs") return isSuperAdmin;
-            if (item.href === "/admin/members" || item.href === "/admin/tasks") return isAdminOrSuperAdmin;
-            if (item.permission) return isSuperAdmin || currentUserPermissions.includes(item.permission);
+            if (item.href === "/admin/tasks") return isAdminOrSuperAdmin;
+            if (item.permission) return has(item.permission as Parameters<typeof has>[0]);
             return true;
         }),
     })).filter((group) => group.items.length > 0);
