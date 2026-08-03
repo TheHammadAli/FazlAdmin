@@ -359,21 +359,24 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
         clearParametersError();
     }
 
+    async function translateOne(text: string): Promise<string> {
+        const result = await translateText(text).unwrap();
+        return result.translatedText;
+    }
+
     async function handleTranslateFromEnglish() {
         if (parametersEn.length === 0) return;
         setIsTranslating(true);
         try {
-            const translated = await Promise.all(
-                parametersEn.map(async (parameter) => {
-                    const [name, ...values] = await Promise.all([
-                        translateText(parameter.name).unwrap().then((res) => res.translatedText),
-                        ...parameter.values.map((value) =>
-                            translateText(value).unwrap().then((res) => res.translatedText),
-                        ),
-                    ]);
-                    return { name, values };
-                }),
-            );
+            const translated: CategoryParameter[] = [];
+            for (const parameter of parametersEn) {
+                const name = await translateOne(parameter.name);
+                const values: string[] = [];
+                for (const value of parameter.values) {
+                    values.push(await translateOne(value));
+                }
+                translated.push({ name, values });
+            }
             setParametersUr(translated);
             clearParametersError();
         } catch (err) {
