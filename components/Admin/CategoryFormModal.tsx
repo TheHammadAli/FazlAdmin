@@ -16,9 +16,14 @@ import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 
 export type CategoryType = "product" | "service";
 
+export type CategoryParameter = {
+    name: string;
+    values: string[];
+};
+
 export type CategoryParameters = {
-    en: string[];
-    ur: string[];
+    en: CategoryParameter[];
+    ur: CategoryParameter[];
 };
 
 export type CategoryFormCategory = {
@@ -41,106 +46,219 @@ type FormErrors = {
     nameEn?: string;
     nameUr?: string;
     sortNumber?: string;
+    parameters?: string;
 };
 
-function ParameterInputList({
-    id,
+function ParameterListEditor({
+    idPrefix,
     label,
-    values,
-    inputValue,
+    parameters,
     dir,
-    placeholder,
-    onInputChange,
-    onAdd,
-    onRemove,
+    namePlaceholder,
+    valuePlaceholder,
+    onChange,
 }: {
-    id: string;
+    idPrefix: string;
     label: string;
-    values: string[];
-    inputValue: string;
+    parameters: CategoryParameter[];
     dir?: "rtl" | "ltr";
-    placeholder: string;
-    onInputChange: (value: string) => void;
-    onAdd: () => void;
-    onRemove: (index: number) => void;
+    namePlaceholder: string;
+    valuePlaceholder: string;
+    onChange: (parameters: CategoryParameter[]) => void;
 }) {
+    const [valueInputs, setValueInputs] = useState<string[]>([]);
+
+    function updateParameter(index: number, parameter: CategoryParameter) {
+        onChange(parameters.map((item, itemIndex) => (itemIndex === index ? parameter : item)));
+    }
+
+    function removeParameter(index: number) {
+        onChange(parameters.filter((_, itemIndex) => itemIndex !== index));
+        setValueInputs((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+    }
+
+    function setValueInput(index: number, value: string) {
+        setValueInputs((prev) => {
+            const next = [...prev];
+            next[index] = value;
+            return next;
+        });
+    }
+
+    function addValue(index: number) {
+        const value = valueInputs[index]?.trim();
+        if (!value) return;
+        const parameter = parameters[index];
+        updateParameter(index, { ...parameter, values: [...parameter.values, value] });
+        setValueInput(index, "");
+    }
+
     return (
         <div>
-            <label htmlFor={id} className="text-[14px] font-normal text-gray-11">
-                {label}
-            </label>
-            <div className="mt-2 flex items-center gap-2 border-0 border-b border-gray-9 pb-2">
-                <input
-                    id={id}
-                    type="text"
-                    value={inputValue}
-                    dir={dir}
-                    placeholder={placeholder}
-                    onChange={(event) => onInputChange(event.target.value)}
-                    onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                            event.preventDefault();
-                            onAdd();
-                        }
-                    }}
-                    className="w-full border-0 bg-transparent py-1 text-[14px] text-[#001907] outline-none focus:border-green-1"
-                />
-                <button
-                    type="button"
-                    onClick={onAdd}
-                    disabled={!inputValue.trim()}
-                    className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-1 disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label={`Add ${label.toLowerCase()}`}
-                >
-                    <Plus className="h-4 w-4" />
-                </button>
-            </div>
-            {values.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                    {values.map((value, index) => {
-                        const safeValue = typeof value === "string" ? value : "";
-
-                        return (
-                            <span
-                                key={`${safeValue}-${index}`}
-                                className="inline-flex items-center gap-1 rounded-[6px] bg-[#E6FBFB] px-2.5 py-1 text-[12px] text-[#001907]"
+            <p className="text-[14px] font-normal text-gray-11">{label}</p>
+            <div className="mt-3 space-y-4">
+                {parameters.map((parameter, index) => (
+                    <div key={index} className="rounded-[8px] border border-gray-9 p-3">
+                        <div className="flex items-center gap-2">
+                            <input
+                                id={`${idPrefix}-name-${index}`}
+                                type="text"
+                                value={parameter.name}
+                                dir={dir}
+                                placeholder={namePlaceholder}
+                                onChange={(event) =>
+                                    updateParameter(index, { ...parameter, name: event.target.value })
+                                }
+                                className="w-full border-0 border-b border-gray-9 bg-transparent py-1 text-[14px] font-medium text-[#001907] outline-none focus:border-green-1"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => removeParameter(index)}
+                                className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center text-gray-11 hover:text-red-1"
+                                aria-label={`Remove parameter ${index + 1}`}
                             >
-                                <span dir={dir}>{safeValue}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => onRemove(index)}
-                                    className="inline-flex cursor-pointer items-center justify-center text-gray-11 hover:text-red-1"
-                                    aria-label={`Remove ${safeValue}`}
-                                >
-                                    <X className="h-3 w-3" />
-                                </button>
-                            </span>
-                        );
-                    })}
-                </div>
-            )}
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <div className="mt-3 flex items-center gap-2 border-0 border-b border-gray-9 pb-2">
+                            <input
+                                id={`${idPrefix}-value-${index}`}
+                                type="text"
+                                value={valueInputs[index] ?? ""}
+                                dir={dir}
+                                placeholder={valuePlaceholder}
+                                onChange={(event) => setValueInput(index, event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                        event.preventDefault();
+                                        addValue(index);
+                                    }
+                                }}
+                                className="w-full border-0 bg-transparent py-1 text-[14px] text-[#001907] outline-none"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => addValue(index)}
+                                disabled={!valueInputs[index]?.trim()}
+                                className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-1 disabled:cursor-not-allowed disabled:opacity-40"
+                                aria-label={`Add value to parameter ${index + 1}`}
+                            >
+                                <Plus className="h-4 w-4" />
+                            </button>
+                        </div>
+                        {parameter.values.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {parameter.values.map((value, valueIndex) => {
+                                    const safeValue = typeof value === "string" ? value : "";
+
+                                    return (
+                                        <span
+                                            key={`${safeValue}-${valueIndex}`}
+                                            className="inline-flex items-center gap-1 rounded-[6px] bg-[#E6FBFB] px-2.5 py-1 text-[12px] text-[#001907]"
+                                        >
+                                            <span dir={dir}>{safeValue}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    updateParameter(index, {
+                                                        ...parameter,
+                                                        values: parameter.values.filter(
+                                                            (_, itemIndex) => itemIndex !== valueIndex,
+                                                        ),
+                                                    })
+                                                }
+                                                className="inline-flex cursor-pointer items-center justify-center text-gray-11 hover:text-red-1"
+                                                aria-label={`Remove ${safeValue}`}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+            <button
+                type="button"
+                onClick={() => onChange([...parameters, { name: "", values: [] }])}
+                className="mt-3 inline-flex cursor-pointer items-center gap-1 text-[14px] font-medium text-green-1"
+            >
+                <Plus className="h-4 w-4" />
+                Add parameter
+            </button>
         </div>
     );
 }
 
-function buildParametersPayload(parametersEn: string[], parametersUr: string[]): CategoryParameters | undefined {
-    const en = parametersEn.map((item) => item.trim()).filter(Boolean);
-    const ur = parametersUr.map((item) => item.trim()).filter(Boolean);
+function clonedParameters(parameters?: unknown): CategoryParameter[] {
+    if (!Array.isArray(parameters)) return [];
+    return parameters.map((parameter: unknown) => {
+        const record = parameter as { name?: unknown; values?: unknown } | null | undefined;
+        return {
+            name: typeof record?.name === "string" ? record.name : "",
+            values: Array.isArray(record?.values)
+                ? record.values.filter((value: unknown): value is string => typeof value === "string")
+                : [],
+        };
+    });
+}
+
+function normalizeParameters(parameters: CategoryParameter[]): CategoryParameter[] {
+    return parameters
+        .map((parameter) => ({
+            name: parameter.name.trim(),
+            values: parameter.values.map((value) => value.trim()).filter(Boolean),
+        }))
+        .filter((parameter) => parameter.name && parameter.values.length > 0);
+}
+
+function buildParametersPayload(
+    parametersEn: CategoryParameter[],
+    parametersUr: CategoryParameter[],
+): CategoryParameters | undefined {
+    const en = normalizeParameters(parametersEn);
+    const ur = normalizeParameters(parametersUr);
     if (en.length === 0 && ur.length === 0) {
         return undefined;
     }
     return { en, ur };
 }
 
-function addParameterValue(
-    value: string,
-    setValues: React.Dispatch<React.SetStateAction<string[]>>,
-    setInput: React.Dispatch<React.SetStateAction<string>>,
-) {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    setValues((prev) => [...prev, trimmed]);
-    setInput("");
+function validateParameters(
+    parametersEn: CategoryParameter[],
+    parametersUr: CategoryParameter[],
+): string | undefined {
+    for (const [language, parameters] of [
+        ["English", parametersEn],
+        ["Urdu", parametersUr],
+    ] as const) {
+        for (const parameter of parameters) {
+            const values = parameter.values.map((value) => value.trim()).filter(Boolean);
+            if (!parameter.name.trim()) {
+                return `Enter a name for every ${language} parameter`;
+            }
+            if (values.length === 0) {
+                return `Add at least one value for the ${language} parameter "${parameter.name.trim()}"`;
+            }
+        }
+    }
+
+    const en = normalizeParameters(parametersEn);
+    const ur = normalizeParameters(parametersUr);
+
+    if (en.length !== ur.length) {
+        return "Add the same number of parameters in both English and Urdu";
+    }
+
+    for (let index = 0; index < en.length; index += 1) {
+        if (en[index].values.length !== ur[index].values.length) {
+            return `Parameter "${en[index].name}" must have the same number of values in English and Urdu`;
+        }
+    }
+
+    return undefined;
 }
 
 type CategoryFormModalProps = {
@@ -160,10 +278,8 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
     const [sortNumber, setSortNumber] = useState("1");
     const [iconPreview, setIconPreview] = useState<string | null>(null);
     const [iconFile, setIconFile] = useState<File | null>(null);
-    const [parametersEn, setParametersEn] = useState<string[]>([]);
-    const [parametersUr, setParametersUr] = useState<string[]>([]);
-    const [parameterInputEn, setParameterInputEn] = useState("");
-    const [parameterInputUr, setParameterInputUr] = useState("");
+    const [parametersEn, setParametersEn] = useState<CategoryParameter[]>([]);
+    const [parametersUr, setParametersUr] = useState<CategoryParameter[]>([]);
     const [errors, setErrors] = useState<FormErrors>({});
 
     const [createNewCategory, { isLoading: isCreatingCategory }] = useCreateNewCategoryMutation();
@@ -183,12 +299,24 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
         );
         setIconPreview(editCategory?.icon ?? null);
         setIconFile(null);
-        setParametersEn(editCategory?.parameters?.en ?? []);
-        setParametersUr(editCategory?.parameters?.ur ?? []);
-        setParameterInputEn("");
-        setParameterInputUr("");
+        setParametersEn(clonedParameters(editCategory?.parameters?.en));
+        setParametersUr(clonedParameters(editCategory?.parameters?.ur));
         setErrors({});
     }, [open, editCategory]);
+
+    function clearParametersError() {
+        setErrors((prev) => (prev.parameters ? { ...prev, parameters: undefined } : prev));
+    }
+
+    function handleParametersEnChange(parameters: CategoryParameter[]) {
+        setParametersEn(parameters);
+        clearParametersError();
+    }
+
+    function handleParametersUrChange(parameters: CategoryParameter[]) {
+        setParametersUr(parameters);
+        clearParametersError();
+    }
 
     function handleSetOpen(value: React.SetStateAction<boolean>) {
         const nextOpen = typeof value === "function" ? value(open) : value;
@@ -219,6 +347,11 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
             nextErrors.sortNumber = "Sort number is required";
         } else if (!Number.isInteger(parsedSortNumber) || parsedSortNumber < 1) {
             nextErrors.sortNumber = "Sort number must be an integer starting from 1";
+        }
+
+        const parametersError = validateParameters(parametersEn, parametersUr);
+        if (parametersError) {
+            nextErrors.parameters = parametersError;
         }
 
         if (Object.keys(nextErrors).length > 0) {
@@ -445,32 +578,29 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
                         Parameters (optional)
                     </p>
                     <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
-                        <ParameterInputList
-                            id="category-parameters-en"
+                        <ParameterListEditor
+                            key={`en-${editCategory?.id ?? "add"}`}
+                            idPrefix="category-parameters-en"
                             label="Parameters (English)"
-                            values={parametersEn}
-                            inputValue={parameterInputEn}
-                            placeholder="e.g. Size"
-                            onInputChange={setParameterInputEn}
-                            onAdd={() => addParameterValue(parameterInputEn, setParametersEn, setParameterInputEn)}
-                            onRemove={(index) =>
-                                setParametersEn((prev) => prev.filter((_, itemIndex) => itemIndex !== index))
-                            }
+                            parameters={parametersEn}
+                            namePlaceholder="e.g. Size"
+                            valuePlaceholder="e.g. S"
+                            onChange={handleParametersEnChange}
                         />
-                        <ParameterInputList
-                            id="category-parameters-ur"
+                        <ParameterListEditor
+                            key={`ur-${editCategory?.id ?? "add"}`}
+                            idPrefix="category-parameters-ur"
                             label="Parameters (Urdu)"
-                            values={parametersUr}
-                            inputValue={parameterInputUr}
+                            parameters={parametersUr}
                             dir="rtl"
-                            placeholder="مثال: سائز"
-                            onInputChange={setParameterInputUr}
-                            onAdd={() => addParameterValue(parameterInputUr, setParametersUr, setParameterInputUr)}
-                            onRemove={(index) =>
-                                setParametersUr((prev) => prev.filter((_, itemIndex) => itemIndex !== index))
-                            }
+                            namePlaceholder="مثال: سائز"
+                            valuePlaceholder="مثال: ایس"
+                            onChange={handleParametersUrChange}
                         />
                     </div>
+                    {errors.parameters && (
+                        <p className="mt-3 text-[12px] font-normal text-red-1">{errors.parameters}</p>
+                    )}
                 </div>
                 <div className="mt-8 flex justify-end gap-3">
                     <button

@@ -6,7 +6,7 @@ import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
 import Pagination from "@/components/Ui/Pagination";
 import Modal from "@/components/Ui/Modals/Modal";
-import CategoryFormModal, { type CategoryParameters, type CategoryType } from "@/components/Admin/CategoryFormModal";
+import CategoryFormModal, { type CategoryParameter, type CategoryParameters, type CategoryType } from "@/components/Admin/CategoryFormModal";
 import DoodleButton from "@/components/Ui/DoodleButton";
 import { useUpdateCategoryMutation } from "@/store/services/adminService";
 import Image from "next/image";
@@ -79,10 +79,20 @@ function toSafeString(value: unknown): string {
 }
 
 /** Same legacy-data risk applies to parameters.en/parameters.ur array elements —
- *  drop anything that isn't a plain, non-empty string. */
-function toSafeStringArray(value: unknown): string[] {
+ *  drop anything that isn't a well-formed { name, values } parameter entry. */
+function toSafeParameterArray(value: unknown): CategoryParameter[] {
     if (!Array.isArray(value)) return [];
-    return value.filter((item): item is string => typeof item === "string" && item.trim() !== "");
+    return value
+        .map((item: unknown) => {
+            const record = item as { name?: unknown; values?: unknown } | null | undefined;
+            return {
+                name: typeof record?.name === "string" ? record.name : "",
+                values: Array.isArray(record?.values)
+                    ? record.values.filter((v: unknown): v is string => typeof v === "string")
+                    : [],
+            };
+        })
+        .filter((parameter) => parameter.name.trim() !== "");
 }
 
 function mapApiCategory(category: ApiCategory): Category {
@@ -108,8 +118,8 @@ function mapApiCategory(category: ApiCategory): Category {
         icon: category.icon,
         parameters: category.parameters
             ? {
-                en: toSafeStringArray(category.parameters.en),
-                ur: toSafeStringArray(category.parameters.ur),
+                en: toSafeParameterArray(category.parameters.en),
+                ur: toSafeParameterArray(category.parameters.ur),
             }
             : undefined,
         sortNumber: category.sortNumber,
