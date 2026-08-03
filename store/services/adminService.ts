@@ -224,6 +224,27 @@ export const adminService = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["ADMIN_BROADCASTS"],
     }),
+    getAllAnnouncementsForAdmin: build.query({
+      query: ({ page, limit }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        return {
+          url: `/announcements?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_ANNOUNCEMENTS"],
+    }),
+    createAnnouncement: build.mutation({
+      query: (body: { title: string; message: string }) => ({
+        url: `/announcements`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_ANNOUNCEMENTS"],
+    }),
     getAllAdminAccounts: build.query({
       query: ({ page, limit, search }) => {
         const params = new URLSearchParams({
@@ -460,6 +481,8 @@ export const {
   useGetBroadcastRecipientsQuery,
   useCloseBroadcastMutation,
   useDeleteBroadcastMutation,
+  useGetAllAnnouncementsForAdminQuery,
+  useCreateAnnouncementMutation,
   useGetAllAdminAccountsQuery,
   useCreateAdminAccountMutation,
   useUpdateAdminAccountMutation,

@@ -9,6 +9,7 @@ export type AdminPage =
     | "categories"
     | "bookings"
     | "broadcasts"
+    | "announcements"
     | "feed"
     | "reports"
     | "email-logs"
@@ -29,6 +30,7 @@ const EXPANDED_PAGES: { value: AdminPage; label: string }[] = [
 const SIMPLE_PAGES: { value: AdminPage; label: string }[] = [
     { value: "services", label: "Services" },
     { value: "broadcasts", label: "Echo Broadcasts" },
+    { value: "announcements", label: "Announcements" },
     { value: "feed", label: "Feed" },
     { value: "reports", label: "Reports" },
     { value: "email-logs", label: "Email Logs" },

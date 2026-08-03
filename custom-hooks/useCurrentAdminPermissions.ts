@@ -10,6 +10,7 @@ export type AdminPage =
     | "categories"
     | "bookings"
     | "broadcasts"
+    | "announcements"
     | "feed"
     | "reports"
     | "email-logs"

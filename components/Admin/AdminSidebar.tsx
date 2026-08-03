@@ -25,6 +25,7 @@ import {
     ListTodo,
     Mail,
     History,
+    Megaphone,
 } from "lucide-react";
 import FazlLogo from "@/assets/icons/fazal-logo.svg";
 
@@ -48,6 +49,7 @@ const ADMIN_NAV_SECTIONS = [
         items: [
             { label: "Service Bookings", href: "/admin/bookings", icon: CalendarCheck, permission: "bookings" },
             { label: "Echo Broadcasts", href: "/admin/broadcasts", icon: Radio, permission: "broadcasts" },
+            { label: "Announcements", href: "/admin/announcements", icon: Megaphone, permission: "announcements" },
             { label: "Feed", href: "/admin/feed", icon: Video, permission: "feed" },
             { label: "Reports", href: "/admin/reports", icon: Flag, permission: "reports" },
         ],
