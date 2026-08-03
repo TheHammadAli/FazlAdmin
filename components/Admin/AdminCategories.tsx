@@ -132,8 +132,14 @@ type PendingStatusChange = {
     action: "activate" | "deactivate";
 };
 
+const CATEGORY_TABS: { value: CategoryType; label: string }[] = [
+    { value: "product", label: "Product" },
+    { value: "service", label: "Service" },
+];
+
 function AdminCategories() {
     const { canEdit } = useCurrentAdminPermissions();
+    const [activeTab, setActiveTab] = useState<CategoryType>("product");
     const [page, setPage] = useState(1);
     const [updatingCategoryId, setUpdatingCategoryId] = useState<string | null>(null);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -153,13 +159,18 @@ function AdminCategories() {
         return (response?.data ?? []).map(mapApiCategory);
     }, [categoriesResponse]);
 
-    const totalCategories = allCategories.length;
+    const tabCategories = useMemo(
+        () => allCategories.filter((category) => category.type === activeTab),
+        [allCategories, activeTab],
+    );
+
+    const totalCategories = tabCategories.length;
     const pageCount = Math.max(1, Math.ceil(totalCategories / PAGE_LIMIT));
 
     const paginatedCategories = useMemo(() => {
         const start = (page - 1) * PAGE_LIMIT;
-        return allCategories.slice(start, start + PAGE_LIMIT);
-    }, [allCategories, page]);
+        return tabCategories.slice(start, start + PAGE_LIMIT);
+    }, [tabCategories, page]);
 
     const loading = isCategoriesLoading || isCategoriesFetching;
 
@@ -169,19 +180,23 @@ function AdminCategories() {
         }
     }, [page, pageCount]);
 
+    function selectTab(tab: CategoryType) {
+        setActiveTab(tab);
+        setPage(1);
+    }
+
     function handleExportCsv() {
-        if (allCategories.length === 0) {
+        if (tabCategories.length === 0) {
             toast.error("No categories to export");
             return;
         }
         downloadCsv(
-            `categories-${new Date().toISOString().slice(0, 10)}.csv`,
-            ["Sort Number", "Category Name (EN)", "Category Name (UR)", "Type", "Status", "Created Date"],
-            allCategories.map((category) => [
+            `${activeTab}-categories-${new Date().toISOString().slice(0, 10)}.csv`,
+            ["Sort Number", "Category Name (EN)", "Category Name (UR)", "Status", "Created Date"],
+            tabCategories.map((category) => [
                 category.sortNumber ?? "",
                 category.name.en,
                 category.name.ur,
-                category.type,
                 STATUS_STYLES[category.status].label,
                 csvText(category.createdAt),
             ]),
@@ -263,6 +278,7 @@ function AdminCategories() {
             <CategoryFormModal
                 open={isCategoryFormOpen}
                 mode={editingCategory ? { type: "edit", category: editingCategory } : "add"}
+                defaultType={activeTab}
                 onClose={closeCategoryFormModal}
             />
 
@@ -365,6 +381,22 @@ function AdminCategories() {
                         </DoodleButton>
                     </div>
                 </div>
+
+                <div className="container mx-auto mt-5 flex gap-2 px-5 lg:px-10">
+                    {CATEGORY_TABS.map((tab) => (
+                        <button
+                            key={tab.value}
+                            type="button"
+                            onClick={() => selectTab(tab.value)}
+                            className={`cursor-pointer rounded-[8px] px-4 py-2 text-[14px] font-medium transition-colors ${activeTab === tab.value
+                                ? "bg-green-1 text-white"
+                                : "bg-white text-gray-8 hover:bg-gray-10"
+                                }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <div className="bg-white">
@@ -382,10 +414,6 @@ function AdminCategories() {
                                             <ChevronsUpDown className="h-4 w-4 text-gray-11" />
                                         </button>
                                     </th>
-                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
-                                        Type
-                                    </th>
-
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Created Date
                                     </th>
@@ -423,7 +451,6 @@ function AdminCategories() {
                                 {!loading &&
                                     paginatedCategories.map((category) => {
                                         const statusStyle = STATUS_STYLES[category.status];
-                                        console.log(category);
 
                                         return (
                                             <tr key={category.id} className="bg-white">
@@ -445,13 +472,6 @@ function AdminCategories() {
                                                             {category.displayName}
                                                         </span>
                                                     </div>
-                                                </td>
-                                                <td className="py-3.5  pr-4 first-letter:capitalize">
-                                                    <span
-                                                        className={`  py-1 text-[12px] font-medium `}
-                                                    >
-                                                        {category.type}
-                                                    </span>
                                                 </td>
                                                 <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
                                                     {category.createdAt}

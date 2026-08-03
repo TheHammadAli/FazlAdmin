@@ -304,9 +304,11 @@ type CategoryFormModalProps = {
     open: boolean;
     mode: CategoryFormMode;
     onClose: () => void;
+    /** Pre-selected type for "add" mode — e.g. matching whichever tab is active. */
+    defaultType?: CategoryType;
 };
 
-function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
+function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormModalProps) {
     const isEdit = mode !== "add";
     const editCategory = isEdit ? mode.category : null;
     const modalRef = useRef<HTMLDivElement>(null);
@@ -332,7 +334,7 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
 
         setNameEn(editCategory?.name.en ?? "");
         setNameUr(editCategory?.name.ur ?? "");
-        setType(editCategory?.type ?? "product");
+        setType(editCategory?.type ?? defaultType ?? "product");
         setSortNumber(
             editCategory?.sortNumber !== undefined && editCategory?.sortNumber !== null
                 ? String(editCategory.sortNumber)
@@ -343,7 +345,7 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
         setParametersEn(clonedParameters(editCategory?.parameters?.en));
         setParametersUr(clonedParameters(editCategory?.parameters?.ur));
         setErrors({});
-    }, [open, editCategory]);
+    }, [open, editCategory, defaultType]);
 
     function clearParametersError() {
         setErrors((prev) => (prev.parameters ? { ...prev, parameters: undefined } : prev));
