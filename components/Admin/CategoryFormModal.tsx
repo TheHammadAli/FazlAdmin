@@ -425,6 +425,16 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
 
         if (Object.keys(nextErrors).length > 0) {
             setErrors(nextErrors);
+            const firstErrorFieldId = nextErrors.sortNumber
+                ? "category-sort-number"
+                : nextErrors.nameEn
+                    ? "category-name-en"
+                    : nextErrors.nameUr
+                        ? "category-name-ur"
+                        : "category-parameters-section";
+            document
+                .getElementById(firstErrorFieldId)
+                ?.scrollIntoView({ behavior: "smooth", block: "center" });
             return;
         }
 
@@ -642,7 +652,7 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
                     </div>
                 </div>
 
-                <div className="mt-8 border-t border-gray-9 pt-6">
+                <div id="category-parameters-section" className="mt-8 border-t border-gray-9 pt-6">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
                             Parameters (optional)
