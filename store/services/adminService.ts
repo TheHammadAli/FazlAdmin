@@ -129,6 +129,13 @@ export const adminService = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["ADMIN_CATEGORIES", "CATEGORIES"],
     }),
+    translateText: build.mutation({
+      query: (text: string) => ({
+        url: `/categories/translate`,
+        method: "POST",
+        body: { text },
+      }),
+    }),
     getAllCategoriesForAdmin: build.query({
       query: () => {
         return {
@@ -444,6 +451,7 @@ export const {
   useActivateUserMutation,
   useCreateNewCategoryMutation,
   useUpdateCategoryMutation,
+  useTranslateTextMutation,
   useGetAllServiceRequestsForAdminQuery,
   useLazyGetAllServiceRequestsForAdminQuery,
   useGetServiceRequestDetailQuery,

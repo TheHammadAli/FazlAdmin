@@ -7,10 +7,11 @@ import Image from "next/image";
 import { toast } from "react-hot-toast";
 import DoodleButton from "@/components/Ui/DoodleButton";
 import Modal from "@/components/Ui/Modals/Modal";
-import { Check, ChevronDown, ChevronUp, Plus, Tag, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Languages, Plus, Tag, X } from "lucide-react";
 import {
     useCreateNewCategoryMutation,
     useUpdateCategoryMutation,
+    useTranslateTextMutation,
 } from "@/store/services/adminService";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 
@@ -322,6 +323,8 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
 
     const [createNewCategory, { isLoading: isCreatingCategory }] = useCreateNewCategoryMutation();
     const [updateCategory, { isLoading: isUpdatingCategory }] = useUpdateCategoryMutation();
+    const [translateText] = useTranslateTextMutation();
+    const [isTranslating, setIsTranslating] = useState(false);
     const isSubmitting = isCreatingCategory || isUpdatingCategory;
 
     useEffect(() => {
@@ -354,6 +357,31 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
     function handleParametersUrChange(parameters: CategoryParameter[]) {
         setParametersUr(parameters);
         clearParametersError();
+    }
+
+    async function handleTranslateFromEnglish() {
+        if (parametersEn.length === 0) return;
+        setIsTranslating(true);
+        try {
+            const translated = await Promise.all(
+                parametersEn.map(async (parameter) => {
+                    const [name, ...values] = await Promise.all([
+                        translateText(parameter.name).unwrap().then((res) => res.translatedText),
+                        ...parameter.values.map((value) =>
+                            translateText(value).unwrap().then((res) => res.translatedText),
+                        ),
+                    ]);
+                    return { name, values };
+                }),
+            );
+            setParametersUr(translated);
+            clearParametersError();
+        } catch (err) {
+            const errorData = err as { data?: { message?: string } };
+            toast.error(errorData?.data?.message ?? "Translation failed. Please try again.");
+        } finally {
+            setIsTranslating(false);
+        }
     }
 
     function handleSetOpen(value: React.SetStateAction<boolean>) {
@@ -612,9 +640,26 @@ function CategoryFormModal({ open, mode, onClose }: CategoryFormModalProps) {
                 </div>
 
                 <div className="mt-8 border-t border-gray-9 pt-6">
-                    <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
-                        Parameters (optional)
-                    </p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
+                            Parameters (optional)
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleTranslateFromEnglish}
+                            disabled={parametersEn.length === 0 || isTranslating}
+                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[6px] border border-gray-9 px-2.5 py-1.5 text-[12px] font-medium text-gray-8 transition-colors hover:border-green-1 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            {isTranslating ? (
+                                <BeatLoader size={5} color="#007781" />
+                            ) : (
+                                <>
+                                    <Languages className="h-3.5 w-3.5" strokeWidth={2} />
+                                    Translate from English
+                                </>
+                            )}
+                        </button>
+                    </div>
                     <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <ParameterListEditor
                             key={`en-${editCategory?.id ?? "add"}`}
