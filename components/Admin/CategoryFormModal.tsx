@@ -7,7 +7,7 @@ import Image from "next/image";
 import { toast } from "react-hot-toast";
 import DoodleButton from "@/components/Ui/DoodleButton";
 import Modal from "@/components/Ui/Modals/Modal";
-import { Check, ChevronDown, Plus, Tag, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Plus, Tag, X } from "lucide-react";
 import {
     useCreateNewCategoryMutation,
     useUpdateCategoryMutation,
@@ -77,6 +77,24 @@ function ParameterListEditor({
         setValueInputs((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
     }
 
+    function moveParameter(index: number, direction: -1 | 1) {
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= parameters.length) return;
+
+        const nextParameters = [...parameters];
+        [nextParameters[index], nextParameters[targetIndex]] = [
+            nextParameters[targetIndex],
+            nextParameters[index],
+        ];
+        onChange(nextParameters);
+
+        setValueInputs((prev) => {
+            const next = [...prev];
+            [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+            return next;
+        });
+    }
+
     function setValueInput(index: number, value: string) {
         setValueInputs((prev) => {
             const next = [...prev];
@@ -111,14 +129,34 @@ function ParameterListEditor({
                                 }
                                 className="w-full border-0 border-b border-gray-9 bg-transparent py-1 text-[14px] font-medium text-[#001907] outline-none focus:border-green-1"
                             />
-                            <button
-                                type="button"
-                                onClick={() => removeParameter(index)}
-                                className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center text-gray-11 hover:text-red-1"
-                                aria-label={`Remove parameter ${index + 1}`}
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
+                            <div className="flex shrink-0 items-center gap-0.5">
+                                <button
+                                    type="button"
+                                    onClick={() => moveParameter(index, -1)}
+                                    disabled={index === 0}
+                                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center text-gray-11 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-30"
+                                    aria-label={`Move parameter ${index + 1} up`}
+                                >
+                                    <ChevronUp className="h-4 w-4" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => moveParameter(index, 1)}
+                                    disabled={index === parameters.length - 1}
+                                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center text-gray-11 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-30"
+                                    aria-label={`Move parameter ${index + 1} down`}
+                                >
+                                    <ChevronDown className="h-4 w-4" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => removeParameter(index)}
+                                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center text-gray-11 hover:text-red-1"
+                                    aria-label={`Remove parameter ${index + 1}`}
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
                         </div>
                         <div className="mt-3 flex items-center gap-2 border-0 border-b border-gray-9 pb-2">
                             <input
