@@ -415,6 +415,9 @@ function AdminCategories() {
                                         </button>
                                     </th>
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Type
+                                    </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Created Date
                                     </th>
                                     {/* <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
@@ -429,7 +432,7 @@ function AdminCategories() {
                                 {loading &&
                                     Array.from({ length: PAGE_LIMIT }).map((_, index) => (
                                         <tr key={`skeleton-${index}`} className="bg-white">
-                                            {Array.from({ length: 4 }).map((__, cellIndex) => (
+                                            {Array.from({ length: 5 }).map((__, cellIndex) => (
                                                 <td key={cellIndex} className="py-3.5 pr-4">
                                                     <div className="h-4 w-full max-w-[180px] animate-pulse rounded bg-gray-200" />
                                                 </td>
@@ -440,7 +443,7 @@ function AdminCategories() {
                                 {!loading && paginatedCategories.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={4}
+                                            colSpan={5}
                                             className="py-8 text-center text-[14px] text-gray-11"
                                         >
                                             No categories found
@@ -472,6 +475,11 @@ function AdminCategories() {
                                                             {category.displayName}
                                                         </span>
                                                     </div>
+                                                </td>
+                                                <td className="py-3.5 pr-4 first-letter:capitalize">
+                                                    <span className="text-[12px] font-medium">
+                                                        {category.type}
+                                                    </span>
                                                 </td>
                                                 <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
                                                     {category.createdAt}
