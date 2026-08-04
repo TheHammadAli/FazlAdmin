@@ -43,6 +43,14 @@ const ACTION_FILTERS: { label: string; value: ActivityLogAction | "" }[] = [
     })),
 ];
 
+type RoleFilter = "" | "super_admin" | "admin";
+
+const ROLE_FILTERS: { label: string; value: RoleFilter }[] = [
+    { label: "All", value: "" },
+    { label: "Super Admin", value: "super_admin" },
+    { label: "Admin", value: "admin" },
+];
+
 type ActivityLogEntry = {
     id: string;
     logCode: number;
@@ -164,6 +172,7 @@ function AdminActivityLogs() {
     const [searchInput, setSearchInput] = useState("");
     const [search, setSearch] = useState("");
     const [actionFilter, setActionFilter] = useState<ActivityLogAction | "">("");
+    const [roleFilter, setRoleFilter] = useState<RoleFilter>("");
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -179,7 +188,7 @@ function AdminActivityLogs() {
         isLoading,
         isFetching,
     } = useGetAllActivityLogsQuery(
-        { page, limit: PAGE_LIMIT, search, action: actionFilter },
+        { page, limit: PAGE_LIMIT, search, action: actionFilter, role: roleFilter },
         { skip: !isSuperAdmin },
     );
 
@@ -221,19 +230,36 @@ function AdminActivityLogs() {
                 </div>
 
                 <div className="container mx-auto mt-4 px-5 lg:px-10">
-                    <div className="relative max-w-[320px]">
-                        <Image
-                            src={searchIcon}
-                            alt=""
-                            className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
-                        />
-                        <input
-                            type="text"
-                            value={searchInput}
-                            onChange={(event) => setSearchInput(event.target.value)}
-                            placeholder="Search by admin name or email..."
-                            className="h-10 w-full rounded-[8px] border border-gray-9 bg-white pl-9 pr-3 text-[14px] text-[#001907] outline-none placeholder:text-gray-11 focus:border-green-1"
-                        />
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="relative w-full max-w-[320px]">
+                            <Image
+                                src={searchIcon}
+                                alt=""
+                                className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
+                            />
+                            <input
+                                type="text"
+                                value={searchInput}
+                                onChange={(event) => setSearchInput(event.target.value)}
+                                placeholder="Search by admin name or email..."
+                                className="h-10 w-full rounded-[8px] border border-gray-9 bg-white pl-9 pr-3 text-[14px] text-[#001907] outline-none placeholder:text-gray-11 focus:border-green-1"
+                            />
+                        </div>
+
+                        <select
+                            value={roleFilter}
+                            onChange={(event) => {
+                                setRoleFilter(event.target.value as RoleFilter);
+                                setPage(1);
+                            }}
+                            className="h-10 rounded-[8px] border border-gray-9 bg-white px-3 text-[14px] text-[#001907] outline-none focus:border-green-1"
+                        >
+                            {ROLE_FILTERS.map((filter) => (
+                                <option key={filter.label} value={filter.value}>
+                                    {filter.label}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
