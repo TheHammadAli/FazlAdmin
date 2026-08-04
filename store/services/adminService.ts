@@ -435,7 +435,7 @@ export const adminService = baseApi.injectEndpoints({
       invalidatesTags: ["ADMIN_TASKS"],
     }),
     getAllActivityLogs: build.query({
-      query: ({ page, limit, search, action, role }) => {
+      query: ({ page, limit, search, action, role, actorId }) => {
         const params = new URLSearchParams({
           page: String(page),
           limit: String(limit),
@@ -448,6 +448,9 @@ export const adminService = baseApi.injectEndpoints({
         }
         if (role?.trim()) {
           params.set("role", role.trim());
+        }
+        if (actorId?.trim()) {
+          params.set("actorId", actorId.trim());
         }
         return {
           url: `/activity-logs?${params.toString()}`,

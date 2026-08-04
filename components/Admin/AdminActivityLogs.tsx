@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { CalendarDays, LogIn, Store, Trash2, UserCheck, UserX, Radio, ClipboardList, ClipboardCheck, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import Pagination from "@/components/Ui/Pagination";
-import { useGetAllActivityLogsQuery, useGetUserDetailQuery } from "@/store/services/adminService";
+import {
+    useGetAllActivityLogsQuery,
+    useGetAllAdminAccountsQuery,
+    useGetUserDetailQuery,
+} from "@/store/services/adminService";
 import { useAppSelector } from "@/store/store";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import searchIcon from "@/assets/icons/searchIcon.svg";
@@ -43,13 +47,19 @@ const ACTION_FILTERS: { label: string; value: ActivityLogAction | "" }[] = [
     })),
 ];
 
-type RoleFilter = "" | "super_admin" | "admin";
+/** "" = All, "role:super_admin" = the Super Admin, "actor:<id>" = one specific Admin. */
+type ActorFilterValue = "" | "role:super_admin" | `actor:${string}`;
 
-const ROLE_FILTERS: { label: string; value: RoleFilter }[] = [
-    { label: "All", value: "" },
-    { label: "Super Admin", value: "super_admin" },
-    { label: "Admin", value: "admin" },
-];
+type ApiAdminAccount = {
+    _id?: string;
+    name?: string;
+    email?: string;
+    roles?: string[];
+};
+
+type AdminAccountsResponse = {
+    data?: ApiAdminAccount[];
+};
 
 type ActivityLogEntry = {
     id: string;
@@ -172,7 +182,28 @@ function AdminActivityLogs() {
     const [searchInput, setSearchInput] = useState("");
     const [search, setSearch] = useState("");
     const [actionFilter, setActionFilter] = useState<ActivityLogAction | "">("");
-    const [roleFilter, setRoleFilter] = useState<RoleFilter>("");
+    const [actorFilter, setActorFilter] = useState<ActorFilterValue>("");
+
+    const { data: adminAccountsResponse } = useGetAllAdminAccountsQuery(
+        { page: 1, limit: 200, search: "" },
+        { skip: !isSuperAdmin },
+    );
+
+    const adminOptions = (
+        (adminAccountsResponse as AdminAccountsResponse | undefined)?.data ?? []
+    ).filter((account) => account.roles?.includes("admin") && account._id);
+
+    const ACTOR_FILTERS: { label: string; value: ActorFilterValue }[] = [
+        { label: "All", value: "" },
+        { label: "Super Admin", value: "role:super_admin" },
+        ...adminOptions.map((account) => ({
+            label: account.name ?? account.email ?? "Admin",
+            value: `actor:${account._id}` as ActorFilterValue,
+        })),
+    ];
+
+    const roleFilter = actorFilter === "role:super_admin" ? "super_admin" : "";
+    const actorIdFilter = actorFilter.startsWith("actor:") ? actorFilter.slice(6) : "";
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -188,7 +219,7 @@ function AdminActivityLogs() {
         isLoading,
         isFetching,
     } = useGetAllActivityLogsQuery(
-        { page, limit: PAGE_LIMIT, search, action: actionFilter, role: roleFilter },
+        { page, limit: PAGE_LIMIT, search, action: actionFilter, role: roleFilter, actorId: actorIdFilter },
         { skip: !isSuperAdmin },
     );
 
@@ -247,15 +278,15 @@ function AdminActivityLogs() {
                         </div>
 
                         <select
-                            value={roleFilter}
+                            value={actorFilter}
                             onChange={(event) => {
-                                setRoleFilter(event.target.value as RoleFilter);
+                                setActorFilter(event.target.value as ActorFilterValue);
                                 setPage(1);
                             }}
                             className="h-10 rounded-[8px] border border-gray-9 bg-white px-3 text-[14px] text-[#001907] outline-none focus:border-green-1"
                         >
-                            {ROLE_FILTERS.map((filter) => (
-                                <option key={filter.label} value={filter.value}>
+                            {ACTOR_FILTERS.map((filter) => (
+                                <option key={filter.value || "all"} value={filter.value}>
                                     {filter.label}
                                 </option>
                             ))}
