@@ -3,8 +3,9 @@
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/Ui/Modals/Modal";
-import { useAppDispatch } from "@/store/store";
+import { useAppDispatch, useAppSelector } from "@/store/store";
 import { beginLogout, logout } from "@/store/reducers/authReducer";
+import { useLogoutAdminMutation } from "@/store/services/authService";
 
 type LogoutConfirmModalProps = {
     open: boolean;
@@ -15,6 +16,8 @@ function LogoutConfirmModal({ open, onClose }: LogoutConfirmModalProps) {
     const router = useRouter();
     const dispatch = useAppDispatch();
     const modalRef = useRef<HTMLDivElement>(null);
+    const refreshToken = useAppSelector((state) => state.authReducer.refreshToken);
+    const [logoutAdmin] = useLogoutAdminMutation();
 
     function handleSetOpen(value: React.SetStateAction<boolean>) {
         const nextOpen = typeof value === "function" ? value(open) : value;
@@ -28,6 +31,10 @@ function LogoutConfirmModal({ open, onClose }: LogoutConfirmModalProps) {
         // still-mounted query racing this transition, so we can navigate away smoothly instead
         // of falling back to a hard page reload.
         dispatch(beginLogout());
+        // Best-effort: records the logout in Activity Logs, but must never block navigation.
+        if (refreshToken) {
+            logoutAdmin({ token: refreshToken }).catch(() => { });
+        }
         dispatch(logout());
         router.push("/en/signin");
     }

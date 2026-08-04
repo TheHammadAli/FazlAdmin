@@ -30,6 +30,13 @@ export const authService = baseApi.injectEndpoints({
         body,
       }),
     }),
+    logoutAdmin: build.mutation({
+      query: (body: { token: string }) => ({
+        url: "/auth/logout",
+        method: "POST",
+        body,
+      }),
+    }),
     getLocations: build.query({
       query: (params) => {
         return {
@@ -54,4 +61,5 @@ export const {
   useForgotPasswordMutation,
   useSendOtpMutation,
   useSigninMutation,
+  useLogoutAdminMutation,
 } = authService;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays, LogIn, Store, Trash2, UserCheck, UserX, Radio, ClipboardList, ClipboardCheck, type LucideIcon } from "lucide-react";
+import { CalendarDays, LogIn, LogOut, Store, Trash2, UserCheck, UserX, Radio, ClipboardList, ClipboardCheck, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import Pagination from "@/components/Ui/Pagination";
 import {
@@ -18,6 +18,7 @@ const PAGE_LIMIT = 50;
 
 type ActivityLogAction =
     | "admin_login"
+    | "admin_logout"
     | "user_suspended"
     | "user_enabled"
     | "shop_suspended"
@@ -29,6 +30,7 @@ type ActivityLogAction =
 
 const ACTION_META: Record<ActivityLogAction, { label: string; icon: LucideIcon; bg: string; color: string }> = {
     admin_login: { label: "Admin Login", icon: LogIn, bg: "bg-[#E7F0FF]", color: "text-[#2F6FE4]" },
+    admin_logout: { label: "Admin Logout", icon: LogOut, bg: "bg-[#F1F1F1]", color: "text-[#6B7280]" },
     user_suspended: { label: "User Suspended", icon: UserX, bg: "bg-[#FDD5D5]", color: "text-[#E92440]" },
     user_enabled: { label: "User Enabled", icon: UserCheck, bg: "bg-green-4", color: "text-green-1" },
     shop_suspended: { label: "Shop Suspended", icon: Store, bg: "bg-[#FDD5D5]", color: "text-[#E92440]" },
@@ -117,6 +119,8 @@ function getLogTitle(log: ActivityLogEntry): string {
     switch (log.action) {
         case "admin_login":
             return `${log.actorName} logged into the system`;
+        case "admin_logout":
+            return `${log.actorName} logged out of the system`;
         case "user_suspended":
             return detail ? `${log.actorName} suspended user ${detail}` : `${log.actorName} suspended a user`;
         case "user_enabled":
