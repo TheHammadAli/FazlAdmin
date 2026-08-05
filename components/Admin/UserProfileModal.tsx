@@ -11,18 +11,112 @@ import {
     MessageCircle,
     Send,
     Inbox,
+    ChevronDown,
+    ChevronUp,
 } from "lucide-react";
 import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
 import Modal from "@/components/Ui/Modals/Modal";
 import DoodleButton from "@/components/Ui/DoodleButton";
 import ToggleSwitch from "@/components/Ui/ToggleSwitch";
+import ShopDetailModal from "@/components/Admin/ShopDetailModal";
+import ServiceDetailModal from "@/components/Admin/ServiceDetailModal";
+import ListingDetailModal from "@/components/Admin/ListingDetailModal";
+import BookingDetailModal from "@/components/Admin/BookingDetailModal";
+import { useCurrentAdminPermissions, type AdminPage } from "@/custom-hooks/useCurrentAdminPermissions";
 import {
     useActivateUserMutation,
     useGetUserDetailQuery,
     useGetUserStatsQuery,
+    useGetUserShopsQuery,
+    useGetUserListingsQuery,
+    useGetUserServicesQuery,
+    useGetUserBookingsQuery,
 } from "@/store/services/adminService";
 import { useDeleteAccountMutation } from "@/store/services/authService";
+
+const RESOURCE_LIST_LIMIT = 5;
+
+type ListQueryArg = { userId: string; page: number; limit: number };
+type ListQueryResult = {
+    data?: { data?: Record<string, unknown>[]; meta?: { total?: number | string; totalPages?: number | string } };
+    isLoading: boolean;
+    isFetching: boolean;
+};
+type UseListQuery = (arg: ListQueryArg) => ListQueryResult;
+
+function toSafeText(value: unknown): string {
+    return typeof value === "string" && value.trim() ? value : "-";
+}
+
+function capitalize(value: string) {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function UserResourceList({
+    userId,
+    page,
+    onPageChange,
+    useQuery,
+    emptyLabel,
+    renderRow,
+}: {
+    userId: string;
+    page: number;
+    onPageChange: (page: number) => void;
+    useQuery: UseListQuery;
+    emptyLabel: string;
+    renderRow: (item: Record<string, unknown>) => React.ReactNode;
+}) {
+    const { data, isLoading, isFetching } = useQuery({ userId, page, limit: RESOURCE_LIST_LIMIT });
+    const items = data?.data ?? [];
+    const totalPagesRaw = data?.meta?.totalPages;
+    const totalPages = Math.max(1, Number(totalPagesRaw) || 1);
+    const loading = isLoading || isFetching;
+
+    if (loading) {
+        return (
+            <div className="space-y-2">
+                {Array.from({ length: 2 }).map((_, index) => (
+                    <div key={index} className="h-10 w-full animate-pulse rounded-[8px] bg-gray-200" />
+                ))}
+            </div>
+        );
+    }
+
+    if (items.length === 0) {
+        return <p className="py-2 text-center text-[13px] text-gray-11">{emptyLabel}</p>;
+    }
+
+    return (
+        <div>
+            <div className="space-y-2">{items.map(renderRow)}</div>
+            {totalPages > 1 && (
+                <div className="mt-2 flex items-center justify-between text-[12px] text-gray-11">
+                    <button
+                        type="button"
+                        onClick={() => onPageChange(Math.max(1, page - 1))}
+                        disabled={page <= 1}
+                        className="cursor-pointer font-medium text-green-1 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        Prev
+                    </button>
+                    <span>
+                        Page {page} of {totalPages}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+                        disabled={page >= totalPages}
+                        className="cursor-pointer font-medium text-green-1 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
 
 type ApiUserDetail = {
     _id?: string;
@@ -87,35 +181,7 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
     const stats = (statsData as { data?: ApiUserStats } | undefined)?.data;
     const statsLoading = isStatsLoading;
 
-    const statTiles: StatTile[] = [
-        {
-            label: "Shops",
-            value: statsLoading ? "..." : String(stats?.shopsCount ?? 0),
-            icon: Store,
-            bg: "bg-green-4",
-            color: "text-green-1",
-        },
-        {
-            label: "Services",
-            value: statsLoading ? "..." : String(stats?.servicesCount ?? 0),
-            icon: Wrench,
-            bg: "bg-[#E7F0FF]",
-            color: "text-[#2F6FE4]",
-        },
-        {
-            label: "Listings",
-            value: statsLoading ? "..." : String(stats?.listingsCount ?? 0),
-            icon: ClipboardList,
-            bg: "bg-[#F1E9FE]",
-            color: "text-[#7C4FE0]",
-        },
-        {
-            label: "Bookings",
-            value: statsLoading ? "..." : String(stats?.bookingsCount ?? 0),
-            icon: CalendarCheck,
-            bg: "bg-[#FDE9DF]",
-            color: "text-orange",
-        },
+    const plainTiles: StatTile[] = [
         {
             label: "Conversations",
             value: statsLoading ? "..." : String(stats?.conversationsCount ?? 0),
@@ -136,6 +202,66 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
             icon: Inbox,
             bg: "bg-[#FDD5D5]",
             color: "text-[#E92440]",
+        },
+    ];
+
+    const { isSuperAdmin, has } = useCurrentAdminPermissions();
+    const [expandedTile, setExpandedTile] = useState<"shops" | "services" | "listings" | "bookings" | null>(null);
+    const [listPage, setListPage] = useState(1);
+    const [viewingShopId, setViewingShopId] = useState<string | null>(null);
+    const [viewingServiceId, setViewingServiceId] = useState<string | null>(null);
+    const [viewingProductId, setViewingProductId] = useState<string | null>(null);
+    const [viewingRequestId, setViewingRequestId] = useState<string | null>(null);
+
+    function toggleExpanded(key: "shops" | "services" | "listings" | "bookings") {
+        setExpandedTile((prev) => (prev === key ? null : key));
+        setListPage(1);
+    }
+
+    const expandableTiles: {
+        key: "shops" | "services" | "listings" | "bookings";
+        label: string;
+        value: string;
+        icon: typeof Store;
+        bg: string;
+        color: string;
+        permission: AdminPage;
+    }[] = [
+        {
+            key: "shops",
+            label: "Shops",
+            value: statsLoading ? "..." : String(stats?.shopsCount ?? 0),
+            icon: Store,
+            bg: "bg-green-4",
+            color: "text-green-1",
+            permission: "shops",
+        },
+        {
+            key: "services",
+            label: "Services",
+            value: statsLoading ? "..." : String(stats?.servicesCount ?? 0),
+            icon: Wrench,
+            bg: "bg-[#E7F0FF]",
+            color: "text-[#2F6FE4]",
+            permission: "services",
+        },
+        {
+            key: "listings",
+            label: "Listings",
+            value: statsLoading ? "..." : String(stats?.listingsCount ?? 0),
+            icon: ClipboardList,
+            bg: "bg-[#F1E9FE]",
+            color: "text-[#7C4FE0]",
+            permission: "listings",
+        },
+        {
+            key: "bookings",
+            label: "Bookings",
+            value: statsLoading ? "..." : String(stats?.bookingsCount ?? 0),
+            icon: CalendarCheck,
+            bg: "bg-[#FDE9DF]",
+            color: "text-orange",
+            permission: "bookings",
         },
     ];
 
@@ -290,8 +416,153 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
                                 <p className="mb-3 text-[13px] font-medium text-gray-8">
                                     Activity
                                 </p>
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                    {statTiles.map((stat) => {
+                                <div className="space-y-2">
+                                    {expandableTiles.map((tile) => {
+                                        const Icon = tile.icon;
+                                        const canExpand = isSuperAdmin || has(tile.permission);
+                                        const isExpanded = expandedTile === tile.key;
+                                        const userIdValue = user._id ?? user.id ?? "";
+
+                                        return (
+                                            <div key={tile.key} className="rounded-[10px] border border-gray-9">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => canExpand && toggleExpanded(tile.key)}
+                                                    disabled={!canExpand}
+                                                    className="flex w-full cursor-pointer items-center gap-3 p-3 text-left disabled:cursor-not-allowed"
+                                                >
+                                                    <span
+                                                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] ${tile.bg}`}
+                                                    >
+                                                        <Icon className={`h-4 w-4 ${tile.color}`} strokeWidth={2} />
+                                                    </span>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-[12px] text-gray-11">
+                                                            {tile.label}
+                                                        </p>
+                                                        <p className="text-[15px] font-semibold text-[#001907]">
+                                                            {tile.value}
+                                                        </p>
+                                                    </div>
+                                                    {canExpand &&
+                                                        (isExpanded ? (
+                                                            <ChevronUp className="h-4 w-4 shrink-0 text-gray-11" />
+                                                        ) : (
+                                                            <ChevronDown className="h-4 w-4 shrink-0 text-gray-11" />
+                                                        ))}
+                                                </button>
+
+                                                {isExpanded && (
+                                                    <div className="border-t border-gray-9 p-3">
+                                                        {tile.key === "shops" && (
+                                                            <UserResourceList
+                                                                userId={userIdValue}
+                                                                page={listPage}
+                                                                onPageChange={setListPage}
+                                                                useQuery={useGetUserShopsQuery}
+                                                                emptyLabel="No shops yet"
+                                                                renderRow={(item) => (
+                                                                    <button
+                                                                        key={String(item._id)}
+                                                                        type="button"
+                                                                        onClick={() => setViewingShopId(String(item._id))}
+                                                                        className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-[8px] border border-gray-9 px-3 py-2 text-left hover:border-green-1"
+                                                                    >
+                                                                        <span className="truncate text-[13px] font-medium text-[#001907]">
+                                                                            {toSafeText(item.title)}
+                                                                        </span>
+                                                                        <span className={`shrink-0 rounded-[4px] px-1.5 py-0.5 text-[11px] font-medium ${item.isDisabled ? "bg-[#FDD5D5] text-[#C23652]" : "bg-green-4 text-green-1"}`}>
+                                                                            {item.isDisabled ? "Inactive" : "Active"}
+                                                                        </span>
+                                                                    </button>
+                                                                )}
+                                                            />
+                                                        )}
+                                                        {tile.key === "services" && (
+                                                            <UserResourceList
+                                                                userId={userIdValue}
+                                                                page={listPage}
+                                                                onPageChange={setListPage}
+                                                                useQuery={useGetUserServicesQuery}
+                                                                emptyLabel="No services yet"
+                                                                renderRow={(item) => (
+                                                                    <button
+                                                                        key={String(item._id)}
+                                                                        type="button"
+                                                                        onClick={() => setViewingServiceId(String(item._id))}
+                                                                        className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-[8px] border border-gray-9 px-3 py-2 text-left hover:border-green-1"
+                                                                    >
+                                                                        <span className="truncate text-[13px] font-medium text-[#001907]">
+                                                                            {toSafeText(item.title)}
+                                                                        </span>
+                                                                        <span className={`shrink-0 rounded-[4px] px-1.5 py-0.5 text-[11px] font-medium ${item.isDisabled ? "bg-[#FDD5D5] text-[#C23652]" : "bg-green-4 text-green-1"}`}>
+                                                                            {item.isDisabled ? "Inactive" : "Active"}
+                                                                        </span>
+                                                                    </button>
+                                                                )}
+                                                            />
+                                                        )}
+                                                        {tile.key === "listings" && (
+                                                            <UserResourceList
+                                                                userId={userIdValue}
+                                                                page={listPage}
+                                                                onPageChange={setListPage}
+                                                                useQuery={useGetUserListingsQuery}
+                                                                emptyLabel="No listings yet"
+                                                                renderRow={(item) => (
+                                                                    <button
+                                                                        key={String(item._id)}
+                                                                        type="button"
+                                                                        onClick={() => setViewingProductId(String(item._id))}
+                                                                        className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-[8px] border border-gray-9 px-3 py-2 text-left hover:border-green-1"
+                                                                    >
+                                                                        <span className="truncate text-[13px] font-medium text-[#001907]">
+                                                                            {toSafeText(item.title)}
+                                                                        </span>
+                                                                        <span className={`shrink-0 rounded-[4px] px-1.5 py-0.5 text-[11px] font-medium ${item.isDisabled ? "bg-[#FDD5D5] text-[#C23652]" : "bg-green-4 text-green-1"}`}>
+                                                                            {item.isDisabled ? "Inactive" : "Active"}
+                                                                        </span>
+                                                                    </button>
+                                                                )}
+                                                            />
+                                                        )}
+                                                        {tile.key === "bookings" && (
+                                                            <UserResourceList
+                                                                userId={userIdValue}
+                                                                page={listPage}
+                                                                onPageChange={setListPage}
+                                                                useQuery={useGetUserBookingsQuery}
+                                                                emptyLabel="No bookings yet"
+                                                                renderRow={(item) => {
+                                                                    const service = item.service as { title?: string } | undefined;
+                                                                    const status = typeof item.status === "string" ? item.status : "pending";
+                                                                    return (
+                                                                        <button
+                                                                            key={String(item._id)}
+                                                                            type="button"
+                                                                            onClick={() => setViewingRequestId(String(item._id))}
+                                                                            className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-[8px] border border-gray-9 px-3 py-2 text-left hover:border-green-1"
+                                                                        >
+                                                                            <span className="truncate text-[13px] font-medium text-[#001907]">
+                                                                                {toSafeText(service?.title)}
+                                                                            </span>
+                                                                            <span className="shrink-0 rounded-[4px] bg-gray-10 px-1.5 py-0.5 text-[11px] font-medium text-gray-8">
+                                                                                {capitalize(status)}
+                                                                            </span>
+                                                                        </button>
+                                                                    );
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    {plainTiles.map((stat) => {
                                         const Icon = stat.icon;
                                         return (
                                             <div
@@ -369,6 +640,11 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
                     </div>
                 </div>
             </Modal>
+
+            <ShopDetailModal shopId={viewingShopId} onClose={() => setViewingShopId(null)} />
+            <ServiceDetailModal serviceId={viewingServiceId} onClose={() => setViewingServiceId(null)} />
+            <ListingDetailModal productId={viewingProductId} onClose={() => setViewingProductId(null)} />
+            <BookingDetailModal requestId={viewingRequestId} onClose={() => setViewingRequestId(null)} />
         </>
     );
 }

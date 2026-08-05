@@ -37,6 +37,34 @@ export const adminService = baseApi.injectEndpoints({
       }),
       providesTags: ["ADMIN_USERS"],
     }),
+    getUserShops: build.query({
+      query: ({ userId, page, limit }: { userId: string; page: number; limit: number }) => ({
+        url: `/shops/admin/user/${userId}?page=${page}&limit=${limit}`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_SHOPS"],
+    }),
+    getUserListings: build.query({
+      query: ({ userId, page, limit }: { userId: string; page: number; limit: number }) => ({
+        url: `/products/admin/user/${userId}?page=${page}&limit=${limit}`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_PRODUCTS"],
+    }),
+    getUserServices: build.query({
+      query: ({ userId, page, limit }: { userId: string; page: number; limit: number }) => ({
+        url: `/services/admin/user/${userId}?page=${page}&limit=${limit}`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_SERVICES"],
+    }),
+    getUserBookings: build.query({
+      query: ({ userId, page, limit }: { userId: string; page: number; limit: number }) => ({
+        url: `/services/admin/user/${userId}/bookings?page=${page}&limit=${limit}`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_BOOKINGS"],
+    }),
     activateUser: build.mutation({
       query: ({ id }) => ({
         url: `/users/${id}/reactivate`,
@@ -474,6 +502,10 @@ export const {
   useLazyGetAllUsersFromAdminQuery,
   useGetUserDetailQuery,
   useGetUserStatsQuery,
+  useGetUserShopsQuery,
+  useGetUserListingsQuery,
+  useGetUserServicesQuery,
+  useGetUserBookingsQuery,
   useGetAllShopsFromAdminQuery,
   useLazyGetAllShopsFromAdminQuery,
   useGetShopDetailQuery,
