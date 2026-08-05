@@ -30,6 +30,13 @@ export const adminService = baseApi.injectEndpoints({
       }),
       providesTags: ["ADMIN_USERS"],
     }),
+    getUserStats: build.query({
+      query: (id: string) => ({
+        url: `/users/${id}/stats`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_USERS"],
+    }),
     activateUser: build.mutation({
       query: ({ id }) => ({
         url: `/users/${id}/reactivate`,
@@ -466,6 +473,7 @@ export const {
   useGetAllUsersFromAdminQuery,
   useLazyGetAllUsersFromAdminQuery,
   useGetUserDetailQuery,
+  useGetUserStatsQuery,
   useGetAllShopsFromAdminQuery,
   useLazyGetAllShopsFromAdminQuery,
   useGetShopDetailQuery,

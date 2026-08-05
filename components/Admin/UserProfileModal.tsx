@@ -2,7 +2,16 @@
 
 import { useRef, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { User } from "lucide-react";
+import {
+    User,
+    Store,
+    Wrench,
+    ClipboardList,
+    CalendarCheck,
+    MessageCircle,
+    Send,
+    Inbox,
+} from "lucide-react";
 import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
 import Modal from "@/components/Ui/Modals/Modal";
@@ -11,6 +20,7 @@ import ToggleSwitch from "@/components/Ui/ToggleSwitch";
 import {
     useActivateUserMutation,
     useGetUserDetailQuery,
+    useGetUserStatsQuery,
 } from "@/store/services/adminService";
 import { useDeleteAccountMutation } from "@/store/services/authService";
 
@@ -25,6 +35,24 @@ type ApiUserDetail = {
     isVerified?: boolean;
     isDisabled?: boolean;
     createdAt?: string;
+};
+
+type ApiUserStats = {
+    shopsCount?: number;
+    servicesCount?: number;
+    listingsCount?: number;
+    bookingsCount?: number;
+    conversationsCount?: number;
+    messagesSentCount?: number;
+    messagesReceivedCount?: number;
+};
+
+type StatTile = {
+    label: string;
+    value: string;
+    icon: typeof Store;
+    bg: string;
+    color: string;
 };
 
 function getInitials(name: string) {
@@ -52,6 +80,64 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
     });
     const user = (data as { data?: ApiUserDetail } | undefined)?.data;
     const loading = isLoading || isFetching;
+
+    const { data: statsData, isLoading: isStatsLoading } = useGetUserStatsQuery(userId ?? "", {
+        skip: !userId,
+    });
+    const stats = (statsData as { data?: ApiUserStats } | undefined)?.data;
+    const statsLoading = isStatsLoading;
+
+    const statTiles: StatTile[] = [
+        {
+            label: "Shops",
+            value: statsLoading ? "..." : String(stats?.shopsCount ?? 0),
+            icon: Store,
+            bg: "bg-green-4",
+            color: "text-green-1",
+        },
+        {
+            label: "Services",
+            value: statsLoading ? "..." : String(stats?.servicesCount ?? 0),
+            icon: Wrench,
+            bg: "bg-[#E7F0FF]",
+            color: "text-[#2F6FE4]",
+        },
+        {
+            label: "Listings",
+            value: statsLoading ? "..." : String(stats?.listingsCount ?? 0),
+            icon: ClipboardList,
+            bg: "bg-[#F1E9FE]",
+            color: "text-[#7C4FE0]",
+        },
+        {
+            label: "Bookings",
+            value: statsLoading ? "..." : String(stats?.bookingsCount ?? 0),
+            icon: CalendarCheck,
+            bg: "bg-[#FDE9DF]",
+            color: "text-orange",
+        },
+        {
+            label: "Conversations",
+            value: statsLoading ? "..." : String(stats?.conversationsCount ?? 0),
+            icon: MessageCircle,
+            bg: "bg-[#FDEAB8]",
+            color: "text-[#946200]",
+        },
+        {
+            label: "Messages Sent",
+            value: statsLoading ? "..." : String(stats?.messagesSentCount ?? 0),
+            icon: Send,
+            bg: "bg-green-4",
+            color: "text-green-1",
+        },
+        {
+            label: "Messages Received",
+            value: statsLoading ? "..." : String(stats?.messagesReceivedCount ?? 0),
+            icon: Inbox,
+            bg: "bg-[#FDD5D5]",
+            color: "text-[#E92440]",
+        },
+    ];
 
     const [activateUser] = useActivateUserMutation();
     const [deleteAccount] = useDeleteAccountMutation();
@@ -196,6 +282,37 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
                                     <span className="text-[13px] text-gray-11">
                                         {isActive ? "Active" : "In active"}
                                     </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-6">
+                                <p className="mb-3 text-[13px] font-medium text-gray-8">
+                                    Activity
+                                </p>
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    {statTiles.map((stat) => {
+                                        const Icon = stat.icon;
+                                        return (
+                                            <div
+                                                key={stat.label}
+                                                className="flex items-center gap-3 rounded-[10px] border border-gray-9 p-3"
+                                            >
+                                                <span
+                                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] ${stat.bg}`}
+                                                >
+                                                    <Icon className={`h-4 w-4 ${stat.color}`} strokeWidth={2} />
+                                                </span>
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-[12px] text-gray-11">
+                                                        {stat.label}
+                                                    </p>
+                                                    <p className="text-[15px] font-semibold text-[#001907]">
+                                                        {stat.value}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </>
