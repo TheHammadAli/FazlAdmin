@@ -20,6 +20,7 @@ export type CategoryType = "product" | "service";
 export type CategoryParameter = {
     name: string;
     values: string[];
+    isOptional?: boolean;
 };
 
 export type CategoryParameters = {
@@ -159,6 +160,17 @@ function ParameterListEditor({
                                 </button>
                             </div>
                         </div>
+                        <label className="mt-2 flex cursor-pointer items-center gap-1.5 text-[12px] text-gray-11">
+                            <input
+                                type="checkbox"
+                                checked={parameter.isOptional ?? false}
+                                onChange={() =>
+                                    updateParameter(index, { ...parameter, isOptional: !parameter.isOptional })
+                                }
+                                className="h-3.5 w-3.5 accent-green-1"
+                            />
+                            Optional (not required on listings)
+                        </label>
                         <div className="mt-3 flex items-center gap-2 border-0 border-b border-gray-9 pb-2">
                             <input
                                 id={`${idPrefix}-value-${index}`}
@@ -221,7 +233,7 @@ function ParameterListEditor({
             </div>
             <button
                 type="button"
-                onClick={() => onChange([...parameters, { name: "", values: [] }])}
+                onClick={() => onChange([...parameters, { name: "", values: [], isOptional: false }])}
                 className="mt-3 inline-flex cursor-pointer items-center gap-1 text-[14px] font-medium text-green-1"
             >
                 <Plus className="h-4 w-4" />
@@ -234,12 +246,13 @@ function ParameterListEditor({
 function clonedParameters(parameters?: unknown): CategoryParameter[] {
     if (!Array.isArray(parameters)) return [];
     return parameters.map((parameter: unknown) => {
-        const record = parameter as { name?: unknown; values?: unknown } | null | undefined;
+        const record = parameter as { name?: unknown; values?: unknown; isOptional?: unknown } | null | undefined;
         return {
             name: typeof record?.name === "string" ? record.name : "",
             values: Array.isArray(record?.values)
                 ? record.values.filter((value: unknown): value is string => typeof value === "string")
                 : [],
+            isOptional: typeof record?.isOptional === "boolean" ? record.isOptional : false,
         };
     });
 }
@@ -249,6 +262,7 @@ function normalizeParameters(parameters: CategoryParameter[]): CategoryParameter
         .map((parameter) => ({
             name: parameter.name.trim(),
             values: parameter.values.map((value) => value.trim()).filter(Boolean),
+            isOptional: parameter.isOptional ?? false,
         }))
         .filter((parameter) => parameter.name && parameter.values.length > 0);
 }
