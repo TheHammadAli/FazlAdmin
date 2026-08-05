@@ -163,7 +163,7 @@ function AdminReports() {
 
     return (
         <section>
-            <div className="bg-[#F6F8FA] pt-10 pb-5">
+            <div className="bg-[#F6F8FA] pt-10 pb-7">
                 <div className="container mx-auto px-5 lg:px-10">
                     <h1 className="flex items-center gap-2 text-[20px] font-semibold text-[#001907] sm:text-[22px]">
                         <Flag className="h-5 w-5 text-green-1" strokeWidth={2} />
@@ -176,7 +176,7 @@ function AdminReports() {
             </div>
 
             <div className="bg-white">
-                <div className="container px-5 lg:px-10 mx-auto mt-6">
+                <div className="container px-5 lg:px-10 mx-auto pt-8">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="flex items-center gap-3 rounded-[12px] border border-gray-9 p-4">
                             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#E7F0FF]">
