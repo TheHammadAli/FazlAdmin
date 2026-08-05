@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { Flag, Eye, Trash2, CheckCircle2 } from "lucide-react";
+import { Flag, Eye, Trash2, CheckCircle2, Clock, ShieldAlert } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Modal from "@/components/Ui/Modals/Modal";
 import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
@@ -39,6 +39,8 @@ const STATUS_META: Record<ReportStatus, { label: string; bg: string; color: stri
     open: { label: "Open", bg: "bg-[#FDEAB8]", color: "text-[#946200]" },
     closed: { label: "Closed", bg: "bg-green-4", color: "text-green-1" },
 };
+
+const REPORT_REASONS: ReportReason[] = ["Spam", "Adult Content", "Fraud", "Duplicate", "Other"];
 
 const INITIAL_REPORTS: Report[] = [
     {
@@ -124,6 +126,18 @@ function AdminReports() {
     const viewingReport = reports.find((report) => report.id === viewingReportId) ?? null;
     const isModalOpen = Boolean(viewingReport);
 
+    const analytics = useMemo(() => {
+        const total = reports.length;
+        const open = reports.filter((report) => report.status === "open").length;
+        const closed = reports.filter((report) => report.status === "closed").length;
+        const contentRemoved = reports.filter((report) => report.contentRemoved).length;
+        const byReason = REPORT_REASONS.map((reason) => ({
+            reason,
+            count: reports.filter((report) => report.reason === reason).length,
+        }));
+        return { total, open, closed, contentRemoved, byReason };
+    }, [reports]);
+
     function handleSetModalOpen(value: React.SetStateAction<boolean>) {
         const nextOpen = typeof value === "function" ? value(isModalOpen) : value;
         if (!nextOpen) {
@@ -162,6 +176,64 @@ function AdminReports() {
             </div>
 
             <div className="bg-white">
+                <div className="container px-5 lg:px-10 mx-auto mt-6">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="flex items-center gap-3 rounded-[12px] border border-gray-9 p-4">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#E7F0FF]">
+                                <Flag className="h-5 w-5 text-[#2F6FE4]" strokeWidth={2} />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="truncate text-[13px] font-normal text-gray-11">Total Reports</p>
+                                <p className="text-[20px] font-semibold text-[#001907]">{analytics.total}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 rounded-[12px] border border-gray-9 p-4">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#FDEAB8]">
+                                <Clock className="h-5 w-5 text-[#946200]" strokeWidth={2} />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="truncate text-[13px] font-normal text-gray-11">Open Reports</p>
+                                <p className="text-[20px] font-semibold text-[#001907]">{analytics.open}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 rounded-[12px] border border-gray-9 p-4">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-green-4">
+                                <CheckCircle2 className="h-5 w-5 text-green-1" strokeWidth={2} />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="truncate text-[13px] font-normal text-gray-11">Closed Reports</p>
+                                <p className="text-[20px] font-semibold text-[#001907]">{analytics.closed}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 rounded-[12px] border border-gray-9 p-4">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#FDD5D5]">
+                                <ShieldAlert className="h-5 w-5 text-[#E92440]" strokeWidth={2} />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="truncate text-[13px] font-normal text-gray-11">Content Removed</p>
+                                <p className="text-[20px] font-semibold text-[#001907]">{analytics.contentRemoved}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 rounded-[12px] border border-gray-9 p-4">
+                        <p className="mb-3 text-[13px] font-medium text-gray-8">By Reason</p>
+                        <div className="flex flex-wrap gap-2">
+                            {analytics.byReason.map(({ reason, count }) => (
+                                <span
+                                    key={reason}
+                                    className={`inline-flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[13px] font-medium ${REASON_META[reason].bg} ${REASON_META[reason].color}`}
+                                >
+                                    {reason}
+                                    <span className="rounded-[4px] bg-white/60 px-1.5 text-[12px] font-semibold">
+                                        {count}
+                                    </span>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
                 <div className="container px-5 lg:px-10 mx-auto mt-6 pb-10">
                     <div className="overflow-x-auto">
                         <table className="min-w-[820px] w-full">
