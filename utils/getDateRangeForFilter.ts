@@ -12,6 +12,9 @@ export function getDateRangeForFilter(
     const now = new Date();
 
     switch (value) {
+        case "today": {
+            return { startDate: toIsoDate(now), endDate: toIsoDate(now) };
+        }
         case "this_week": {
             const start = new Date(now);
             start.setDate(start.getDate() - start.getDay());

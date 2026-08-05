@@ -14,6 +14,7 @@ import {
     Clock,
     Flag,
     Mail,
+    Tags,
     ChevronRight,
 } from "lucide-react";
 import {
@@ -24,10 +25,12 @@ import {
     useGetServiceRequestStatsQuery,
     useGetAllBroadcastsForAdminQuery,
     useGetFeedVideosQuery,
+    useGetAllCategoriesForAdminQuery,
 } from "@/store/services/adminService";
 import DateRangeFilter, { type DateFilterValue } from "@/components/Ui/DateRangeFilter";
 import AdminProfileMenu from "@/components/Admin/AdminProfileMenu";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
+import { getDateRangeForFilter } from "@/utils/getDateRangeForFilter";
 
 type UsersResponse = {
     meta?: {
@@ -74,6 +77,10 @@ type BookingStatsResponse = {
     };
 };
 
+type CategoriesResponse = {
+    data?: unknown[];
+};
+
 type StatCard = {
     label: string;
     value: string;
@@ -97,9 +104,13 @@ function AdminDashboard() {
     const [customStartDate, setCustomStartDate] = useState("");
     const [customEndDate, setCustomEndDate] = useState("");
 
+    const { startDate, endDate } = getDateRangeForFilter(dateFilter, customStartDate, customEndDate);
+
     const { data: usersResponse, isLoading, isFetching } = useGetAllUsersFromAdminQuery({
         page: 1,
         limit: 1,
+        startDate,
+        endDate,
     });
 
     const totalUsers = (usersResponse as UsersResponse | undefined)?.meta?.total;
@@ -109,7 +120,7 @@ function AdminDashboard() {
         data: shopsResponse,
         isLoading: isShopsLoading,
         isFetching: isShopsFetching,
-    } = useGetAllShopsFromAdminQuery({ page: 1, limit: 1, search: "" });
+    } = useGetAllShopsFromAdminQuery({ page: 1, limit: 1, search: "", startDate, endDate });
 
     const totalShops = (shopsResponse as ShopsResponse | undefined)?.meta?.total;
     const loadingShops = isShopsLoading || isShopsFetching;
@@ -118,7 +129,7 @@ function AdminDashboard() {
         data: servicesResponse,
         isLoading: isServicesLoading,
         isFetching: isServicesFetching,
-    } = useGetAllServicesForAdminQuery({ page: 1, limit: 1, search: "" });
+    } = useGetAllServicesForAdminQuery({ page: 1, limit: 1, search: "", startDate, endDate });
 
     const totalServices = (servicesResponse as ServicesResponse | undefined)?.meta?.total;
     const loadingServices = isServicesLoading || isServicesFetching;
@@ -127,7 +138,7 @@ function AdminDashboard() {
         data: productsResponse,
         isLoading: isProductsLoading,
         isFetching: isProductsFetching,
-    } = useGetAllProductsForAdminQuery({ page: 1, limit: 1, search: "" });
+    } = useGetAllProductsForAdminQuery({ page: 1, limit: 1, search: "", startDate, endDate });
 
     const typedProductsResponse = productsResponse as ProductsResponse | undefined;
     const nonPromotedProductsTotal = parsePositiveInt(typedProductsResponse?.meta?.total) ?? 0;
@@ -139,7 +150,7 @@ function AdminDashboard() {
         data: bookingStatsResponse,
         isLoading: isBookingStatsLoading,
         isFetching: isBookingStatsFetching,
-    } = useGetServiceRequestStatsQuery(undefined);
+    } = useGetServiceRequestStatsQuery({ startDate, endDate });
 
     const totalBookings = (bookingStatsResponse as BookingStatsResponse | undefined)?.data?.total;
     const loadingBookings = isBookingStatsLoading || isBookingStatsFetching;
@@ -148,7 +159,7 @@ function AdminDashboard() {
         data: broadcastsResponse,
         isLoading: isBroadcastsLoading,
         isFetching: isBroadcastsFetching,
-    } = useGetAllBroadcastsForAdminQuery({ page: 1, limit: 1, search: "", status: "" });
+    } = useGetAllBroadcastsForAdminQuery({ page: 1, limit: 1, search: "", status: "", startDate, endDate });
 
     const totalBroadcasts = (broadcastsResponse as BroadcastsResponse | undefined)?.meta?.total;
     const loadingBroadcasts = isBroadcastsLoading || isBroadcastsFetching;
@@ -157,10 +168,19 @@ function AdminDashboard() {
         data: feedVideosResponse,
         isLoading: isFeedVideosLoading,
         isFetching: isFeedVideosFetching,
-    } = useGetFeedVideosQuery({ page: 1, limit: 1, search: "" });
+    } = useGetFeedVideosQuery({ page: 1, limit: 1, search: "", startDate, endDate });
 
     const totalFeedVideos = (feedVideosResponse as FeedVideosResponse | undefined)?.meta?.total;
     const loadingFeedVideos = isFeedVideosLoading || isFeedVideosFetching;
+
+    const {
+        data: categoriesResponse,
+        isLoading: isCategoriesLoading,
+        isFetching: isCategoriesFetching,
+    } = useGetAllCategoriesForAdminQuery({ startDate, endDate });
+
+    const totalCategories = (categoriesResponse as CategoriesResponse | undefined)?.data?.length;
+    const loadingCategories = isCategoriesLoading || isCategoriesFetching;
 
     const stats: StatCard[] = [
         {
@@ -178,6 +198,14 @@ function AdminDashboard() {
             bg: "bg-green-4",
             color: "text-green-1",
             href: "/admin/shops",
+        },
+        {
+            label: "Total Categories",
+            value: loadingCategories ? "..." : String(totalCategories ?? 0),
+            icon: Tags,
+            bg: "bg-[#E7F0FF]",
+            color: "text-[#2F6FE4]",
+            href: "/admin/categories",
         },
         {
             label: "Total Listings",

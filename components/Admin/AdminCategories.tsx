@@ -153,7 +153,7 @@ function AdminCategories() {
         data: categoriesResponse,
         isLoading: isCategoriesLoading,
         isFetching: isCategoriesFetching,
-    } = useGetAllCategoriesForAdminQuery("")
+    } = useGetAllCategoriesForAdminQuery(undefined)
     const [updateCategory] = useUpdateCategoryMutation();
     const allCategories = useMemo(() => {
         const response = categoriesResponse as CategoriesResponse | undefined;

@@ -73,13 +73,19 @@ export const adminService = baseApi.injectEndpoints({
       invalidatesTags: ["ADMIN_USERS"],
     }),
     getAllShopsFromAdmin: build.query({
-      query: ({ page, limit, search }) => {
+      query: ({ page, limit, search, startDate, endDate }) => {
         const params = new URLSearchParams({
           page: String(page),
           limit: String(limit),
         });
         if (search?.trim()) {
           params.set("search", search.trim());
+        }
+        if (startDate) {
+          params.set("startDate", startDate);
+        }
+        if (endDate) {
+          params.set("endDate", endDate);
         }
         return {
           url: `/shops/allShops?${params.toString()}`,
@@ -96,13 +102,19 @@ export const adminService = baseApi.injectEndpoints({
       providesTags: ["ADMIN_SHOPS"],
     }),
     getAllServicesForAdmin: build.query({
-      query: ({ page, limit, search }) => {
+      query: ({ page, limit, search, startDate, endDate }) => {
         const params = new URLSearchParams({
           page: String(page),
           limit: String(limit),
         });
         if (search?.trim()) {
           params.set("name", search.trim());
+        }
+        if (startDate) {
+          params.set("startDate", startDate);
+        }
+        if (endDate) {
+          params.set("endDate", endDate);
         }
         return {
           url: `/search/all-services?${params.toString()}`,
@@ -119,13 +131,19 @@ export const adminService = baseApi.injectEndpoints({
       providesTags: ["ADMIN_SERVICES"],
     }),
     getAllProductsForAdmin: build.query({
-      query: ({ page, limit, search }) => {
+      query: ({ page, limit, search, startDate, endDate }) => {
         const params = new URLSearchParams({
           page: String(page),
           limit: String(limit),
         });
         if (search?.trim()) {
           params.set("name", search.trim());
+        }
+        if (startDate) {
+          params.set("startDate", startDate);
+        }
+        if (endDate) {
+          params.set("endDate", endDate);
         }
         return {
           url: `/search/all-products?${params.toString()}`,
@@ -172,9 +190,17 @@ export const adminService = baseApi.injectEndpoints({
       }),
     }),
     getAllCategoriesForAdmin: build.query({
-      query: () => {
+      query: (args?: { startDate?: string; endDate?: string }) => {
+        const params = new URLSearchParams();
+        if (args?.startDate) {
+          params.set("startDate", args.startDate);
+        }
+        if (args?.endDate) {
+          params.set("endDate", args.endDate);
+        }
+        const queryString = params.toString();
         return {
-          url: `/categories/admin`,
+          url: `/categories/admin${queryString ? `?${queryString}` : ""}`,
           method: "GET",
         };
       },
@@ -213,14 +239,24 @@ export const adminService = baseApi.injectEndpoints({
       providesTags: ["ADMIN_BOOKINGS"],
     }),
     getServiceRequestStats: build.query({
-      query: () => ({
-        url: `/services/bookings/stats`,
-        method: "GET",
-      }),
+      query: (args?: { startDate?: string; endDate?: string }) => {
+        const params = new URLSearchParams();
+        if (args?.startDate) {
+          params.set("startDate", args.startDate);
+        }
+        if (args?.endDate) {
+          params.set("endDate", args.endDate);
+        }
+        const queryString = params.toString();
+        return {
+          url: `/services/bookings/stats${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
       providesTags: ["ADMIN_BOOKINGS"],
     }),
     getAllBroadcastsForAdmin: build.query({
-      query: ({ page, limit, search, status }) => {
+      query: ({ page, limit, search, status, startDate, endDate }) => {
         const params = new URLSearchParams({
           page: String(page),
           limit: String(limit),
@@ -230,6 +266,12 @@ export const adminService = baseApi.injectEndpoints({
         }
         if (status?.trim()) {
           params.set("status", status.trim());
+        }
+        if (startDate) {
+          params.set("startDate", startDate);
+        }
+        if (endDate) {
+          params.set("endDate", endDate);
         }
         return {
           url: `/broadcast/admin/all?${params.toString()}`,
@@ -354,13 +396,19 @@ export const adminService = baseApi.injectEndpoints({
       invalidatesTags: ["ADMIN_SHOPS"],
     }),
     getFeedVideos: build.query({
-      query: ({ page, limit, search }) => {
+      query: ({ page, limit, search, startDate, endDate }) => {
         const params = new URLSearchParams({
           page: String(page),
           limit: String(limit),
         });
         if (search?.trim()) {
           params.set("search", search.trim());
+        }
+        if (startDate) {
+          params.set("startDate", startDate);
+        }
+        if (endDate) {
+          params.set("endDate", endDate);
         }
         return {
           url: `/products/admin/with-videos?${params.toString()}`,

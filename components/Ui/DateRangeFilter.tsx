@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 
 export type DateFilterValue =
     | "all"
+    | "today"
     | "this_week"
     | "last_week"
     | "this_month"
@@ -14,6 +15,7 @@ export type DateFilterValue =
 
 const DATE_FILTER_OPTIONS: { value: DateFilterValue; label: string }[] = [
     { value: "all", label: "All Data" },
+    { value: "today", label: "Today" },
     { value: "this_week", label: "This Week" },
     { value: "last_week", label: "Last Week" },
     { value: "this_month", label: "This Month" },
