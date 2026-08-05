@@ -1,11 +1,8 @@
-import ComingSoonPage from "@/components/Admin/ComingSoonPage";
+import AdminReports from "@/components/Admin/AdminReports";
 
 function AdminReportsPage() {
     return (
-        <ComingSoonPage
-            title="Reports"
-            description="Review user-submitted reports and complaints"
-        />
+        <AdminReports />
     );
 }
 
