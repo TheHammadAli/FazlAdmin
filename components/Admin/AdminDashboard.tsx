@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
     Users,
@@ -31,6 +32,7 @@ import DateRangeFilter, { type DateFilterValue } from "@/components/Ui/DateRange
 import AdminProfileMenu from "@/components/Admin/AdminProfileMenu";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import { getDateRangeForFilter } from "@/utils/getDateRangeForFilter";
+import buttonDoodleImage from "@/assets/images/button-doodle-image.svg";
 
 type UsersResponse = {
     meta?: {
@@ -298,8 +300,14 @@ function AdminDashboard() {
         <section>
             <div className="bg-[#F6F8FA] pt-6 pb-5">
                 <div className="container mx-auto px-5 lg:px-10">
-                    <div className="flex items-center justify-between gap-4 rounded-[16px] bg-gradient-to-r from-green-1 to-green-2 p-6 sm:p-8">
-                        <div>
+                    <div className="relative flex items-center justify-between gap-4 overflow-hidden rounded-[16px] bg-green-1 p-6 sm:p-8">
+                        <Image
+                            src={buttonDoodleImage}
+                            alt=""
+                            aria-hidden
+                            className="pointer-events-none absolute inset-0 h-full w-full rounded-[inherit] object-cover"
+                        />
+                        <div className="relative z-10">
                             <h1 className="text-[20px] font-semibold text-white sm:text-[26px]">
                                 Welcome to Fazl Admin
                             </h1>
@@ -307,7 +315,9 @@ function AdminDashboard() {
                                 Manage your marketplace activity efficiently
                             </p>
                         </div>
-                        <AdminProfileMenu />
+                        <div className="relative z-10">
+                            <AdminProfileMenu />
+                        </div>
                     </div>
                 </div>
             </div>
