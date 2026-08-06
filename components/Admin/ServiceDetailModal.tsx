@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { Wrench } from "lucide-react";
+import { Wrench, Eye, Users, Phone, MessageCircle } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
 import { useGetServiceDetailQuery } from "@/store/services/adminService";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
@@ -30,6 +30,50 @@ function formatPrice(price: number | undefined, paymentType: PaymentType | undef
     }
     return `Rs. ${price.toLocaleString()}${paymentType === "hourly" ? " /hr" : ""}`;
 }
+
+type StatTile = {
+    label: string;
+    value: string;
+    icon: typeof Eye;
+    bg: string;
+    color: string;
+    comingSoon?: boolean;
+};
+
+const ANALYTICS_TILES: StatTile[] = [
+    {
+        label: "Total Views",
+        value: "—",
+        comingSoon: true,
+        icon: Eye,
+        bg: "bg-[#F1E9FE]",
+        color: "text-[#7C4FE0]",
+    },
+    {
+        label: "Unique Visitors",
+        value: "—",
+        comingSoon: true,
+        icon: Users,
+        bg: "bg-[#FDE9DF]",
+        color: "text-orange",
+    },
+    {
+        label: "Contact Clicks",
+        value: "—",
+        comingSoon: true,
+        icon: Phone,
+        bg: "bg-[#FDEAB8]",
+        color: "text-[#946200]",
+    },
+    {
+        label: "WhatsApp Clicks",
+        value: "—",
+        comingSoon: true,
+        icon: MessageCircle,
+        bg: "bg-green-4",
+        color: "text-green-1",
+    },
+];
 
 type ServiceDetailModalProps = {
     serviceId: string | null;
@@ -150,6 +194,42 @@ function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
                                 <p className="mt-1 text-[14px] text-[#001907]">
                                     {service.description ?? "-"}
                                 </p>
+                            </div>
+                        </div>
+
+                        <div className="mt-6">
+                            <p className="mb-3 text-[13px] font-medium text-gray-8">
+                                Service Analytics
+                            </p>
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                {ANALYTICS_TILES.map((stat) => {
+                                    const Icon = stat.icon;
+                                    return (
+                                        <div
+                                            key={stat.label}
+                                            className="flex items-center gap-3 rounded-[10px] border border-gray-9 p-3"
+                                        >
+                                            <span
+                                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] ${stat.bg}`}
+                                            >
+                                                <Icon className={`h-4 w-4 ${stat.color}`} strokeWidth={2} />
+                                            </span>
+                                            <div className="min-w-0">
+                                                <p className="truncate text-[12px] text-gray-11">
+                                                    {stat.label}
+                                                </p>
+                                                <p className="flex items-center gap-1.5 text-[15px] font-semibold text-[#001907]">
+                                                    {stat.value}
+                                                    {stat.comingSoon && (
+                                                        <span className="rounded-[4px] bg-gray-10 px-1.5 py-0.5 text-[9px] font-medium text-gray-6">
+                                                            soon
+                                                        </span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     </>
