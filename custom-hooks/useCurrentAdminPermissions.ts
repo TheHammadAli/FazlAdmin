@@ -14,6 +14,7 @@ export type AdminPage =
     | "feed"
     | "reports"
     | "email-logs"
+    | "analytics"
     | "settings"
     | "members";
 

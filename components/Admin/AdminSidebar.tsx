@@ -26,13 +26,17 @@ import {
     Mail,
     History,
     Megaphone,
+    BarChart3,
 } from "lucide-react";
 import FazlLogo from "@/assets/icons/fazal-logo.svg";
 
 const ADMIN_NAV_SECTIONS = [
     {
         section: "Overview",
-        items: [{ label: "Dashboard", href: "/admin", icon: LayoutDashboard }],
+        items: [
+            { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+            { label: "Analytics", href: "/admin/analytics", icon: BarChart3, permission: "analytics" },
+        ],
     },
     {
         section: "Marketplace",

@@ -13,6 +13,7 @@ export type AdminPage =
     | "feed"
     | "reports"
     | "email-logs"
+    | "analytics"
     | "settings"
     | "members";
 
@@ -34,6 +35,7 @@ const SIMPLE_PAGES: { value: AdminPage; label: string }[] = [
     { value: "feed", label: "Feed" },
     { value: "reports", label: "Reports" },
     { value: "email-logs", label: "Email Logs" },
+    { value: "analytics", label: "Analytics" },
     { value: "settings", label: "Settings" },
 ];
 
