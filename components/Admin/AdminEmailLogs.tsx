@@ -4,8 +4,7 @@ import { Mail } from "lucide-react";
 import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
 
 /** NOTE: hardcoded/local-only for now — no backend endpoint exists yet for Email Logs.
- *  Every automatic email (see EVENT_TYPES below) should eventually be recorded here
- *  by the backend as it's sent. */
+ *  Every automatic email should eventually be recorded here by the backend as it's sent. */
 
 type EventType =
     | "Shop Created"
@@ -28,17 +27,6 @@ type EmailLog = {
     deliveryStatus: DeliveryStatus;
     createdAt: string;
 };
-
-const EVENT_TYPES: EventType[] = [
-    "Shop Created",
-    "Shop Approved",
-    "Listing Created",
-    "Listing Approved",
-    "Service Created",
-    "Service Approved",
-    "Booking Accepted",
-    "Broadcast Created",
-];
 
 const EVENT_META: Record<EventType, { bg: string; color: string }> = {
     "Shop Created": { bg: "bg-green-4", color: "text-green-1" },
@@ -172,21 +160,7 @@ function AdminEmailLogs() {
             </div>
 
             <div className="bg-white">
-                <div className="container px-5 lg:px-10 mx-auto pt-8">
-                    <p className="mb-3 text-[13px] font-medium text-gray-8">Events tracked</p>
-                    <div className="flex flex-wrap gap-2">
-                        {EVENT_TYPES.map((event) => (
-                            <span
-                                key={event}
-                                className={`inline-flex items-center rounded-[6px] px-2.5 py-1.5 text-[13px] font-medium ${EVENT_META[event].bg} ${EVENT_META[event].color}`}
-                            >
-                                {event}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="container px-5 lg:px-10 mx-auto mt-6 pb-10">
+                <div className="container px-5 lg:px-10 mx-auto pt-8 pb-10">
                     <div className="overflow-x-auto">
                         <table className="min-w-[900px] w-full">
                             <thead>
