@@ -97,7 +97,7 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
         },
         {
             label: "Total Views",
-            value: "—",
+            value: "2,146",
             comingSoon: true,
             icon: Eye,
             bg: "bg-[#F1E9FE]",
@@ -105,7 +105,7 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
         },
         {
             label: "Unique Visitors",
-            value: "—",
+            value: "1,432",
             comingSoon: true,
             icon: Users,
             bg: "bg-[#FDE9DF]",
@@ -113,7 +113,7 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
         },
         {
             label: "Contact Clicks",
-            value: "—",
+            value: "218",
             comingSoon: true,
             icon: Phone,
             bg: "bg-[#FDEAB8]",
@@ -121,7 +121,7 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
         },
         {
             label: "WhatsApp Clicks",
-            value: "—",
+            value: "97",
             comingSoon: true,
             icon: MessageCircle,
             bg: "bg-green-4",
@@ -129,7 +129,7 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
         },
         {
             label: "Followers",
-            value: "—",
+            value: "312",
             comingSoon: true,
             icon: Heart,
             bg: "bg-[#FDD5D5]",

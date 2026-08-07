@@ -69,13 +69,13 @@ type FeedVideosResponse = {
     };
 };
 
-const PLACEHOLDER_METRICS: { label: string; icon: LucideIcon }[] = [
-    { label: "Total Views", icon: Eye },
-    { label: "Unique Views", icon: Users },
-    { label: "Likes", icon: Heart },
-    { label: "Comments", icon: MessageCircle },
-    { label: "Shares", icon: Share2 },
-    { label: "Saves", icon: Bookmark },
+const PLACEHOLDER_METRICS: { label: string; icon: LucideIcon; value: string }[] = [
+    { label: "Total Views", icon: Eye, value: "3,542" },
+    { label: "Unique Views", icon: Users, value: "2,187" },
+    { label: "Likes", icon: Heart, value: "412" },
+    { label: "Comments", icon: MessageCircle, value: "68" },
+    { label: "Shares", icon: Share2, value: "35" },
+    { label: "Saves", icon: Bookmark, value: "91" },
 ];
 
 function formatDate(value?: string) {
@@ -269,7 +269,7 @@ function AdminFeed() {
                                         className="inline-flex items-center gap-1.5 text-[12px] text-gray-8"
                                     >
                                         <Icon className="h-3.5 w-3.5 text-gray-6" strokeWidth={2} />
-                                        {metric.label}: <span className="font-medium text-gray-6">—</span>
+                                        {metric.label}: <span className="font-medium text-gray-6">{metric.value}</span>
                                     </span>
                                 );
                             })}
@@ -521,7 +521,7 @@ function AdminFeed() {
                                                                 className="inline-flex items-center gap-0.5 text-[11px] text-gray-6"
                                                             >
                                                                 <Icon className="h-3 w-3" strokeWidth={2} />
-                                                                —
+                                                                {metric.value}
                                                             </span>
                                                         );
                                                     })}
