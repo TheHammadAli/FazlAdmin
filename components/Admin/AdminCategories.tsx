@@ -85,13 +85,17 @@ function toSafeParameterArray(value: unknown): CategoryParameter[] {
     if (!Array.isArray(value)) return [];
     return value
         .map((item: unknown) => {
-            const record = item as { name?: unknown; values?: unknown; isOptional?: unknown } | null | undefined;
+            const record = item as
+                | { name?: unknown; values?: unknown; isOptional?: unknown; allowCustomValue?: unknown }
+                | null
+                | undefined;
             return {
                 name: typeof record?.name === "string" ? record.name : "",
                 values: Array.isArray(record?.values)
                     ? record.values.filter((v: unknown): v is string => typeof v === "string")
                     : [],
                 isOptional: typeof record?.isOptional === "boolean" ? record.isOptional : false,
+                allowCustomValue: typeof record?.allowCustomValue === "boolean" ? record.allowCustomValue : false,
             };
         })
         .filter((parameter) => parameter.name.trim() !== "");

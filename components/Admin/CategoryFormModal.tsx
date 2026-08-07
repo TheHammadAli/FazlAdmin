@@ -21,6 +21,8 @@ export type CategoryParameter = {
     name: string;
     values: string[];
     isOptional?: boolean;
+    /** Lets the end-user type their own value on top of the fixed list below. */
+    allowCustomValue?: boolean;
 };
 
 export type CategoryParameters = {
@@ -171,6 +173,20 @@ function ParameterListEditor({
                             />
                             Optional (not required on listings)
                         </label>
+                        <label className="mt-1.5 flex cursor-pointer items-center gap-1.5 text-[12px] text-gray-11">
+                            <input
+                                type="checkbox"
+                                checked={parameter.allowCustomValue ?? false}
+                                onChange={() =>
+                                    updateParameter(index, {
+                                        ...parameter,
+                                        allowCustomValue: !parameter.allowCustomValue,
+                                    })
+                                }
+                                className="h-3.5 w-3.5 accent-green-1"
+                            />
+                            Allow user to add their own value
+                        </label>
                         <div className="mt-3 flex items-center gap-2 border-0 border-b border-gray-9 pb-2">
                             <input
                                 id={`${idPrefix}-value-${index}`}
@@ -233,7 +249,12 @@ function ParameterListEditor({
             </div>
             <button
                 type="button"
-                onClick={() => onChange([...parameters, { name: "", values: [], isOptional: false }])}
+                onClick={() =>
+                    onChange([
+                        ...parameters,
+                        { name: "", values: [], isOptional: false, allowCustomValue: false },
+                    ])
+                }
                 className="mt-3 inline-flex cursor-pointer items-center gap-1 text-[14px] font-medium text-green-1"
             >
                 <Plus className="h-4 w-4" />
@@ -246,13 +267,17 @@ function ParameterListEditor({
 function clonedParameters(parameters?: unknown): CategoryParameter[] {
     if (!Array.isArray(parameters)) return [];
     return parameters.map((parameter: unknown) => {
-        const record = parameter as { name?: unknown; values?: unknown; isOptional?: unknown } | null | undefined;
+        const record = parameter as
+            | { name?: unknown; values?: unknown; isOptional?: unknown; allowCustomValue?: unknown }
+            | null
+            | undefined;
         return {
             name: typeof record?.name === "string" ? record.name : "",
             values: Array.isArray(record?.values)
                 ? record.values.filter((value: unknown): value is string => typeof value === "string")
                 : [],
             isOptional: typeof record?.isOptional === "boolean" ? record.isOptional : false,
+            allowCustomValue: typeof record?.allowCustomValue === "boolean" ? record.allowCustomValue : false,
         };
     });
 }
@@ -263,6 +288,7 @@ function normalizeParameters(parameters: CategoryParameter[]): CategoryParameter
             name: parameter.name.trim(),
             values: parameter.values.map((value) => value.trim()).filter(Boolean),
             isOptional: parameter.isOptional ?? false,
+            allowCustomValue: parameter.allowCustomValue ?? false,
         }))
         .filter((parameter) => parameter.name && parameter.values.length > 0);
 }
