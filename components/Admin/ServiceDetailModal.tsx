@@ -43,7 +43,7 @@ type StatTile = {
 const ANALYTICS_TILES: StatTile[] = [
     {
         label: "Total Views",
-        value: "—",
+        value: "956",
         comingSoon: true,
         icon: Eye,
         bg: "bg-[#F1E9FE]",
@@ -51,7 +51,7 @@ const ANALYTICS_TILES: StatTile[] = [
     },
     {
         label: "Unique Visitors",
-        value: "—",
+        value: "621",
         comingSoon: true,
         icon: Users,
         bg: "bg-[#FDE9DF]",
@@ -59,7 +59,7 @@ const ANALYTICS_TILES: StatTile[] = [
     },
     {
         label: "Contact Clicks",
-        value: "—",
+        value: "98",
         comingSoon: true,
         icon: Phone,
         bg: "bg-[#FDEAB8]",
@@ -67,7 +67,7 @@ const ANALYTICS_TILES: StatTile[] = [
     },
     {
         label: "WhatsApp Clicks",
-        value: "—",
+        value: "52",
         comingSoon: true,
         icon: MessageCircle,
         bg: "bg-green-4",
