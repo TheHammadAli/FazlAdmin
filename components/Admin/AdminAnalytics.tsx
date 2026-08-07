@@ -20,7 +20,9 @@ type UsersResponse = { meta?: { total?: number | string } };
 type ShopsResponse = { meta?: { total?: number | string } };
 type ServicesResponse = { meta?: { total?: number | string } };
 type ProductsResponse = { data?: { promotions?: unknown[] }; meta?: { total?: number | string } };
-type BookingStatsResponse = { data?: { total?: number } };
+type BookingStatsResponse = {
+    data?: { total?: number; pending?: number; accepted?: number; completed?: number; cancelled?: number };
+};
 type CategoriesResponse = { data?: unknown[] };
 
 type StatTile = {
@@ -209,7 +211,12 @@ function AdminAnalytics() {
     const totalListings = nonPromotedProductsTotal + promotedProductsCount;
 
     const { data: bookingStatsResponse } = useGetServiceRequestStatsQuery({ startDate, endDate });
-    const totalBookings = (bookingStatsResponse as BookingStatsResponse | undefined)?.data?.total ?? 0;
+    const bookingStats = (bookingStatsResponse as BookingStatsResponse | undefined)?.data;
+    const totalBookings = bookingStats?.total ?? 0;
+    const pendingBookings = bookingStats?.pending ?? 0;
+    const acceptedBookings = bookingStats?.accepted ?? 0;
+    const completedBookings = bookingStats?.completed ?? 0;
+    const cancelledBookings = bookingStats?.cancelled ?? 0;
 
     const { data: categoriesResponse } = useGetAllCategoriesForAdminQuery({ startDate, endDate });
     const totalCategories = (categoriesResponse as CategoriesResponse | undefined)?.data?.length ?? 0;
@@ -267,6 +274,13 @@ function AdminAnalytics() {
         { label: "Shops", value: Math.max(totalShops, 0), color: "#007781" },
     ];
 
+    const bookingStatusData = [
+        { label: "Pending", value: pendingBookings, color: "#946200" },
+        { label: "Accepted", value: acceptedBookings, color: "#2F6FE4" },
+        { label: "Completed", value: completedBookings, color: "#007781" },
+        { label: "Cancelled", value: cancelledBookings, color: "#E92440" },
+    ];
+
     return (
         <section>
             <div className="bg-[#F6F8FA] pt-10 pb-7">
@@ -322,7 +336,17 @@ function AdminAnalytics() {
                             </div>
                         </div>
 
-                        <div className="rounded-[12px] border border-gray-9 p-5 lg:col-span-2">
+                        <div className="rounded-[12px] border border-gray-9 p-5">
+                            <p className="text-[14px] font-semibold text-[#001907]">Bookings by Status</p>
+                            <p className="mt-0.5 text-[12px] text-gray-11">
+                                Where service bookings stand right now
+                            </p>
+                            <div className="mt-5">
+                                <DonutChartCard data={bookingStatusData} />
+                            </div>
+                        </div>
+
+                        <div className="rounded-[12px] border border-gray-9 p-5">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div>
                                     <p className="text-[14px] font-semibold text-[#001907]">
