@@ -308,7 +308,7 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
     return (
         <>
             <Modal editModalRef={modalRef} open={isOpen} setOpen={handleSetOpen} centered>
-                <div className="flex max-h-[85vh] w-[92vw] max-w-[440px] flex-col rounded-[12px] bg-white shadow-xl">
+                <div className="flex max-h-[90vh] w-[92vw] max-w-[500px] flex-col rounded-[12px] bg-white shadow-xl">
                     <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-9 px-6 pt-6 pb-4">
                         <h2 className="flex items-center gap-2 text-[18px] font-semibold text-[#001907]">
                             <User className="h-5 w-5 text-green-1" strokeWidth={2} />
