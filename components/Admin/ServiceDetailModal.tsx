@@ -104,8 +104,8 @@ function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
 
     return (
         <Modal editModalRef={modalRef} open={isOpen} setOpen={handleSetOpen} centered>
-            <div className="hide-scrollbar w-[92vw] max-w-[560px] rounded-[12px] bg-white p-6 shadow-xl">
-                <div className="flex items-start justify-between gap-4">
+            <div className="flex max-h-[90vh] w-[92vw] max-w-[500px] flex-col rounded-[12px] bg-white shadow-xl">
+                <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-9 px-6 pt-6 pb-4">
                     <h2 className="flex items-center gap-2 text-[18px] font-semibold text-[#001907]">
                         <Wrench className="h-5 w-5 text-green-1" strokeWidth={2} />
                         Service Details
@@ -120,16 +120,17 @@ function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
                     </button>
                 </div>
 
+                <div className="hide-scrollbar flex-1 overflow-y-auto px-6 py-5">
                 {loading ? (
-                    <div className="mt-6 space-y-4">
+                    <div className="space-y-4">
                         <div className="h-16 w-full animate-pulse rounded-[10px] bg-gray-200" />
                         <div className="h-24 w-full animate-pulse rounded-[10px] bg-gray-200" />
                     </div>
                 ) : !service ? (
-                    <p className="mt-6 text-[14px] text-gray-11">Service not found.</p>
+                    <p className="text-[14px] text-gray-11">Service not found.</p>
                 ) : (
                     <>
-                        <div className="mt-5 flex items-center gap-4 rounded-[10px] bg-gray-10 p-4">
+                        <div className="flex items-center gap-4 rounded-[10px] bg-gray-10 p-4">
                             {service.images?.[0] ? (
                                 <Image
                                     src={service.images[0]}
@@ -234,8 +235,9 @@ function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
                         </div>
                     </>
                 )}
+                </div>
 
-                <div className="mt-6 flex justify-end">
+                <div className="flex shrink-0 justify-end border-t border-gray-9 px-6 py-4">
                     <button
                         type="button"
                         onClick={onClose}
