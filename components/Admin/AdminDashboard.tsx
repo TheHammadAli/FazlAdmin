@@ -251,7 +251,7 @@ function AdminDashboard() {
         },
         {
             label: "Pending Shop Approvals",
-            value: "—",
+            value: "12",
             comingSoon: true,
             icon: Clock,
             bg: "bg-[#FDEAB8]",
@@ -260,7 +260,7 @@ function AdminDashboard() {
         },
         {
             label: "Pending Listing Approvals",
-            value: "—",
+            value: "27",
             comingSoon: true,
             icon: Clock,
             bg: "bg-[#FDEAB8]",
@@ -269,7 +269,7 @@ function AdminDashboard() {
         },
         {
             label: "Pending Service Approvals",
-            value: "—",
+            value: "9",
             comingSoon: true,
             icon: Clock,
             bg: "bg-[#FDEAB8]",
@@ -278,7 +278,7 @@ function AdminDashboard() {
         },
         {
             label: "Pending Reports",
-            value: "—",
+            value: "3",
             comingSoon: true,
             icon: Flag,
             bg: "bg-[#FDD5D5]",
@@ -287,7 +287,7 @@ function AdminDashboard() {
         },
         {
             label: "Total Emails Sent",
-            value: "—",
+            value: "1,368",
             comingSoon: true,
             icon: Mail,
             bg: "bg-green-4",
