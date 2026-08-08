@@ -300,7 +300,7 @@ function AdminDashboard() {
         <section>
             <div className="bg-[#F6F8FA] pt-6 pb-5">
                 <div className="container mx-auto px-5 lg:px-10">
-                    <div className="relative flex items-center justify-between gap-4 overflow-hidden rounded-[16px] bg-green-1 p-6 sm:p-8">
+                    <div className="relative flex items-center justify-between gap-4 rounded-[16px] bg-green-1 p-6 sm:p-8">
                         <Image
                             src={buttonDoodleImage}
                             alt=""
