@@ -11,12 +11,15 @@ import { parsePositiveInt } from "@/utils/parsePositiveInt";
 
 const PAGE_LIMIT = 10;
 
+type AnnouncementStatus = "draft" | "scheduled" | "sent";
+
 type Announcement = {
     id: string;
     code: string;
     title: string;
     message: string;
     createdAt: string;
+    status: AnnouncementStatus;
 };
 
 type ApiAnnouncement = {
@@ -25,7 +28,18 @@ type ApiAnnouncement = {
     title?: string;
     message?: string;
     createdAt?: string;
+    status?: string;
 };
+
+const STATUS_META: Record<AnnouncementStatus, { label: string; bg: string; color: string }> = {
+    draft: { label: "Draft", bg: "bg-gray-10", color: "text-gray-8" },
+    scheduled: { label: "Scheduled", bg: "bg-[#FDEAB8]", color: "text-[#946200]" },
+    sent: { label: "Sent", bg: "bg-green-4", color: "text-green-1" },
+};
+
+function toAnnouncementStatus(value?: string): AnnouncementStatus {
+    return value === "draft" || value === "scheduled" ? value : "sent";
+}
 
 type AnnouncementsResponse = {
     data?: ApiAnnouncement[];
@@ -53,6 +67,7 @@ function mapApiAnnouncement(announcement: ApiAnnouncement): Announcement {
         title: announcement.title ?? "-",
         message: announcement.message ?? "-",
         createdAt: formatDateTime(announcement.createdAt),
+        status: toAnnouncementStatus(announcement.status),
     };
 }
 
@@ -132,13 +147,16 @@ function AdminAnnouncements() {
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Sent Date
                                     </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Status
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading &&
                                     Array.from({ length: 5 }).map((_, index) => (
                                         <tr key={`skeleton-${index}`} className="bg-white">
-                                            {Array.from({ length: 4 }).map((__, cellIndex) => (
+                                            {Array.from({ length: 5 }).map((__, cellIndex) => (
                                                 <td key={cellIndex} className="py-3.5 pr-4">
                                                     <div className="h-4 w-full max-w-[180px] animate-pulse rounded bg-gray-200" />
                                                 </td>
@@ -149,7 +167,7 @@ function AdminAnnouncements() {
                                 {!loading && announcements.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={4}
+                                            colSpan={5}
                                             className="py-8 text-center text-[14px] text-gray-11"
                                         >
                                             No announcements sent yet
@@ -171,6 +189,13 @@ function AdminAnnouncements() {
                                             </td>
                                             <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
                                                 {announcement.createdAt}
+                                            </td>
+                                            <td className="whitespace-nowrap py-3.5 pr-4">
+                                                <span
+                                                    className={`inline-flex rounded-[4px] px-2 py-0.5 text-[12px] font-medium ${STATUS_META[announcement.status].bg} ${STATUS_META[announcement.status].color}`}
+                                                >
+                                                    {STATUS_META[announcement.status].label}
+                                                </span>
                                             </td>
                                         </tr>
                                     ))}

@@ -370,7 +370,7 @@ export const adminService = baseApi.injectEndpoints({
       providesTags: ["ADMIN_ANNOUNCEMENTS"],
     }),
     createAnnouncement: build.mutation({
-      query: (body: { title: string; message: string }) => ({
+      query: (body) => ({
         url: `/announcements`,
         method: "POST",
         body,
