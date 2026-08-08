@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { Users } from "lucide-react";
+import { MessageSquare, Users } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
 import { useGetBroadcastRecipientsQuery } from "@/store/services/adminService";
+import BroadcastThreadModal from "@/components/Admin/BroadcastThreadModal";
 
 type ApiRecipient = {
     sellerId?: string;
@@ -45,11 +46,19 @@ function formatDateTime(value?: string) {
 type BroadcastRecipientsModalProps = {
     broadcastId: string | null;
     broadcastCode?: string;
+    buyerName?: string;
     onClose: () => void;
 };
 
-function BroadcastRecipientsModal({ broadcastId, broadcastCode, onClose }: BroadcastRecipientsModalProps) {
+function BroadcastRecipientsModal({ broadcastId, broadcastCode, buyerName, onClose }: BroadcastRecipientsModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
+    const [viewingThreadFor, setViewingThreadFor] = useState<{ sellerId: string; sellerName?: string } | null>(null);
+
+    // Reset whenever a (possibly different) broadcast is opened, so stale
+    // state/query cache from a previous broadcast never flashes on reopen.
+    useEffect(() => {
+        setViewingThreadFor(null);
+    }, [broadcastId]);
 
     const { data, error, isLoading, isFetching, isError } = useGetBroadcastRecipientsQuery(
         broadcastId ?? "",
@@ -74,7 +83,13 @@ function BroadcastRecipientsModal({ broadcastId, broadcastCode, onClose }: Broad
     }
 
     return (
-        <Modal editModalRef={modalRef} open={isOpen} setOpen={handleSetOpen} centered>
+        <Modal
+            editModalRef={modalRef}
+            open={isOpen}
+            setOpen={handleSetOpen}
+            centered
+            disableOutsideClick={Boolean(viewingThreadFor)}
+        >
             <div className="hide-scrollbar max-h-[80vh] w-[92vw] max-w-[560px] overflow-y-auto rounded-[12px] bg-white p-6 shadow-xl">
                 <div className="flex items-start justify-between gap-4">
                     <div>
@@ -141,6 +156,21 @@ function BroadcastRecipientsModal({ broadcastId, broadcastCode, onClose }: Broad
                                             {formatDateTime(recipient.sentAt)}
                                         </p>
                                     </div>
+                                    {recipient.sellerId && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setViewingThreadFor({
+                                                    sellerId: recipient.sellerId as string,
+                                                    sellerName: recipient.name,
+                                                })
+                                            }
+                                            aria-label={`View conversation with ${recipient.name ?? "seller"}`}
+                                            className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-gray-11 hover:bg-green-4 hover:text-green-1"
+                                        >
+                                            <MessageSquare className="h-4 w-4" strokeWidth={2} />
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -157,6 +187,15 @@ function BroadcastRecipientsModal({ broadcastId, broadcastCode, onClose }: Broad
                     </button>
                 </div>
             </div>
+
+            <BroadcastThreadModal
+                open={Boolean(viewingThreadFor)}
+                broadcastId={broadcastId ?? undefined}
+                sellerId={viewingThreadFor?.sellerId}
+                buyerName={buyerName}
+                sellerName={viewingThreadFor?.sellerName}
+                onClose={() => setViewingThreadFor(null)}
+            />
         </Modal>
     );
 }

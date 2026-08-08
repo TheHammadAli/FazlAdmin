@@ -220,6 +220,7 @@ function AdminBroadcasts() {
             <BroadcastRecipientsModal
                 broadcastId={recipientsBroadcast?.id ?? null}
                 broadcastCode={recipientsBroadcast?.broadcastCode}
+                buyerName={recipientsBroadcast?.buyerName}
                 onClose={() => setRecipientsBroadcast(null)}
             />
 

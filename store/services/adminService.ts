@@ -302,6 +302,19 @@ export const adminService = baseApi.injectEndpoints({
       }),
       providesTags: ["ADMIN_BROADCASTS"],
     }),
+    getBroadcastThreadMessages: build.query({
+      query: ({ broadcastId, sellerId, page, limit }) => {
+        const params = new URLSearchParams({
+          page: String(page ?? 1),
+          limit: String(limit ?? 10),
+        });
+        return {
+          url: `/broadcast/admin/${broadcastId}/recipients/${sellerId}/messages?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_BROADCASTS"],
+    }),
     closeBroadcast: build.mutation({
       query: (broadcastId: string) => ({
         url: `/broadcast/admin/${broadcastId}/close`,
@@ -589,6 +602,7 @@ export const {
   useGetBookingConversationQuery,
   useGetAllBroadcastsForAdminQuery,
   useGetBroadcastRecipientsQuery,
+  useGetBroadcastThreadMessagesQuery,
   useCloseBroadcastMutation,
   useDeleteBroadcastMutation,
   useGetAllAnnouncementsForAdminQuery,
