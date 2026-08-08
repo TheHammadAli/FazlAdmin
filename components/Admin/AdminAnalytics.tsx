@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, Users, Store, ClipboardList, Wrench, CalendarCheck, Tags } from "lucide-react";
+import { BarChart3, Users, Store, ClipboardList, Wrench, CalendarCheck, Tags, ChevronRight } from "lucide-react";
 import {
     useGetAllUsersFromAdminQuery,
     useGetAllShopsFromAdminQuery,
@@ -31,20 +32,38 @@ type StatTile = {
     icon: LucideIcon;
     bg: string;
     color: string;
+    href?: string;
 };
 
 function StatTileView({ stat }: { stat: StatTile }) {
-    return (
-        <div className="flex items-center gap-3 rounded-[12px] border border-gray-9 p-4">
+    const content = (
+        <>
             <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] ${stat.bg}`}>
                 <stat.icon className={`h-5 w-5 ${stat.color}`} strokeWidth={2} />
             </span>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-normal text-gray-11">{stat.label}</p>
                 <p className="text-[20px] font-semibold text-[#001907]">{stat.value}</p>
             </div>
-        </div>
+            {stat.href && (
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-9 transition-colors group-hover:text-green-1" />
+            )}
+        </>
     );
+
+    const className =
+        "group flex items-center gap-2.5 rounded-[12px] border border-gray-9 p-4 transition-all" +
+        (stat.href ? " hover:-translate-y-0.5 hover:border-transparent hover:shadow-[0_14px_30px_-14px_rgba(0,0,0,0.2)]" : "");
+
+    if (stat.href) {
+        return (
+            <Link href={stat.href} className={className}>
+                {content}
+            </Link>
+        );
+    }
+
+    return <div className={className}>{content}</div>;
 }
 
 function BarChartCard({ data }: { data: { label: string; value: number; color: string }[] }) {
@@ -233,21 +252,37 @@ function AdminAnalytics() {
     }
 
     const statTiles: StatTile[] = [
-        { label: "Total Users", value: String(totalUsers), icon: Users, bg: "bg-[#E7F0FF]", color: "text-[#2F6FE4]" },
-        { label: "Total Shops", value: String(totalShops), icon: Store, bg: "bg-green-4", color: "text-green-1" },
         {
-            label: "Total Listings",
+            label: "Users",
+            value: String(totalUsers),
+            icon: Users,
+            bg: "bg-[#E7F0FF]",
+            color: "text-[#2F6FE4]",
+            href: "/admin/users",
+        },
+        {
+            label: "Shops",
+            value: String(totalShops),
+            icon: Store,
+            bg: "bg-green-4",
+            color: "text-green-1",
+            href: "/admin/shops",
+        },
+        {
+            label: "Listings",
             value: String(totalListings),
             icon: ClipboardList,
             bg: "bg-[#F1E9FE]",
             color: "text-[#7C4FE0]",
+            href: "/admin/listings",
         },
         {
-            label: "Total Services",
+            label: "Services",
             value: String(totalServices),
             icon: Wrench,
             bg: "bg-[#FDE9DF]",
             color: "text-orange",
+            href: "/admin/services",
         },
         {
             label: "Bookings",
@@ -255,8 +290,16 @@ function AdminAnalytics() {
             icon: CalendarCheck,
             bg: "bg-[#FDEAB8]",
             color: "text-[#946200]",
+            href: "/admin/bookings",
         },
-        { label: "Categories", value: String(totalCategories), icon: Tags, bg: "bg-[#E7F0FF]", color: "text-[#2F6FE4]" },
+        {
+            label: "Categories",
+            value: String(totalCategories),
+            icon: Tags,
+            bg: "bg-[#E7F0FF]",
+            color: "text-[#2F6FE4]",
+            href: "/admin/categories",
+        },
     ];
 
     const growthBarData = [
