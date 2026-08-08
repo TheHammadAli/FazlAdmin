@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { CalendarClock, MessageSquare } from "lucide-react";
@@ -65,6 +65,12 @@ function BookingDetailModal({ requestId, onClose }: BookingDetailModalProps) {
     const isOpen = Boolean(requestId);
     const [isConversationOpen, setIsConversationOpen] = useState(false);
 
+    // Reset whenever a (possibly different) booking is opened, so stale
+    // state/query cache from a previous booking never flashes on reopen.
+    useEffect(() => {
+        setIsConversationOpen(false);
+    }, [requestId]);
+
     const { data, isLoading, isFetching } = useGetServiceRequestDetailQuery(requestId ?? "", {
         skip: !requestId,
     });
@@ -81,7 +87,13 @@ function BookingDetailModal({ requestId, onClose }: BookingDetailModalProps) {
     const status = booking?.bookingStatus ?? "pending";
 
     return (
-        <Modal editModalRef={modalRef} open={isOpen} setOpen={handleSetOpen} centered>
+        <Modal
+            editModalRef={modalRef}
+            open={isOpen}
+            setOpen={handleSetOpen}
+            centered
+            disableOutsideClick={isConversationOpen}
+        >
             <div className="hide-scrollbar w-[92vw] max-w-[560px] rounded-[12px] bg-white p-6 shadow-xl">
                 <div className="flex items-start justify-between gap-4">
                     <div>
