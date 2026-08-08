@@ -335,7 +335,7 @@ function AdminUsers() {
                             type="text"
                             value={searchInput}
                             onChange={(event) => setSearchInput(event.target.value)}
-                            placeholder="Search by name or ID..."
+                            placeholder="Search by name, email, phone, or ID..."
                             className="h-10 w-full rounded-[8px] border border-gray-9 bg-white pl-9 pr-3 text-[14px] text-[#001907] outline-none placeholder:text-gray-11 focus:border-green-1"
                         />
                     </div>
