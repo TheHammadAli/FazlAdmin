@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, MessageSquare } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
 import { useGetServiceRequestDetailQuery } from "@/store/services/adminService";
 import type { BookingStatus } from "@/components/Admin/AdminBookings";
+import BookingConversationModal from "@/components/Admin/BookingConversationModal";
 
 type PaymentType = "hourly" | "fixed" | "call_for_price";
 
@@ -62,6 +63,7 @@ type BookingDetailModalProps = {
 function BookingDetailModal({ requestId, onClose }: BookingDetailModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
     const isOpen = Boolean(requestId);
+    const [isConversationOpen, setIsConversationOpen] = useState(false);
 
     const { data, isLoading, isFetching } = useGetServiceRequestDetailQuery(requestId ?? "", {
         skip: !requestId,
@@ -208,7 +210,17 @@ function BookingDetailModal({ requestId, onClose }: BookingDetailModalProps) {
                     </>
                 )}
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex flex-wrap justify-end gap-3">
+                    {booking?.customer?._id && booking?.provider?._id && (
+                        <button
+                            type="button"
+                            onClick={() => setIsConversationOpen(true)}
+                            className="inline-flex h-[40px] cursor-pointer items-center gap-1.5 rounded-[8px] border border-green-1 px-4 text-[14px] font-medium text-green-1 transition-colors hover:bg-green-4"
+                        >
+                            <MessageSquare className="h-4 w-4" strokeWidth={2} />
+                            View Conversation
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={onClose}
@@ -218,6 +230,15 @@ function BookingDetailModal({ requestId, onClose }: BookingDetailModalProps) {
                     </button>
                 </div>
             </div>
+
+            <BookingConversationModal
+                open={isConversationOpen}
+                customerId={booking?.customer?._id}
+                providerId={booking?.provider?._id}
+                customerName={booking?.customer?.name}
+                providerName={booking?.provider?.name}
+                onClose={() => setIsConversationOpen(false)}
+            />
         </Modal>
     );
 }

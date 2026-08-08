@@ -238,6 +238,21 @@ export const adminService = baseApi.injectEndpoints({
       }),
       providesTags: ["ADMIN_BOOKINGS"],
     }),
+    getBookingConversation: build.query({
+      query: ({ customerId, providerId, page, limit }) => {
+        const params = new URLSearchParams({
+          customerId,
+          providerId,
+          page: String(page ?? 1),
+          limit: String(limit ?? 10),
+        });
+        return {
+          url: `/chat/admin/conversation?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_BOOKINGS"],
+    }),
     getServiceRequestStats: build.query({
       query: (args?: { startDate?: string; endDate?: string }) => {
         const params = new URLSearchParams();
@@ -571,6 +586,7 @@ export const {
   useLazyGetAllServiceRequestsForAdminQuery,
   useGetServiceRequestDetailQuery,
   useGetServiceRequestStatsQuery,
+  useGetBookingConversationQuery,
   useGetAllBroadcastsForAdminQuery,
   useGetBroadcastRecipientsQuery,
   useCloseBroadcastMutation,
