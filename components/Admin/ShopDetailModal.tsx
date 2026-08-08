@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import {
@@ -12,11 +12,93 @@ import {
     Phone,
     MessageCircle,
     Heart,
+    ChevronDown,
+    ChevronUp,
 } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
-import { useGetShopDetailQuery } from "@/store/services/adminService";
+import { useGetShopDetailQuery, useGetShopProductsQuery, useGetShopOrdersQuery } from "@/store/services/adminService";
 import { getFeedCategoryLabel, type ReelCategory } from "@/utils/getFeedCategoryLabel";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
+import ListingDetailModal from "@/components/Admin/ListingDetailModal";
+
+const RESOURCE_LIST_LIMIT = 5;
+
+type ShopListQueryArg = { shopId: string; page: number; limit: number };
+type ShopListQueryResult = {
+    data?: { data?: Record<string, unknown>[]; meta?: { total?: number | string; totalPages?: number | string } };
+    isLoading: boolean;
+    isFetching: boolean;
+};
+type UseShopListQuery = (arg: ShopListQueryArg) => ShopListQueryResult;
+
+function toSafeText(value: unknown): string {
+    return typeof value === "string" && value.trim() ? value : "-";
+}
+
+function ShopResourceList({
+    shopId,
+    page,
+    onPageChange,
+    useQuery,
+    emptyLabel,
+    renderRow,
+}: {
+    shopId: string;
+    page: number;
+    onPageChange: (page: number) => void;
+    useQuery: UseShopListQuery;
+    emptyLabel: string;
+    renderRow: (item: Record<string, unknown>) => React.ReactNode;
+}) {
+    const { data, isLoading, isFetching } = useQuery({ shopId, page, limit: RESOURCE_LIST_LIMIT });
+    const items = data?.data ?? [];
+    const totalPagesRaw = data?.meta?.totalPages;
+    const totalPages = Math.max(1, Number(totalPagesRaw) || 1);
+    const loading = isLoading || isFetching;
+
+    if (loading) {
+        return (
+            <div className="space-y-2">
+                {Array.from({ length: 2 }).map((_, index) => (
+                    <div key={index} className="h-10 w-full animate-pulse rounded-[8px] bg-gray-200" />
+                ))}
+            </div>
+        );
+    }
+
+    if (items.length === 0) {
+        return <p className="py-2 text-center text-[13px] text-gray-11">{emptyLabel}</p>;
+    }
+
+    return (
+        <div>
+            <div className="space-y-2">{items.map(renderRow)}</div>
+            {totalPages > 1 && (
+                <div className="mt-2 flex items-center justify-between text-[12px] text-gray-11">
+                    <button
+                        type="button"
+                        onClick={() => onPageChange(Math.max(1, page - 1))}
+                        disabled={page <= 1}
+                        className="cursor-pointer font-medium text-green-1 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        Prev
+                    </button>
+                    <span>
+                        Page {page} of {totalPages}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+                        disabled={page >= totalPages}
+                        className="cursor-pointer font-medium text-green-1 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
 
 type ApiShopDetail = {
     _id?: string;
@@ -50,6 +132,7 @@ type StatTile = {
     bg: string;
     color: string;
     comingSoon?: boolean;
+    expandKey?: "products" | "orders";
 };
 
 type ShopDetailModalProps = {
@@ -59,6 +142,22 @@ type ShopDetailModalProps = {
 
 function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
+    const [expandedTile, setExpandedTile] = useState<"products" | "orders" | null>(null);
+    const [listPage, setListPage] = useState(1);
+    const [viewingProductId, setViewingProductId] = useState<string | null>(null);
+
+    // Reset whenever a (possibly different) shop is opened, so stale
+    // state/query cache from a previous shop never flashes on reopen.
+    useEffect(() => {
+        setExpandedTile(null);
+        setListPage(1);
+        setViewingProductId(null);
+    }, [shopId]);
+
+    function toggleExpanded(key: "products" | "orders") {
+        setExpandedTile((prev) => (prev === key ? null : key));
+        setListPage(1);
+    }
 
     const { data, isLoading, isFetching } = useGetShopDetailQuery(shopId ?? "", {
         skip: !shopId,
@@ -87,6 +186,7 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
             icon: Package,
             bg: "bg-green-4",
             color: "text-green-1",
+            expandKey: "products",
         },
         {
             label: "Orders",
@@ -94,6 +194,7 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
             icon: ShoppingCart,
             bg: "bg-[#E7F0FF]",
             color: "text-[#2F6FE4]",
+            expandKey: "orders",
         },
         {
             label: "Total Views",
@@ -138,7 +239,14 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
     ];
 
     return (
-        <Modal editModalRef={modalRef} open={isOpen} setOpen={handleSetOpen} centered>
+        <>
+        <Modal
+            editModalRef={modalRef}
+            open={isOpen}
+            setOpen={handleSetOpen}
+            centered
+            disableOutsideClick={Boolean(viewingProductId)}
+        >
             <div className="flex max-h-[90vh] w-[92vw] max-w-[500px] flex-col rounded-[12px] bg-white shadow-xl">
                 <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-9 px-6 pt-6 pb-4">
                     <h2 className="flex items-center gap-2 text-[18px] font-semibold text-[#001907]">
@@ -290,6 +398,109 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 {stats.map((stat) => {
                                     const Icon = stat.icon;
+
+                                    if (stat.expandKey) {
+                                        const isExpanded = expandedTile === stat.expandKey;
+                                        const shopIdValue = shop._id ?? shop.id ?? "";
+
+                                        return (
+                                            <div
+                                                key={stat.label}
+                                                className="sm:col-span-2 rounded-[10px] border border-gray-9"
+                                            >
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleExpanded(stat.expandKey as "products" | "orders")}
+                                                    className="flex w-full cursor-pointer items-center gap-3 p-3 text-left"
+                                                >
+                                                    <span
+                                                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] ${stat.bg}`}
+                                                    >
+                                                        <Icon className={`h-4 w-4 ${stat.color}`} strokeWidth={2} />
+                                                    </span>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-[12px] text-gray-11">
+                                                            {stat.label}
+                                                        </p>
+                                                        <p className="text-[15px] font-semibold text-[#001907]">
+                                                            {stat.value}
+                                                        </p>
+                                                    </div>
+                                                    {isExpanded ? (
+                                                        <ChevronUp className="h-4 w-4 shrink-0 text-gray-11" />
+                                                    ) : (
+                                                        <ChevronDown className="h-4 w-4 shrink-0 text-gray-11" />
+                                                    )}
+                                                </button>
+
+                                                {isExpanded && (
+                                                    <div className="border-t border-gray-9 p-3">
+                                                        {stat.expandKey === "products" && (
+                                                            <ShopResourceList
+                                                                shopId={shopIdValue}
+                                                                page={listPage}
+                                                                onPageChange={setListPage}
+                                                                useQuery={useGetShopProductsQuery}
+                                                                emptyLabel="No products yet"
+                                                                renderRow={(item) => (
+                                                                    <button
+                                                                        key={String(item._id)}
+                                                                        type="button"
+                                                                        onClick={() => setViewingProductId(String(item._id))}
+                                                                        className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-[8px] border border-gray-9 px-3 py-2 text-left hover:border-green-1"
+                                                                    >
+                                                                        <span className="truncate text-[13px] font-medium text-[#001907]">
+                                                                            {toSafeText(item.title as string | undefined)}
+                                                                        </span>
+                                                                        {typeof item.price === "number" && (
+                                                                            <span className="shrink-0 text-[12px] text-gray-11">
+                                                                                Rs. {(item.price as number).toLocaleString()}
+                                                                            </span>
+                                                                        )}
+                                                                    </button>
+                                                                )}
+                                                            />
+                                                        )}
+                                                        {stat.expandKey === "orders" && (
+                                                            <ShopResourceList
+                                                                shopId={shopIdValue}
+                                                                page={listPage}
+                                                                onPageChange={setListPage}
+                                                                useQuery={useGetShopOrdersQuery}
+                                                                emptyLabel="No orders yet"
+                                                                renderRow={(item) => {
+                                                                    const product = item.product as { title?: string } | undefined;
+                                                                    const status = typeof item.status === "string" ? item.status : "pending";
+                                                                    const amount = typeof item.amount === "number" ? item.amount : undefined;
+                                                                    return (
+                                                                        <div
+                                                                            key={String(item._id)}
+                                                                            className="flex items-center justify-between gap-2 rounded-[8px] border border-gray-9 px-3 py-2"
+                                                                        >
+                                                                            <span className="truncate text-[13px] font-medium text-[#001907]">
+                                                                                {toSafeText(product?.title)}
+                                                                            </span>
+                                                                            <div className="flex shrink-0 items-center gap-2">
+                                                                                {amount !== undefined && (
+                                                                                    <span className="text-[12px] text-gray-11">
+                                                                                        Rs. {amount.toLocaleString()}
+                                                                                    </span>
+                                                                                )}
+                                                                                <span className="rounded-[4px] bg-gray-10 px-1.5 py-0.5 text-[11px] font-medium capitalize text-gray-8">
+                                                                                    {status}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    }
+
                                     return (
                                         <div
                                             key={stat.label}
@@ -333,6 +544,9 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
                 </div>
             </div>
         </Modal>
+
+        <ListingDetailModal productId={viewingProductId} onClose={() => setViewingProductId(null)} />
+        </>
     );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import {
     User,
@@ -213,6 +213,17 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
     const [viewingProductId, setViewingProductId] = useState<string | null>(null);
     const [viewingRequestId, setViewingRequestId] = useState<string | null>(null);
 
+    // Reset whenever a (possibly different) user is opened, so stale
+    // state/query cache from a previous user never flashes on reopen.
+    useEffect(() => {
+        setExpandedTile(null);
+        setListPage(1);
+        setViewingShopId(null);
+        setViewingServiceId(null);
+        setViewingProductId(null);
+        setViewingRequestId(null);
+    }, [userId]);
+
     function toggleExpanded(key: "shops" | "services" | "listings" | "bookings") {
         setExpandedTile((prev) => (prev === key ? null : key));
         setListPage(1);
@@ -307,7 +318,15 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
 
     return (
         <>
-            <Modal editModalRef={modalRef} open={isOpen} setOpen={handleSetOpen} centered>
+            <Modal
+                editModalRef={modalRef}
+                open={isOpen}
+                setOpen={handleSetOpen}
+                centered
+                disableOutsideClick={Boolean(
+                    viewingShopId || viewingServiceId || viewingProductId || viewingRequestId,
+                )}
+            >
                 <div className="flex max-h-[90vh] w-[92vw] max-w-[500px] flex-col rounded-[12px] bg-white shadow-xl">
                     <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-9 px-6 pt-6 pb-4">
                         <h2 className="flex items-center gap-2 text-[18px] font-semibold text-[#001907]">

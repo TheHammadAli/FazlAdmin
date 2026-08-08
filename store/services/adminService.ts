@@ -101,6 +101,33 @@ export const adminService = baseApi.injectEndpoints({
       }),
       providesTags: ["ADMIN_SHOPS"],
     }),
+    getShopProducts: build.query({
+      query: ({ shopId, page, limit }) => {
+        const params = new URLSearchParams({
+          page: String(page ?? 1),
+          limit: String(limit ?? 10),
+        });
+        return {
+          url: `/products/shop/${shopId}?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_SHOPS"],
+    }),
+    getShopOrders: build.query({
+      query: ({ shopId, page, limit }) => {
+        const params = new URLSearchParams({
+          ownerModel: "Shop",
+          page: String(page ?? 1),
+          limit: String(limit ?? 10),
+        });
+        return {
+          url: `/orders/owner/${shopId}?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_SHOPS"],
+    }),
     getAllServicesForAdmin: build.query({
       query: ({ page, limit, search, startDate, endDate }) => {
         const params = new URLSearchParams({
@@ -585,6 +612,8 @@ export const {
   useGetAllShopsFromAdminQuery,
   useLazyGetAllShopsFromAdminQuery,
   useGetShopDetailQuery,
+  useGetShopProductsQuery,
+  useGetShopOrdersQuery,
   useGetAllServicesForAdminQuery,
   useGetServiceDetailQuery,
   useGetAllProductsForAdminQuery,
