@@ -23,6 +23,7 @@ import ShopDetailModal from "@/components/Admin/ShopDetailModal";
 import ServiceDetailModal from "@/components/Admin/ServiceDetailModal";
 import ListingDetailModal from "@/components/Admin/ListingDetailModal";
 import BookingDetailModal from "@/components/Admin/BookingDetailModal";
+import ConversationThreadModal from "@/components/Admin/ConversationThreadModal";
 import { useCurrentAdminPermissions, type AdminPage } from "@/custom-hooks/useCurrentAdminPermissions";
 import {
     useActivateUserMutation,
@@ -32,6 +33,7 @@ import {
     useGetUserListingsQuery,
     useGetUserServicesQuery,
     useGetUserBookingsQuery,
+    useGetUserConversationsQuery,
 } from "@/store/services/adminService";
 import { useDeleteAccountMutation } from "@/store/services/authService";
 
@@ -206,12 +208,17 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
     ];
 
     const { isSuperAdmin, has } = useCurrentAdminPermissions();
-    const [expandedTile, setExpandedTile] = useState<"shops" | "services" | "listings" | "bookings" | null>(null);
+    const [expandedTile, setExpandedTile] = useState<
+        "shops" | "services" | "listings" | "bookings" | "conversations" | null
+    >(null);
     const [listPage, setListPage] = useState(1);
     const [viewingShopId, setViewingShopId] = useState<string | null>(null);
     const [viewingServiceId, setViewingServiceId] = useState<string | null>(null);
     const [viewingProductId, setViewingProductId] = useState<string | null>(null);
     const [viewingRequestId, setViewingRequestId] = useState<string | null>(null);
+    const [viewingConversation, setViewingConversation] = useState<
+        { id: string; otherPartyName?: string } | null
+    >(null);
 
     // Reset whenever a (possibly different) user is opened, so stale
     // state/query cache from a previous user never flashes on reopen.
@@ -222,9 +229,10 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
         setViewingServiceId(null);
         setViewingProductId(null);
         setViewingRequestId(null);
+        setViewingConversation(null);
     }, [userId]);
 
-    function toggleExpanded(key: "shops" | "services" | "listings" | "bookings") {
+    function toggleExpanded(key: "shops" | "services" | "listings" | "bookings" | "conversations") {
         setExpandedTile((prev) => (prev === key ? null : key));
         setListPage(1);
     }
@@ -324,7 +332,7 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
                 setOpen={handleSetOpen}
                 centered
                 disableOutsideClick={Boolean(
-                    viewingShopId || viewingServiceId || viewingProductId || viewingRequestId,
+                    viewingShopId || viewingServiceId || viewingProductId || viewingRequestId || viewingConversation,
                 )}
             >
                 <div className="flex max-h-[90vh] w-[92vw] max-w-[500px] flex-col rounded-[12px] bg-white shadow-xl">
@@ -583,17 +591,20 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
                                 <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     {plainTiles.map((stat) => {
                                         const Icon = stat.icon;
+                                        const isExpanded = expandedTile === "conversations";
                                         return (
-                                            <div
+                                            <button
                                                 key={stat.label}
-                                                className="flex items-center gap-3 rounded-[10px] border border-gray-9 p-3"
+                                                type="button"
+                                                onClick={() => toggleExpanded("conversations")}
+                                                className="flex w-full cursor-pointer items-center gap-3 rounded-[10px] border border-gray-9 p-3 text-left"
                                             >
                                                 <span
                                                     className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] ${stat.bg}`}
                                                 >
                                                     <Icon className={`h-4 w-4 ${stat.color}`} strokeWidth={2} />
                                                 </span>
-                                                <div className="min-w-0">
+                                                <div className="min-w-0 flex-1">
                                                     <p className="truncate text-[12px] text-gray-11">
                                                         {stat.label}
                                                     </p>
@@ -601,10 +612,62 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
                                                         {stat.value}
                                                     </p>
                                                 </div>
-                                            </div>
+                                                {isExpanded ? (
+                                                    <ChevronUp className="h-4 w-4 shrink-0 text-gray-11" />
+                                                ) : (
+                                                    <ChevronDown className="h-4 w-4 shrink-0 text-gray-11" />
+                                                )}
+                                            </button>
                                         );
                                     })}
                                 </div>
+
+                                {expandedTile === "conversations" && (
+                                    <div className="mt-2 rounded-[10px] border border-gray-9 p-3">
+                                            <UserResourceList
+                                                userId={user._id ?? user.id ?? ""}
+                                                page={listPage}
+                                                onPageChange={setListPage}
+                                                useQuery={useGetUserConversationsQuery}
+                                                emptyLabel="No conversations yet"
+                                                renderRow={(item) => {
+                                                    const userIdValue = user._id ?? user.id ?? "";
+                                                    const buyer = item.buyer as
+                                                        | { _id?: string; name?: string }
+                                                        | undefined;
+                                                    const seller = item.seller as
+                                                        | { _id?: string; name?: string }
+                                                        | undefined;
+                                                    const otherParty = buyer?._id === userIdValue ? seller : buyer;
+                                                    const latestMessage = item.latestMessage as
+                                                        | { text?: string }
+                                                        | undefined;
+                                                    return (
+                                                        <button
+                                                            key={String(item._id)}
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setViewingConversation({
+                                                                    id: String(item._id),
+                                                                    otherPartyName: otherParty?.name,
+                                                                })
+                                                            }
+                                                            className="flex w-full cursor-pointer flex-col items-start gap-0.5 rounded-[8px] border border-gray-9 px-3 py-2 text-left hover:border-green-1"
+                                                        >
+                                                            <span className="truncate text-[13px] font-medium text-[#001907]">
+                                                                {toSafeText(otherParty?.name)}
+                                                            </span>
+                                                            {latestMessage?.text && (
+                                                                <span className="truncate text-[11px] text-gray-11">
+                                                                    {latestMessage.text}
+                                                                </span>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                }}
+                                            />
+                                    </div>
+                                )}
                             </div>
                         </>
                     )}
@@ -664,6 +727,14 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
             <ServiceDetailModal serviceId={viewingServiceId} onClose={() => setViewingServiceId(null)} />
             <ListingDetailModal productId={viewingProductId} onClose={() => setViewingProductId(null)} />
             <BookingDetailModal requestId={viewingRequestId} onClose={() => setViewingRequestId(null)} />
+            <ConversationThreadModal
+                open={Boolean(viewingConversation)}
+                conversationId={viewingConversation?.id}
+                userId={user?._id ?? user?.id}
+                userName={user?.name}
+                otherPartyName={viewingConversation?.otherPartyName}
+                onClose={() => setViewingConversation(null)}
+            />
         </>
     );
 }

@@ -280,6 +280,32 @@ export const adminService = baseApi.injectEndpoints({
       },
       providesTags: ["ADMIN_BOOKINGS"],
     }),
+    getUserConversations: build.query({
+      query: ({ userId, page, limit }) => {
+        const params = new URLSearchParams({
+          page: String(page ?? 1),
+          limit: String(limit ?? 10),
+        });
+        return {
+          url: `/chat/admin/user/${userId}/conversations?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_USERS"],
+    }),
+    getConversationMessages: build.query({
+      query: ({ conversationId, page, limit }) => {
+        const params = new URLSearchParams({
+          page: String(page ?? 1),
+          limit: String(limit ?? 10),
+        });
+        return {
+          url: `/chat/admin/conversation/${conversationId}/messages?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_USERS"],
+    }),
     getServiceRequestStats: build.query({
       query: (args?: { startDate?: string; endDate?: string }) => {
         const params = new URLSearchParams();
@@ -629,6 +655,8 @@ export const {
   useGetServiceRequestDetailQuery,
   useGetServiceRequestStatsQuery,
   useGetBookingConversationQuery,
+  useGetUserConversationsQuery,
+  useGetConversationMessagesQuery,
   useGetAllBroadcastsForAdminQuery,
   useGetBroadcastRecipientsQuery,
   useGetBroadcastThreadMessagesQuery,
