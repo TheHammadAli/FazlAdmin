@@ -86,7 +86,13 @@ function toSafeParameterArray(value: unknown): CategoryParameter[] {
     return value
         .map((item: unknown) => {
             const record = item as
-                | { name?: unknown; values?: unknown; isOptional?: unknown; allowCustomValue?: unknown }
+                | {
+                    name?: unknown;
+                    values?: unknown;
+                    isOptional?: unknown;
+                    allowCustomValue?: unknown;
+                    allowMultiple?: unknown;
+                }
                 | null
                 | undefined;
             return {
@@ -96,6 +102,7 @@ function toSafeParameterArray(value: unknown): CategoryParameter[] {
                     : [],
                 isOptional: typeof record?.isOptional === "boolean" ? record.isOptional : false,
                 allowCustomValue: typeof record?.allowCustomValue === "boolean" ? record.allowCustomValue : false,
+                allowMultiple: typeof record?.allowMultiple === "boolean" ? record.allowMultiple : false,
             };
         })
         .filter((parameter) => parameter.name.trim() !== "");

@@ -23,6 +23,8 @@ export type CategoryParameter = {
     isOptional?: boolean;
     /** Lets the end-user type their own value on top of the fixed list below. */
     allowCustomValue?: boolean;
+    /** Lets the end-user pick more than one value from the list below. */
+    allowMultiple?: boolean;
 };
 
 export type CategoryParameters = {
@@ -187,6 +189,20 @@ function ParameterListEditor({
                             />
                             Allow user to add their own value
                         </label>
+                        <label className="mt-1.5 flex cursor-pointer items-center gap-1.5 text-[12px] text-gray-11">
+                            <input
+                                type="checkbox"
+                                checked={parameter.allowMultiple ?? false}
+                                onChange={() =>
+                                    updateParameter(index, {
+                                        ...parameter,
+                                        allowMultiple: !parameter.allowMultiple,
+                                    })
+                                }
+                                className="h-3.5 w-3.5 accent-green-1"
+                            />
+                            Allow user to select multiple values
+                        </label>
                         <div className="mt-3 flex items-center gap-2 border-0 border-b border-gray-9 pb-2">
                             <input
                                 id={`${idPrefix}-value-${index}`}
@@ -252,7 +268,7 @@ function ParameterListEditor({
                 onClick={() =>
                     onChange([
                         ...parameters,
-                        { name: "", values: [], isOptional: false, allowCustomValue: false },
+                        { name: "", values: [], isOptional: false, allowCustomValue: false, allowMultiple: false },
                     ])
                 }
                 className="mt-3 inline-flex cursor-pointer items-center gap-1 text-[14px] font-medium text-green-1"
@@ -268,7 +284,13 @@ function clonedParameters(parameters?: unknown): CategoryParameter[] {
     if (!Array.isArray(parameters)) return [];
     return parameters.map((parameter: unknown) => {
         const record = parameter as
-            | { name?: unknown; values?: unknown; isOptional?: unknown; allowCustomValue?: unknown }
+            | {
+                name?: unknown;
+                values?: unknown;
+                isOptional?: unknown;
+                allowCustomValue?: unknown;
+                allowMultiple?: unknown;
+            }
             | null
             | undefined;
         return {
@@ -278,6 +300,7 @@ function clonedParameters(parameters?: unknown): CategoryParameter[] {
                 : [],
             isOptional: typeof record?.isOptional === "boolean" ? record.isOptional : false,
             allowCustomValue: typeof record?.allowCustomValue === "boolean" ? record.allowCustomValue : false,
+            allowMultiple: typeof record?.allowMultiple === "boolean" ? record.allowMultiple : false,
         };
     });
 }
@@ -289,6 +312,7 @@ function normalizeParameters(parameters: CategoryParameter[]): CategoryParameter
             values: parameter.values.map((value) => value.trim()).filter(Boolean),
             isOptional: parameter.isOptional ?? false,
             allowCustomValue: parameter.allowCustomValue ?? false,
+            allowMultiple: parameter.allowMultiple ?? false,
         }))
         .filter((parameter) => parameter.name && parameter.values.length > 0);
 }
