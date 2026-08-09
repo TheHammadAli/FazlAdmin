@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Megaphone, Plus } from "lucide-react";
+import { Megaphone, Pencil, Plus } from "lucide-react";
 import Pagination from "@/components/Ui/Pagination";
 import DoodleButton from "@/components/Ui/DoodleButton";
-import AnnouncementFormModal from "@/components/Admin/AnnouncementFormModal";
+import AnnouncementFormModal, {
+    type AnnouncementFormMode,
+} from "@/components/Admin/AnnouncementFormModal";
 import { useGetAllAnnouncementsForAdminQuery } from "@/store/services/adminService";
 import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
@@ -12,6 +14,7 @@ import { parsePositiveInt } from "@/utils/parsePositiveInt";
 const PAGE_LIMIT = 10;
 
 type AnnouncementStatus = "draft" | "scheduled" | "sent";
+type Priority = "low" | "medium" | "high";
 
 type Announcement = {
     id: string;
@@ -20,6 +23,15 @@ type Announcement = {
     message: string;
     createdAt: string;
     status: AnnouncementStatus;
+    image?: string;
+    targetAudience?: string[];
+    categoryId?: string;
+    location?: string;
+    ctaLabel?: string;
+    ctaDestination?: string;
+    scheduledAt?: string;
+    expiresAt?: string;
+    priority: Priority;
 };
 
 type ApiAnnouncement = {
@@ -29,6 +41,15 @@ type ApiAnnouncement = {
     message?: string;
     createdAt?: string;
     status?: string;
+    image?: string;
+    targetAudience?: string[];
+    category?: { _id?: string } | string;
+    location?: string;
+    ctaLabel?: string;
+    ctaDestination?: string;
+    scheduledAt?: string;
+    expiresAt?: string;
+    priority?: string;
 };
 
 const STATUS_META: Record<AnnouncementStatus, { label: string; bg: string; color: string }> = {
@@ -39,6 +60,10 @@ const STATUS_META: Record<AnnouncementStatus, { label: string; bg: string; color
 
 function toAnnouncementStatus(value?: string): AnnouncementStatus {
     return value === "draft" || value === "scheduled" ? value : "sent";
+}
+
+function toPriority(value?: string): Priority {
+    return value === "low" || value === "high" ? value : "medium";
 }
 
 type AnnouncementsResponse = {
@@ -61,6 +86,9 @@ function formatDateTime(value?: string) {
 }
 
 function mapApiAnnouncement(announcement: ApiAnnouncement): Announcement {
+    const categoryId =
+        typeof announcement.category === "string" ? announcement.category : announcement.category?._id;
+
     return {
         id: announcement._id ?? "",
         code: announcement.announcementCode ?? "-",
@@ -68,6 +96,15 @@ function mapApiAnnouncement(announcement: ApiAnnouncement): Announcement {
         message: announcement.message ?? "-",
         createdAt: formatDateTime(announcement.createdAt),
         status: toAnnouncementStatus(announcement.status),
+        image: announcement.image,
+        targetAudience: announcement.targetAudience,
+        categoryId,
+        location: announcement.location,
+        ctaLabel: announcement.ctaLabel,
+        ctaDestination: announcement.ctaDestination,
+        scheduledAt: announcement.scheduledAt,
+        expiresAt: announcement.expiresAt,
+        priority: toPriority(announcement.priority),
     };
 }
 
@@ -75,6 +112,7 @@ function AdminAnnouncements() {
     const { canEdit } = useCurrentAdminPermissions();
     const [page, setPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [formMode, setFormMode] = useState<AnnouncementFormMode>("add");
 
     const {
         data: announcementsResponse,
@@ -97,10 +135,37 @@ function AdminAnnouncements() {
     const loading = isLoading || isFetching;
     const canSend = canEdit("announcements");
 
+    function openAddForm() {
+        setFormMode("add");
+        setIsFormOpen(true);
+    }
+
+    function openEditForm(announcement: Announcement) {
+        setFormMode({
+            type: "edit",
+            announcement: {
+                id: announcement.id,
+                title: announcement.title,
+                message: announcement.message,
+                image: announcement.image,
+                targetAudience: announcement.targetAudience,
+                category: announcement.categoryId,
+                location: announcement.location,
+                ctaLabel: announcement.ctaLabel,
+                ctaDestination: announcement.ctaDestination,
+                scheduledAt: announcement.scheduledAt,
+                expiresAt: announcement.expiresAt,
+                priority: announcement.priority,
+            },
+        });
+        setIsFormOpen(true);
+    }
+
     return (
         <section>
             <AnnouncementFormModal
                 open={isFormOpen}
+                mode={formMode}
                 onClose={() => setIsFormOpen(false)}
                 onSuccess={() => setPage(1)}
             />
@@ -119,7 +184,7 @@ function AdminAnnouncements() {
                     </div>
                     <DoodleButton
                         type="button"
-                        onClick={() => setIsFormOpen(true)}
+                        onClick={openAddForm}
                         disabled={!canSend}
                         className="inline-flex shrink-0 items-center gap-2 rounded-[10px] bg-green-1 px-4 py-2 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -132,7 +197,7 @@ function AdminAnnouncements() {
             <div className="bg-white">
                 <div className="container px-5 lg:px-10 mx-auto mt-6">
                     <div className="overflow-x-auto">
-                        <table className="min-w-[680px] w-full">
+                        <table className="min-w-[760px] w-full">
                             <thead>
                                 <tr className="text-left">
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
@@ -150,13 +215,16 @@ function AdminAnnouncements() {
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Status
                                     </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading &&
                                     Array.from({ length: 5 }).map((_, index) => (
                                         <tr key={`skeleton-${index}`} className="bg-white">
-                                            {Array.from({ length: 5 }).map((__, cellIndex) => (
+                                            {Array.from({ length: 6 }).map((__, cellIndex) => (
                                                 <td key={cellIndex} className="py-3.5 pr-4">
                                                     <div className="h-4 w-full max-w-[180px] animate-pulse rounded bg-gray-200" />
                                                 </td>
@@ -167,7 +235,7 @@ function AdminAnnouncements() {
                                 {!loading && announcements.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={5}
+                                            colSpan={6}
                                             className="py-8 text-center text-[14px] text-gray-11"
                                         >
                                             No announcements sent yet
@@ -196,6 +264,19 @@ function AdminAnnouncements() {
                                                 >
                                                     {STATUS_META[announcement.status].label}
                                                 </span>
+                                            </td>
+                                            <td className="whitespace-nowrap py-3.5 pr-4">
+                                                {announcement.status === "draft" && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEditForm(announcement)}
+                                                        disabled={!canSend}
+                                                        className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-green-1 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                                                        Edit
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}

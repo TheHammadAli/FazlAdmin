@@ -403,6 +403,14 @@ export const adminService = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["ADMIN_ANNOUNCEMENTS"],
     }),
+    updateAnnouncement: build.mutation({
+      query: ({ id, body }) => ({
+        url: `/announcements/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_ANNOUNCEMENTS"],
+    }),
     getAllAdminAccounts: build.query({
       query: ({ page, limit, search }) => {
         const params = new URLSearchParams({
@@ -664,6 +672,7 @@ export const {
   useDeleteBroadcastMutation,
   useGetAllAnnouncementsForAdminQuery,
   useCreateAnnouncementMutation,
+  useUpdateAnnouncementMutation,
   useGetAllAdminAccountsQuery,
   useCreateAdminAccountMutation,
   useUpdateAdminAccountMutation,

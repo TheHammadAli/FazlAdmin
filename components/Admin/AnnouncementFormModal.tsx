@@ -10,6 +10,7 @@ import DoodleButton from "@/components/Ui/DoodleButton";
 import Modal from "@/components/Ui/Modals/Modal";
 import {
     useCreateAnnouncementMutation,
+    useUpdateAnnouncementMutation,
     useGetAllCategoriesForAdminQuery,
 } from "@/store/services/adminService";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
@@ -30,6 +31,31 @@ type FormErrors = {
     scheduledAt?: string;
 };
 
+export type EditableAnnouncement = {
+    id: string;
+    title: string;
+    message: string;
+    image?: string;
+    targetAudience?: string[];
+    category?: string;
+    location?: string;
+    ctaLabel?: string;
+    ctaDestination?: string;
+    scheduledAt?: string;
+    expiresAt?: string;
+    priority?: Priority;
+};
+
+export type AnnouncementFormMode = "add" | { type: "edit"; announcement: EditableAnnouncement };
+
+function toDatetimeLocalValue(iso?: string): string {
+    if (!iso) return "";
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "";
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 const STATUS_OPTIONS: { value: AnnouncementStatus; label: string; icon: typeof Save }[] = [
     { value: "draft", label: "Save as Draft", icon: Save },
     { value: "scheduled", label: "Schedule", icon: Clock },
@@ -44,11 +70,14 @@ const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
 
 type AnnouncementFormModalProps = {
     open: boolean;
+    mode?: AnnouncementFormMode;
     onClose: () => void;
     onSuccess?: () => void;
 };
 
-function AnnouncementFormModal({ open, onClose, onSuccess }: AnnouncementFormModalProps) {
+function AnnouncementFormModal({ open, mode = "add", onClose, onSuccess }: AnnouncementFormModalProps) {
+    const isEdit = mode !== "add";
+    const editAnnouncement = isEdit ? mode.announcement : null;
     const modalRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,28 +97,31 @@ function AnnouncementFormModal({ open, onClose, onSuccess }: AnnouncementFormMod
     const [status, setStatus] = useState<AnnouncementStatus>("sent");
     const [errors, setErrors] = useState<FormErrors>({});
 
-    const [createAnnouncement, { isLoading: isSubmitting }] = useCreateAnnouncementMutation();
+    const [createAnnouncement, { isLoading: isCreating }] = useCreateAnnouncementMutation();
+    const [updateAnnouncement, { isLoading: isUpdating }] = useUpdateAnnouncementMutation();
+    const isSubmitting = isCreating || isUpdating;
     const { data: categoriesData } = useGetAllCategoriesForAdminQuery({});
     const categories = (categoriesData as CategoriesResponse | undefined)?.data ?? [];
 
     useEffect(() => {
         if (!open) return;
-        setTitle("");
-        setMessage("");
-        setImagePreview(null);
+        setTitle(editAnnouncement?.title ?? "");
+        setMessage(editAnnouncement?.message ?? "");
+        setImagePreview(editAnnouncement?.image ?? null);
         setImageFile(null);
-        setTargetBuyers(false);
-        setTargetSellers(false);
-        setCategory("");
-        setLocation("");
-        setCtaLabel("");
-        setCtaDestination("");
-        setScheduledAt("");
-        setExpiresAt("");
-        setPriority("medium");
-        setStatus("sent");
+        setTargetBuyers(editAnnouncement?.targetAudience?.includes("buyer") ?? false);
+        setTargetSellers(editAnnouncement?.targetAudience?.includes("seller") ?? false);
+        setCategory(editAnnouncement?.category ?? "");
+        setLocation(editAnnouncement?.location ?? "");
+        setCtaLabel(editAnnouncement?.ctaLabel ?? "");
+        setCtaDestination(editAnnouncement?.ctaDestination ?? "");
+        setScheduledAt(toDatetimeLocalValue(editAnnouncement?.scheduledAt));
+        setExpiresAt(toDatetimeLocalValue(editAnnouncement?.expiresAt));
+        setPriority(editAnnouncement?.priority ?? "medium");
+        setStatus(editAnnouncement ? "draft" : "sent");
         setErrors({});
-    }, [open]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, editAnnouncement?.id]);
 
     function handleSetOpen(value: React.SetStateAction<boolean>) {
         const nextOpen = typeof value === "function" ? value(open) : value;
@@ -148,7 +180,9 @@ function AnnouncementFormModal({ open, onClose, onSuccess }: AnnouncementFormMod
             : fields;
 
         try {
-            const response = await createAnnouncement(body).unwrap();
+            const response = editAnnouncement
+                ? await updateAnnouncement({ id: editAnnouncement.id, body }).unwrap()
+                : await createAnnouncement(body).unwrap();
             toast.success((response as { message?: string })?.message ?? "Announcement saved successfully");
             onSuccess?.();
             onClose();
@@ -168,7 +202,7 @@ function AnnouncementFormModal({ open, onClose, onSuccess }: AnnouncementFormMod
                 <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-9 px-6 pt-6 pb-4">
                     <h2 className="flex items-center gap-2 text-[18px] font-semibold text-[#001907]">
                         <Megaphone className="h-5 w-5 text-green-1" strokeWidth={2} />
-                        Add Announcement
+                        {isEdit ? "Edit Announcement" : "Add Announcement"}
                     </h2>
                     <button
                         type="button"
