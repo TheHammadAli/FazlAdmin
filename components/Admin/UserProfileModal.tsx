@@ -168,6 +168,7 @@ type UserProfileModalProps = {
 function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
     const confirmModalRef = useRef<HTMLDivElement>(null);
+    const expandedPanelRef = useRef<HTMLDivElement>(null);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -236,6 +237,17 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
         setExpandedTile((prev) => (prev === key ? null : key));
         setListPage(1);
     }
+
+    // The expanded panel renders below content that can already fill the
+    // modal, and this modal's scrollbar is hidden — without this, opening a
+    // tile can look like nothing happened unless the admin manually scrolls.
+    useEffect(() => {
+        if (!expandedTile) return;
+        const id = requestAnimationFrame(() => {
+            expandedPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+        return () => cancelAnimationFrame(id);
+    }, [expandedTile]);
 
     const expandableTiles: {
         key: "shops" | "services" | "listings" | "bookings";
@@ -480,7 +492,7 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
                                                 </button>
 
                                                 {isExpanded && (
-                                                    <div className="border-t border-gray-9 p-3">
+                                                    <div ref={expandedPanelRef} className="border-t border-gray-9 p-3">
                                                         {tile.key === "shops" && (
                                                             <UserResourceList
                                                                 userId={userIdValue}
@@ -623,7 +635,7 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
                                 </div>
 
                                 {expandedTile === "conversations" && (
-                                    <div className="mt-2 rounded-[10px] border border-gray-9 p-3">
+                                    <div ref={expandedPanelRef} className="mt-2 rounded-[10px] border border-gray-9 p-3">
                                             <UserResourceList
                                                 userId={user._id ?? user.id ?? ""}
                                                 page={listPage}
