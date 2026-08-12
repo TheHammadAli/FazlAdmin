@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronsUpDown, Download, Eye } from "lucide-react";
+import Link from "next/link";
+import { ChevronsUpDown, Download, Eye, Pencil } from "lucide-react";
 import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
 import Pagination from "@/components/Ui/Pagination";
@@ -12,7 +13,7 @@ import ToggleSwitch from "@/components/Ui/ToggleSwitch";
 import UserProfileModal from "@/components/Admin/UserProfileModal";
 import {
     useActivateUserMutation,
-
+    useUpdateUserRoleMutation,
     useGetAllUsersFromAdminQuery,
     useLazyGetAllUsersFromAdminQuery,
 } from "@/store/services/adminService";
@@ -27,6 +28,7 @@ import DateRangeFilter, { type DateFilterValue } from "@/components/Ui/DateRange
 const SEARCH_DEBOUNCE_MS = 400;
 
 type UserStatus = "active" | "inactive" | "deleted";
+type UserRole = "buyer" | "seller";
 
 type AdminUser = {
     id: string;
@@ -36,6 +38,7 @@ type AdminUser = {
     phone: string;
     joinDate: string;
     status: UserStatus;
+    role: UserRole;
 };
 
 type ApiAdminUser = {
@@ -47,6 +50,7 @@ type ApiAdminUser = {
     phone?: string;
     createdAt?: string;
     isDisabled?: boolean;
+    roles?: string[];
 };
 
 type AdminUsersResponse = {
@@ -65,6 +69,16 @@ const STATUS_LABELS: Record<UserStatus, string> = {
     deleted: "Deleted",
 };
 
+const ROLE_LABELS: Record<UserRole, string> = {
+    buyer: "Buyer",
+    seller: "Seller",
+};
+
+const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
+    { value: "buyer", label: "Buyer" },
+    { value: "seller", label: "Seller" },
+];
+
 function mapUserStatus(user: ApiAdminUser): UserStatus {
 
     if (user.isDisabled) {
@@ -72,6 +86,10 @@ function mapUserStatus(user: ApiAdminUser): UserStatus {
     }
 
     return "active";
+}
+
+function mapUserRole(user: ApiAdminUser): UserRole {
+    return user.roles?.includes("seller") ? "seller" : "buyer";
 }
 
 function mapApiUser(user: ApiAdminUser): AdminUser {
@@ -87,6 +105,7 @@ function mapApiUser(user: ApiAdminUser): AdminUser {
         phone: user.phone ?? "-",
         joinDate,
         status: mapUserStatus(user),
+        role: mapUserRole(user),
     };
 }
 
@@ -116,7 +135,12 @@ function AdminUsers() {
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [pendingStatusChange, setPendingStatusChange] = useState<PendingStatusChange | null>(null);
     const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+    const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+    const [roleChangeUser, setRoleChangeUser] = useState<AdminUser | null>(null);
+    const [selectedRole, setSelectedRole] = useState<UserRole>("buyer");
+    const [isUpdatingRole, setIsUpdatingRole] = useState(false);
     const statusModalRef = useRef<HTMLDivElement>(null);
+    const roleModalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -153,6 +177,7 @@ function AdminUsers() {
 
     const [activateUser] = useActivateUserMutation();
     const [deleteAccount] = useDeleteAccountMutation();
+    const [updateUserRole] = useUpdateUserRoleMutation();
     const [triggerExport, { isFetching: isExporting }] = useLazyGetAllUsersFromAdminQuery();
     const users = useMemo(() => {
         const response = usersResponse as AdminUsersResponse | undefined;
@@ -190,6 +215,38 @@ function AdminUsers() {
         }
     }
 
+    function openRoleModal(user: AdminUser) {
+        setRoleChangeUser(user);
+        setSelectedRole(user.role);
+        setIsRoleModalOpen(true);
+    }
+
+    function closeRoleModal() {
+        if (isUpdatingRole) return;
+        setIsRoleModalOpen(false);
+        setRoleChangeUser(null);
+    }
+
+    async function handleRoleChange() {
+        if (!roleChangeUser) return;
+        setIsUpdatingRole(true);
+
+        try {
+            const response = await updateUserRole({
+                id: roleChangeUser.id,
+                roles: [selectedRole],
+            }).unwrap();
+            toast.success((response as { message?: string })?.message ?? "User role updated successfully");
+            setIsRoleModalOpen(false);
+            setRoleChangeUser(null);
+        } catch (err) {
+            const errorData = err as { data?: { message?: string } };
+            toast.error(errorData?.data?.message ?? "Something went wrong");
+        } finally {
+            setIsUpdatingRole(false);
+        }
+    }
+
     async function handleExportCsv() {
         try {
             const response = await triggerExport({
@@ -206,7 +263,7 @@ function AdminUsers() {
             }
             downloadCsv(
                 `users-${new Date().toISOString().slice(0, 10)}.csv`,
-                ["User ID", "Name", "Email", "Phone", "Join Date", "Status"],
+                ["User ID", "Name", "Email", "Phone", "Join Date", "Status", "Role"],
                 rows.map((user) => [
                     user.userCode,
                     user.name,
@@ -214,6 +271,7 @@ function AdminUsers() {
                     csvText(user.phone),
                     csvText(user.joinDate),
                     STATUS_LABELS[user.status],
+                    ROLE_LABELS[user.role],
                 ]),
             );
         } catch {
@@ -314,6 +372,68 @@ function AdminUsers() {
                 </div>
             </Modal>
 
+            <Modal
+                editModalRef={roleModalRef}
+                open={isRoleModalOpen}
+                setOpen={(value) => {
+                    const nextOpen = typeof value === "function" ? value(isRoleModalOpen) : value;
+                    if (!nextOpen) closeRoleModal();
+                }}
+                centered
+            >
+                <div className="hide-scrollbar w-[92vw] max-w-[390px] rounded-[12px] bg-white p-5 shadow-xl">
+                    <h2 className="text-[16px] font-semibold text-black-1">Change user role</h2>
+                    <p className="mt-2 text-[14px] text-gray-8">
+                        Update the role for{" "}
+                        <span className="font-medium text-[#001907]">{roleChangeUser?.name}</span>.
+                    </p>
+                    <div className="mt-4 space-y-2.5">
+                        {ROLE_OPTIONS.map((option) => (
+                            <label
+                                key={option.value}
+                                htmlFor={`user-role-${option.value}`}
+                                className="flex cursor-pointer items-center gap-3 text-[14px] text-[#001907]"
+                            >
+                                <input
+                                    id={`user-role-${option.value}`}
+                                    type="radio"
+                                    name="user-role"
+                                    checked={selectedRole === option.value}
+                                    onChange={() => setSelectedRole(option.value)}
+                                    className="h-4 w-4 cursor-pointer accent-green-1"
+                                />
+                                {option.label}
+                            </label>
+                        ))}
+                    </div>
+                    <p className="mt-4 text-[12px] text-gray-11">
+                        Need to grant admin access instead? That&apos;s managed separately from the{" "}
+                        <Link href="/admin/admins" className="font-medium text-green-1 hover:underline">
+                            Admins page
+                        </Link>
+                        .
+                    </p>
+                    <div className="mt-5 flex gap-3">
+                        <button
+                            type="button"
+                            onClick={closeRoleModal}
+                            disabled={isUpdatingRole}
+                            className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-green-1 text-[14px] font-medium text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            Cancel
+                        </button>
+                        <DoodleButton
+                            type="button"
+                            disabled={isUpdatingRole}
+                            onClick={handleRoleChange}
+                            className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-green-1 bg-green-1 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {isUpdatingRole ? <BeatLoader color="white" size={8} /> : "Confirm"}
+                        </DoodleButton>
+                    </div>
+                </div>
+            </Modal>
+
             <div className="bg-[#F6F8FA] pt-10 pb-5">
                 <div className="container mx-auto px-5 lg:px-10">
                     <h1 className="text-[20px] font-semibold text-[#001907] sm:text-[22px]">
@@ -396,6 +516,9 @@ function AdminUsers() {
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Status
                                     </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Role
+                                    </th>
                                     <th className="py-3 text-center text-[14px] font-medium text-[#001907]">
                                         Profile
                                     </th>
@@ -405,7 +528,7 @@ function AdminUsers() {
                                 {loading &&
                                     Array.from({ length: PAGE_LIMIT }).map((_, index) => (
                                         <tr key={`skeleton-${index}`} className="bg-white">
-                                            {Array.from({ length: 7 }).map((__, cellIndex) => (
+                                            {Array.from({ length: 8 }).map((__, cellIndex) => (
                                                 <td key={cellIndex} className="py-3.5 pr-4">
                                                     <div className="h-4 w-full max-w-[180px] animate-pulse rounded bg-gray-200" />
                                                 </td>
@@ -416,7 +539,7 @@ function AdminUsers() {
                                 {!loading && users.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={8}
                                             className="py-8 text-center text-[14px] text-gray-11"
                                         >
                                             No users found
@@ -476,6 +599,22 @@ function AdminUsers() {
                                                                 {STATUS_LABELS[user.status]}
                                                             </span>
                                                         )}
+                                                    </div>
+                                                </td>
+                                                <td className="whitespace-nowrap py-3.5 pr-4">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="rounded-[4px] bg-gray-10 px-2 py-0.5 text-[12px] font-medium text-gray-8">
+                                                            {ROLE_LABELS[user.role]}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openRoleModal(user)}
+                                                            disabled={!canEdit("users")}
+                                                            aria-label={`Change role for ${user.name}`}
+                                                            className="inline-flex h-6 w-6 cursor-pointer items-center justify-center text-gray-11 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-40"
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                                                        </button>
                                                     </div>
                                                 </td>
                                                 <td className="py-3.5 text-center">

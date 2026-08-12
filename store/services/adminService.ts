@@ -72,6 +72,14 @@ export const adminService = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["ADMIN_USERS"],
     }),
+    updateUserRole: build.mutation({
+      query: ({ id, roles }) => ({
+        url: `/users/${id}`,
+        method: "PUT",
+        body: { roles },
+      }),
+      invalidatesTags: ["ADMIN_USERS"],
+    }),
     getAllShopsFromAdmin: build.query({
       query: ({ page, limit, search, startDate, endDate }) => {
         const params = new URLSearchParams({
@@ -655,6 +663,7 @@ export const {
   useGetProductDetailQuery,
   useDeleteProductMutation,
   useActivateUserMutation,
+  useUpdateUserRoleMutation,
   useCreateNewCategoryMutation,
   useUpdateCategoryMutation,
   useTranslateTextMutation,
