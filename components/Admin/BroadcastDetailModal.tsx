@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef } from "react";
-import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Radio } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
@@ -23,7 +22,6 @@ type ApiBroadcastDetail = {
     buyer?: { name?: string; email?: string; phone?: string };
     sentTo?: number;
     repliedSellers?: number;
-    imageUrls?: string[];
 };
 
 const STATUS_BADGE_STYLES: Record<string, string> = {
@@ -66,7 +64,6 @@ function BroadcastDetailModal({ broadcastId, onClose }: BroadcastDetailModalProp
     }
 
     const coordinates = broadcast?.location?.coordinates;
-    const photos = broadcast?.imageUrls ?? [];
 
     return (
         <Modal editModalRef={modalRef} open={isOpen} setOpen={handleSetOpen} centered>
@@ -193,36 +190,6 @@ function BroadcastDetailModal({ broadcastId, onClose }: BroadcastDetailModalProp
                                         {formatDateTime(broadcast.createdAt)}
                                     </p>
                                 </div>
-                            </div>
-
-                            <div className="mt-6">
-                                <p className="mb-3 text-[13px] font-medium text-gray-8">
-                                    Photos {photos.length > 0 && `(${photos.length})`}
-                                </p>
-                                {photos.length === 0 ? (
-                                    <p className="text-[13px] text-gray-11">No photos were attached.</p>
-                                ) : (
-                                    <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
-                                        {photos.map((url, index) => (
-                                            <a
-                                                key={url + index}
-                                                href={url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="block aspect-square overflow-hidden rounded-[8px] border border-gray-9"
-                                            >
-                                                <Image
-                                                    src={url}
-                                                    unoptimized
-                                                    alt=""
-                                                    height={120}
-                                                    width={120}
-                                                    className="h-full w-full object-cover"
-                                                />
-                                            </a>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         </>
                     )}

@@ -14,12 +14,14 @@ import {
     Heart,
     ChevronDown,
     ChevronUp,
+    Pencil,
 } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
 import { useGetShopDetailQuery, useGetShopProductsQuery, useGetShopOrdersQuery } from "@/store/services/adminService";
 import { getFeedCategoryLabel, type ReelCategory } from "@/utils/getFeedCategoryLabel";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 import ListingDetailModal from "@/components/Admin/ListingDetailModal";
+import ShopEditModal, { type EditableShop } from "@/components/Admin/ShopEditModal";
 
 const RESOURCE_LIST_LIMIT = 5;
 
@@ -119,11 +121,36 @@ type ApiShopDetail = {
     createdAt?: string;
     productsCount?: number;
     ordersCount?: number;
+    location?: { type: "Point"; coordinates: [number, number] };
     ownerId?: {
         name?: string;
         email?: string;
     };
 };
+
+function toEditableShop(shop: ApiShopDetail): EditableShop {
+    const categoryValue = shop.category;
+    const categoryId =
+        typeof categoryValue === "string"
+            ? categoryValue
+            : ((categoryValue as { _id?: string } | undefined)?._id ?? "");
+
+    return {
+        id: shop._id ?? shop.id ?? "",
+        title: shop.title ?? "",
+        address: shop.address ?? "",
+        description: shop.description ?? "",
+        marketName: shop.marketName,
+        city: shop.city,
+        area: shop.area,
+        contact: shop.contact,
+        category: categoryId,
+        openingHours: shop.openingHours,
+        image: shop.image,
+        banner: shop.banner,
+        location: shop.location,
+    };
+}
 
 type StatTile = {
     label: string;
@@ -145,6 +172,7 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
     const [expandedTile, setExpandedTile] = useState<"products" | "orders" | null>(null);
     const [listPage, setListPage] = useState(1);
     const [viewingProductId, setViewingProductId] = useState<string | null>(null);
+    const [isEditOpen, setIsEditOpen] = useState(false);
 
     // Reset whenever a (possibly different) shop is opened, so stale
     // state/query cache from a previous shop never flashes on reopen.
@@ -152,6 +180,7 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
         setExpandedTile(null);
         setListPage(1);
         setViewingProductId(null);
+        setIsEditOpen(false);
     }, [shopId]);
 
     function toggleExpanded(key: "products" | "orders") {
@@ -245,7 +274,7 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
             open={isOpen}
             setOpen={handleSetOpen}
             centered
-            disableOutsideClick={Boolean(viewingProductId)}
+            disableOutsideClick={Boolean(viewingProductId) || isEditOpen}
         >
             <div className="flex max-h-[90vh] w-[92vw] max-w-[500px] flex-col rounded-[12px] bg-white shadow-xl">
                 <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-9 px-6 pt-6 pb-4">
@@ -253,14 +282,26 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
                         <Store className="h-5 w-5 text-green-1" strokeWidth={2} />
                         Shop Details
                     </h2>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        aria-label="Close"
-                        className="inline-flex h-8 w-8 items-center justify-center"
-                    >
-                        <XMarkIcon className="h-5 w-5 text-[#001907]" />
-                    </button>
+                    <div className="flex shrink-0 items-center gap-2">
+                        {shop && (
+                            <button
+                                type="button"
+                                onClick={() => setIsEditOpen(true)}
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-[6px] border border-gray-9 px-2.5 py-1.5 text-[13px] font-medium text-gray-8 hover:border-green-1 hover:text-green-1"
+                            >
+                                <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                                Edit
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            aria-label="Close"
+                            className="inline-flex h-8 w-8 items-center justify-center"
+                        >
+                            <XMarkIcon className="h-5 w-5 text-[#001907]" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="hide-scrollbar flex-1 overflow-y-auto px-6 py-5">
@@ -546,6 +587,12 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
         </Modal>
 
         <ListingDetailModal productId={viewingProductId} onClose={() => setViewingProductId(null)} />
+
+        <ShopEditModal
+            open={isEditOpen}
+            shop={shop ? toEditableShop(shop) : null}
+            onClose={() => setIsEditOpen(false)}
+        />
         </>
     );
 }

@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { Wrench, Eye, Users, Phone, MessageCircle } from "lucide-react";
+import { Wrench, Eye, Users, Phone, MessageCircle, Pencil } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
 import { useGetServiceDetailQuery } from "@/store/services/adminService";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
+import ServiceEditModal, { type EditableService } from "@/components/Admin/ServiceEditModal";
 
 type PaymentType = "hourly" | "fixed" | "call_for_price";
 
@@ -20,9 +21,28 @@ type ApiServiceDetail = {
     paymentType?: PaymentType;
     images?: string[];
     createdAt?: string;
-    category?: { name?: { en?: string; ur?: string } } | string;
+    category?: { _id?: string; name?: { en?: string; ur?: string } } | string;
     ownerId?: { name?: string; email?: string; phone?: string };
+    requiresAppointment?: boolean;
+    parameters?: { name: string; variants: string[] }[];
 };
+
+function toEditableService(service: ApiServiceDetail): EditableService {
+    const categoryValue = service.category;
+    const categoryId = typeof categoryValue === "string" ? categoryValue : categoryValue?._id ?? "";
+
+    return {
+        id: service._id ?? service.id ?? "",
+        title: service.title ?? "",
+        description: service.description ?? "",
+        price: service.price,
+        paymentType: service.paymentType ?? "fixed",
+        requiresAppointment: service.requiresAppointment,
+        category: categoryId,
+        images: service.images,
+        parameters: service.parameters,
+    };
+}
 
 function formatPrice(price: number | undefined, paymentType: PaymentType | undefined) {
     if (paymentType === "call_for_price" || price == null) {
@@ -82,6 +102,11 @@ type ServiceDetailModalProps = {
 
 function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+
+    useEffect(() => {
+        setIsEditOpen(false);
+    }, [serviceId]);
 
     const { data, isLoading, isFetching } = useGetServiceDetailQuery(serviceId ?? "", {
         skip: !serviceId,
@@ -103,21 +128,40 @@ function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
         : "-";
 
     return (
-        <Modal editModalRef={modalRef} open={isOpen} setOpen={handleSetOpen} centered>
+        <>
+        <Modal
+            editModalRef={modalRef}
+            open={isOpen}
+            setOpen={handleSetOpen}
+            centered
+            disableOutsideClick={isEditOpen}
+        >
             <div className="flex max-h-[90vh] w-[92vw] max-w-[500px] flex-col rounded-[12px] bg-white shadow-xl">
                 <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-9 px-6 pt-6 pb-4">
                     <h2 className="flex items-center gap-2 text-[18px] font-semibold text-[#001907]">
                         <Wrench className="h-5 w-5 text-green-1" strokeWidth={2} />
                         Service Details
                     </h2>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        aria-label="Close"
-                        className="inline-flex h-8 w-8 items-center justify-center"
-                    >
-                        <XMarkIcon className="h-5 w-5 text-[#001907]" />
-                    </button>
+                    <div className="flex shrink-0 items-center gap-2">
+                        {service && (
+                            <button
+                                type="button"
+                                onClick={() => setIsEditOpen(true)}
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-[6px] border border-gray-9 px-2.5 py-1.5 text-[13px] font-medium text-gray-8 hover:border-green-1 hover:text-green-1"
+                            >
+                                <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                                Edit
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            aria-label="Close"
+                            className="inline-flex h-8 w-8 items-center justify-center"
+                        >
+                            <XMarkIcon className="h-5 w-5 text-[#001907]" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="hide-scrollbar flex-1 overflow-y-auto px-6 py-5">
@@ -248,6 +292,13 @@ function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
                 </div>
             </div>
         </Modal>
+
+        <ServiceEditModal
+            open={isEditOpen}
+            service={service ? toEditableService(service) : null}
+            onClose={() => setIsEditOpen(false)}
+        />
+        </>
     );
 }
 

@@ -109,6 +109,14 @@ export const adminService = baseApi.injectEndpoints({
       }),
       providesTags: ["ADMIN_SHOPS"],
     }),
+    updateShop: build.mutation({
+      query: ({ id, body }) => ({
+        url: `/shops/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_SHOPS"],
+    }),
     getShopProducts: build.query({
       query: ({ shopId, page, limit }) => {
         const params = new URLSearchParams({
@@ -165,6 +173,14 @@ export const adminService = baseApi.injectEndpoints({
       }),
       providesTags: ["ADMIN_SERVICES"],
     }),
+    updateService: build.mutation({
+      query: ({ id, body }) => ({
+        url: `/services/update/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_SERVICES"],
+    }),
     getAllProductsForAdmin: build.query({
       query: ({ page, limit, search, startDate, endDate }) => {
         const params = new URLSearchParams({
@@ -193,6 +209,14 @@ export const adminService = baseApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: ["ADMIN_PRODUCTS"],
+    }),
+    updateProduct: build.mutation({
+      query: ({ id, body }) => ({
+        url: `/products/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_PRODUCTS", "ADMIN_FEED"],
     }),
     deleteProduct: build.mutation({
       query: (id: string) => ({
@@ -663,11 +687,14 @@ export const {
   useGetShopDetailQuery,
   useGetShopProductsQuery,
   useGetShopOrdersQuery,
+  useUpdateShopMutation,
   useGetAllServicesForAdminQuery,
   useGetServiceDetailQuery,
+  useUpdateServiceMutation,
   useGetAllProductsForAdminQuery,
   useLazyGetAllProductsForAdminQuery,
   useGetProductDetailQuery,
+  useUpdateProductMutation,
   useDeleteProductMutation,
   useActivateUserMutation,
   useUpdateUserRoleMutation,

@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { ClipboardList, Eye, Users, Phone, MessageCircle } from "lucide-react";
+import { ClipboardList, Eye, Users, Phone, MessageCircle, Pencil } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
 import { useGetProductDetailQuery } from "@/store/services/adminService";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
+import ListingEditModal, { type EditableListing } from "@/components/Admin/ListingEditModal";
 
 type ApiProductDetail = {
     _id?: string;
@@ -16,16 +17,33 @@ type ApiProductDetail = {
     description?: string;
     price?: number;
     images?: string[];
-    type?: string;
+    type?: "retail" | "classified";
     createdAt?: string;
-    category?: { name?: { en?: string; ur?: string } } | string;
+    category?: { _id?: string; name?: { en?: string; ur?: string } } | string;
     shopId?: {
         title?: string;
         address?: string;
         ownerId?: { name?: string; phone?: string };
     };
     ownerId?: { name?: string; phone?: string; address?: string };
+    parameters?: { name: string; variants: string[] }[];
 };
+
+function toEditableListing(product: ApiProductDetail): EditableListing {
+    const categoryValue = product.category;
+    const categoryId = typeof categoryValue === "string" ? categoryValue : categoryValue?._id ?? "";
+
+    return {
+        id: product._id ?? product.id ?? "",
+        title: product.title ?? "",
+        description: product.description ?? "",
+        price: product.price,
+        type: product.type ?? "retail",
+        category: categoryId,
+        images: product.images,
+        parameters: product.parameters,
+    };
+}
 
 type StatTile = {
     label: string;
@@ -78,6 +96,11 @@ type ListingDetailModalProps = {
 
 function ListingDetailModal({ productId, onClose }: ListingDetailModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+
+    useEffect(() => {
+        setIsEditOpen(false);
+    }, [productId]);
 
     const { data, isLoading, isFetching } = useGetProductDetailQuery(productId ?? "", {
         skip: !productId,
@@ -100,21 +123,40 @@ function ListingDetailModal({ productId, onClose }: ListingDetailModalProps) {
     const address = product?.shopId?.address ?? product?.ownerId?.address ?? "-";
 
     return (
-        <Modal editModalRef={modalRef} open={isOpen} setOpen={handleSetOpen} centered>
+        <>
+        <Modal
+            editModalRef={modalRef}
+            open={isOpen}
+            setOpen={handleSetOpen}
+            centered
+            disableOutsideClick={isEditOpen}
+        >
             <div className="flex max-h-[90vh] w-[92vw] max-w-[500px] flex-col rounded-[12px] bg-white shadow-xl">
                 <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-9 px-6 pt-6 pb-4">
                     <h2 className="flex items-center gap-2 text-[18px] font-semibold text-[#001907]">
                         <ClipboardList className="h-5 w-5 text-green-1" strokeWidth={2} />
                         Listing Details
                     </h2>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        aria-label="Close"
-                        className="inline-flex h-8 w-8 items-center justify-center"
-                    >
-                        <XMarkIcon className="h-5 w-5 text-[#001907]" />
-                    </button>
+                    <div className="flex shrink-0 items-center gap-2">
+                        {product && (
+                            <button
+                                type="button"
+                                onClick={() => setIsEditOpen(true)}
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-[6px] border border-gray-9 px-2.5 py-1.5 text-[13px] font-medium text-gray-8 hover:border-green-1 hover:text-green-1"
+                            >
+                                <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                                Edit
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            aria-label="Close"
+                            className="inline-flex h-8 w-8 items-center justify-center"
+                        >
+                            <XMarkIcon className="h-5 w-5 text-[#001907]" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="hide-scrollbar flex-1 overflow-y-auto px-6 py-5">
@@ -259,6 +301,13 @@ function ListingDetailModal({ productId, onClose }: ListingDetailModalProps) {
                 </div>
             </div>
         </Modal>
+
+        <ListingEditModal
+            open={isEditOpen}
+            listing={product ? toEditableListing(product) : null}
+            onClose={() => setIsEditOpen(false)}
+        />
+        </>
     );
 }
 
