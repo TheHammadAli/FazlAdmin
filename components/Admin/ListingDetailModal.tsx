@@ -21,8 +21,10 @@ type ApiProductDetail = {
     category?: { name?: { en?: string; ur?: string } } | string;
     shopId?: {
         title?: string;
+        address?: string;
         ownerId?: { name?: string; phone?: string };
     };
+    ownerId?: { name?: string; phone?: string; address?: string };
 };
 
 type StatTile = {
@@ -95,6 +97,7 @@ function ListingDetailModal({ productId, onClose }: ListingDetailModalProps) {
     const createdAt = product?.createdAt
         ? new Date(product.createdAt).toISOString().slice(0, 10)
         : "-";
+    const address = product?.shopId?.address ?? product?.ownerId?.address ?? "-";
 
     return (
         <Modal editModalRef={modalRef} open={isOpen} setOpen={handleSetOpen} centered>
@@ -189,6 +192,12 @@ function ListingDetailModal({ productId, onClose }: ListingDetailModalProps) {
                                     Created
                                 </p>
                                 <p className="mt-1 text-[14px] text-[#001907]">{createdAt}</p>
+                            </div>
+                            <div className="sm:col-span-2">
+                                <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
+                                    Address
+                                </p>
+                                <p className="mt-1 text-[14px] text-[#001907]">{address}</p>
                             </div>
                             <div className="sm:col-span-2">
                                 <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">

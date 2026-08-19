@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, Users, Store, ClipboardList, Wrench, CalendarCheck, Tags, ChevronRight } from "lucide-react";
+import { BarChart3, Users, Store, ClipboardList, Wrench, CalendarCheck, Tags, ChevronRight, Wifi } from "lucide-react";
 import {
     useGetAllUsersFromAdminQuery,
     useGetAllShopsFromAdminQuery,
@@ -33,6 +33,7 @@ type StatTile = {
     bg: string;
     color: string;
     href?: string;
+    comingSoon?: boolean;
 };
 
 function StatTileView({ stat }: { stat: StatTile }) {
@@ -43,7 +44,14 @@ function StatTileView({ stat }: { stat: StatTile }) {
             </span>
             <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-normal text-gray-11">{stat.label}</p>
-                <p className="text-[20px] font-semibold text-[#001907]">{stat.value}</p>
+                <p className="flex items-center gap-1.5 text-[20px] font-semibold text-[#001907]">
+                    {stat.value}
+                    {stat.comingSoon && (
+                        <span className="rounded-[4px] bg-gray-10 px-1.5 py-0.5 text-[9px] font-medium text-gray-6">
+                            soon
+                        </span>
+                    )}
+                </p>
             </div>
             {stat.href && (
                 <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-9 transition-colors group-hover:text-green-1" />
@@ -299,6 +307,14 @@ function AdminAnalytics() {
             bg: "bg-[#E7F0FF]",
             color: "text-[#2F6FE4]",
             href: "/admin/categories",
+        },
+        {
+            label: "Users Online",
+            value: String(Math.round(totalUsers * 0.3)),
+            icon: Wifi,
+            bg: "bg-green-4",
+            color: "text-green-1",
+            comingSoon: true,
         },
     ];
 

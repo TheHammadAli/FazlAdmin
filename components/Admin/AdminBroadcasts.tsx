@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
-import { Ban, Trash2 } from "lucide-react";
+import { Ban, Eye, Trash2 } from "lucide-react";
 import Pagination from "@/components/Ui/Pagination";
 import Modal from "@/components/Ui/Modals/Modal";
 import BroadcastRecipientsModal from "@/components/Admin/BroadcastRecipientsModal";
+import BroadcastDetailModal from "@/components/Admin/BroadcastDetailModal";
 import {
     useGetAllBroadcastsForAdminQuery,
     useCloseBroadcastMutation,
@@ -109,6 +110,7 @@ function AdminBroadcasts() {
     const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [recipientsBroadcast, setRecipientsBroadcast] = useState<Broadcast | null>(null);
+    const [viewingBroadcastId, setViewingBroadcastId] = useState<string | null>(null);
     const confirmModalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -222,6 +224,11 @@ function AdminBroadcasts() {
                 broadcastCode={recipientsBroadcast?.broadcastCode}
                 buyerName={recipientsBroadcast?.buyerName}
                 onClose={() => setRecipientsBroadcast(null)}
+            />
+
+            <BroadcastDetailModal
+                broadcastId={viewingBroadcastId}
+                onClose={() => setViewingBroadcastId(null)}
             />
 
             <div className="bg-[#F6F8FA] pt-10 pb-5">
@@ -373,6 +380,14 @@ function AdminBroadcasts() {
                                             </td>
                                             <td className="py-3.5">
                                                 <div className="flex items-center justify-center gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setViewingBroadcastId(broadcast.id)}
+                                                        aria-label="View broadcast details"
+                                                        className="inline-flex cursor-pointer items-center text-gray-8 hover:text-green-1"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </button>
                                                     {broadcast.status === "open" && (
                                                         <button
                                                             type="button"

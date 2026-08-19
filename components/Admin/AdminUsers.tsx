@@ -29,6 +29,7 @@ const SEARCH_DEBOUNCE_MS = 400;
 
 type UserStatus = "active" | "inactive" | "deleted";
 type UserRole = "buyer" | "seller";
+type PresenceStatus = "online" | "offline";
 
 type AdminUser = {
     id: string;
@@ -39,6 +40,8 @@ type AdminUser = {
     joinDate: string;
     status: UserStatus;
     role: UserRole;
+    presence: PresenceStatus;
+    lastSeenLabel: string;
 };
 
 type ApiAdminUser = {
@@ -92,10 +95,37 @@ function mapUserRole(user: ApiAdminUser): UserRole {
     return user.roles?.includes("seller") ? "seller" : "buyer";
 }
 
+function pseudoRandomFromId(id: string): number {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+        hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+    }
+    return hash;
+}
+
+function formatDateTime(date: Date) {
+    const pad = (value: number) => value.toString().padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function getDummyPresence(id: string): { status: PresenceStatus; lastSeenLabel: string } {
+    const hash = pseudoRandomFromId(id || "user");
+    const isOnline = hash % 10 < 3;
+    if (isOnline) {
+        return { status: "online", lastSeenLabel: "-" };
+    }
+    const minutesAgo = (hash % 4320) + 5;
+    return {
+        status: "offline",
+        lastSeenLabel: formatDateTime(new Date(Date.now() - minutesAgo * 60000)),
+    };
+}
+
 function mapApiUser(user: ApiAdminUser): AdminUser {
     const joinDate = user.createdAt
         ? new Date(user.createdAt).toISOString().slice(0, 10)
         : "-";
+    const presence = getDummyPresence(user._id ?? user.id ?? "");
 
     return {
         id: user._id ?? user.id ?? "",
@@ -106,6 +136,8 @@ function mapApiUser(user: ApiAdminUser): AdminUser {
         joinDate,
         status: mapUserStatus(user),
         role: mapUserRole(user),
+        presence: presence.status,
+        lastSeenLabel: presence.lastSeenLabel,
     };
 }
 
@@ -517,6 +549,9 @@ function AdminUsers() {
                                         Status
                                     </th>
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Online Status
+                                    </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Role
                                     </th>
                                     <th className="py-3 text-center text-[14px] font-medium text-[#001907]">
@@ -528,7 +563,7 @@ function AdminUsers() {
                                 {loading &&
                                     Array.from({ length: PAGE_LIMIT }).map((_, index) => (
                                         <tr key={`skeleton-${index}`} className="bg-white">
-                                            {Array.from({ length: 8 }).map((__, cellIndex) => (
+                                            {Array.from({ length: 9 }).map((__, cellIndex) => (
                                                 <td key={cellIndex} className="py-3.5 pr-4">
                                                     <div className="h-4 w-full max-w-[180px] animate-pulse rounded bg-gray-200" />
                                                 </td>
@@ -539,7 +574,7 @@ function AdminUsers() {
                                 {!loading && users.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={8}
+                                            colSpan={9}
                                             className="py-8 text-center text-[14px] text-gray-11"
                                         >
                                             No users found
@@ -599,6 +634,25 @@ function AdminUsers() {
                                                                 {STATUS_LABELS[user.status]}
                                                             </span>
                                                         )}
+                                                    </div>
+                                                </td>
+                                                <td className="whitespace-nowrap py-3.5 pr-4">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span
+                                                            className={`inline-flex h-2 w-2 shrink-0 rounded-full ${
+                                                                user.presence === "online"
+                                                                    ? "bg-green-1"
+                                                                    : "bg-gray-9"
+                                                            }`}
+                                                        />
+                                                        <span className="text-[13px] font-normal text-gray-11">
+                                                            {user.presence === "online"
+                                                                ? "Online"
+                                                                : `Last seen: ${user.lastSeenLabel}`}
+                                                        </span>
+                                                        <span className="rounded-[4px] bg-gray-10 px-1.5 py-0.5 text-[9px] font-medium text-gray-6">
+                                                            soon
+                                                        </span>
                                                     </div>
                                                 </td>
                                                 <td className="whitespace-nowrap py-3.5 pr-4">
