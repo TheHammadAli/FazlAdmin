@@ -54,6 +54,8 @@ type ApiAdminUser = {
     createdAt?: string;
     isDisabled?: boolean;
     roles?: string[];
+    isOnline?: boolean;
+    lastSeenAt?: string | null;
 };
 
 type AdminUsersResponse = {
@@ -95,37 +97,21 @@ function mapUserRole(user: ApiAdminUser): UserRole {
     return user.roles?.includes("seller") ? "seller" : "buyer";
 }
 
-function pseudoRandomFromId(id: string): number {
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-        hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-    }
-    return hash;
-}
-
 function formatDateTime(date: Date) {
     const pad = (value: number) => value.toString().padStart(2, "0");
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function getDummyPresence(id: string): { status: PresenceStatus; lastSeenLabel: string } {
-    const hash = pseudoRandomFromId(id || "user");
-    const isOnline = hash % 10 < 3;
-    if (isOnline) {
-        return { status: "online", lastSeenLabel: "-" };
-    }
-    const minutesAgo = (hash % 4320) + 5;
-    return {
-        status: "offline",
-        lastSeenLabel: formatDateTime(new Date(Date.now() - minutesAgo * 60000)),
-    };
 }
 
 function mapApiUser(user: ApiAdminUser): AdminUser {
     const joinDate = user.createdAt
         ? new Date(user.createdAt).toISOString().slice(0, 10)
         : "-";
-    const presence = getDummyPresence(user._id ?? user.id ?? "");
+    const isOnline = Boolean(user.isOnline);
+    const lastSeenLabel = isOnline
+        ? "-"
+        : user.lastSeenAt
+            ? formatDateTime(new Date(user.lastSeenAt))
+            : "Never";
 
     return {
         id: user._id ?? user.id ?? "",
@@ -136,8 +122,8 @@ function mapApiUser(user: ApiAdminUser): AdminUser {
         joinDate,
         status: mapUserStatus(user),
         role: mapUserRole(user),
-        presence: presence.status,
-        lastSeenLabel: presence.lastSeenLabel,
+        presence: isOnline ? "online" : "offline",
+        lastSeenLabel,
     };
 }
 
@@ -205,7 +191,10 @@ function AdminUsers() {
         data: usersResponse,
         isLoading,
         isFetching,
-    } = useGetAllUsersFromAdminQuery({ page, limit: PAGE_LIMIT, search, startDate, endDate });
+    } = useGetAllUsersFromAdminQuery(
+        { page, limit: PAGE_LIMIT, search, startDate, endDate },
+        { pollingInterval: 25000 },
+    );
 
     const [activateUser] = useActivateUserMutation();
     const [deleteAccount] = useDeleteAccountMutation();
@@ -649,9 +638,6 @@ function AdminUsers() {
                                                             {user.presence === "online"
                                                                 ? "Online"
                                                                 : `Last seen: ${user.lastSeenLabel}`}
-                                                        </span>
-                                                        <span className="rounded-[4px] bg-gray-10 px-1.5 py-0.5 text-[9px] font-medium text-gray-6">
-                                                            soon
                                                         </span>
                                                     </div>
                                                 </td>

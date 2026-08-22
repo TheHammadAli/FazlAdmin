@@ -121,6 +121,10 @@ type ApiShopDetail = {
     createdAt?: string;
     productsCount?: number;
     ordersCount?: number;
+    totalViews?: number;
+    uniqueVisitorsCount?: number;
+    contactClicks?: number;
+    whatsappClicks?: number;
     location?: { type: "Point"; coordinates: [number, number] };
     ownerId?: {
         name?: string;
@@ -227,32 +231,28 @@ function ShopDetailModal({ shopId, onClose }: ShopDetailModalProps) {
         },
         {
             label: "Total Views",
-            value: "2,146",
-            comingSoon: true,
+            value: loading ? "..." : (shop?.totalViews ?? 0).toLocaleString(),
             icon: Eye,
             bg: "bg-[#F1E9FE]",
             color: "text-[#7C4FE0]",
         },
         {
             label: "Unique Visitors",
-            value: "1,432",
-            comingSoon: true,
+            value: loading ? "..." : (shop?.uniqueVisitorsCount ?? 0).toLocaleString(),
             icon: Users,
             bg: "bg-[#FDE9DF]",
             color: "text-orange",
         },
         {
             label: "Contact Clicks",
-            value: "218",
-            comingSoon: true,
+            value: loading ? "..." : (shop?.contactClicks ?? 0).toLocaleString(),
             icon: Phone,
             bg: "bg-[#FDEAB8]",
             color: "text-[#946200]",
         },
         {
             label: "WhatsApp Clicks",
-            value: "97",
-            comingSoon: true,
+            value: loading ? "..." : (shop?.whatsappClicks ?? 0).toLocaleString(),
             icon: MessageCircle,
             bg: "bg-green-4",
             color: "text-green-1",

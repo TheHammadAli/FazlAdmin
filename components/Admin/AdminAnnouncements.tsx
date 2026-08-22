@@ -178,8 +178,9 @@ function AdminAnnouncements() {
                             Announcements
                         </h1>
                         <p className="mt-1 text-[12px] font-normal text-gray-11">
-                            Send a message that will (eventually) reach every user via in-app and push
-                            notification. For now, sent announcements are stored and listed below.
+                            Send Now delivers immediately to every targeted user via in-app and push
+                            notification. Scheduled announcements are saved but not sent automatically yet —
+                            use Send Now when ready.
                         </p>
                     </div>
                     <DoodleButton

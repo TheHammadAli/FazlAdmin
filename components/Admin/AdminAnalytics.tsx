@@ -11,6 +11,7 @@ import {
     useGetAllProductsForAdminQuery,
     useGetServiceRequestStatsQuery,
     useGetAllCategoriesForAdminQuery,
+    useGetOnlineUsersCountQuery,
 } from "@/store/services/adminService";
 import DateRangeFilter, { type DateFilterValue } from "@/components/Ui/DateRangeFilter";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
@@ -25,6 +26,7 @@ type BookingStatsResponse = {
     data?: { total?: number; pending?: number; accepted?: number; completed?: number; cancelled?: number };
 };
 type CategoriesResponse = { data?: unknown[] };
+type OnlineCountResponse = { data?: { count?: number } };
 
 type StatTile = {
     label: string;
@@ -248,6 +250,11 @@ function AdminAnalytics() {
     const { data: categoriesResponse } = useGetAllCategoriesForAdminQuery({ startDate, endDate });
     const totalCategories = (categoriesResponse as CategoriesResponse | undefined)?.data?.length ?? 0;
 
+    const { data: onlineCountResponse } = useGetOnlineUsersCountQuery(undefined, {
+        pollingInterval: 25000,
+    });
+    const usersOnline = (onlineCountResponse as OnlineCountResponse | undefined)?.data?.count ?? 0;
+
     if (!canView) {
         return (
             <section className="container mx-auto px-5 py-16 text-center lg:px-10">
@@ -310,11 +317,10 @@ function AdminAnalytics() {
         },
         {
             label: "Users Online",
-            value: String(Math.round(totalUsers * 0.3)),
+            value: String(usersOnline),
             icon: Wifi,
             bg: "bg-green-4",
             color: "text-green-1",
-            comingSoon: true,
         },
     ];
 

@@ -131,6 +131,8 @@ type ApiUserDetail = {
     isVerified?: boolean;
     isDisabled?: boolean;
     createdAt?: string;
+    isOnline?: boolean;
+    lastSeenAt?: string | null;
 };
 
 type ApiUserStats = {
@@ -158,6 +160,11 @@ function getInitials(name: string) {
         .join("")
         .slice(0, 2)
         .toUpperCase();
+}
+
+function formatDateTime(date: Date) {
+    const pad = (value: number) => value.toString().padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 type UserProfileModalProps = {
@@ -335,6 +342,12 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
     const joinDate = user?.createdAt
         ? new Date(user.createdAt).toISOString().slice(0, 10)
         : "-";
+    const isOnline = Boolean(user?.isOnline);
+    const lastSeenLabel = isOnline
+        ? "-"
+        : user?.lastSeenAt
+            ? formatDateTime(new Date(user.lastSeenAt))
+            : "Never";
 
     return (
         <>
@@ -447,6 +460,22 @@ function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
                                     />
                                     <span className="text-[13px] text-gray-11">
                                         {isActive ? "Active" : "In active"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 flex items-center justify-between rounded-[10px] border border-gray-9 px-4 py-3">
+                                <span className="text-[13px] font-medium text-gray-8">
+                                    Online Status
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                    <span
+                                        className={`inline-flex h-2 w-2 shrink-0 rounded-full ${
+                                            isOnline ? "bg-green-1" : "bg-gray-9"
+                                        }`}
+                                    />
+                                    <span className="text-[13px] font-normal text-gray-11">
+                                        {isOnline ? "Online" : `Last seen: ${lastSeenLabel}`}
                                     </span>
                                 </div>
                             </div>

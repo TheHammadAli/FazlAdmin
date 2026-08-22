@@ -23,6 +23,12 @@ export const adminService = baseApi.injectEndpoints({
       },
       providesTags: ["ADMIN_USERS"],
     }),
+    getOnlineUsersCount: build.query({
+      query: () => ({
+        url: `/users/online-count`,
+        method: "GET",
+      }),
+    }),
     getUserDetail: build.query({
       query: (id: string) => ({
         url: `/users/detail/${id}`,
@@ -450,6 +456,41 @@ export const adminService = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["ADMIN_ANNOUNCEMENTS"],
     }),
+    getSocialLinksForAdmin: build.query({
+      query: () => ({
+        url: `/settings/social-links`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_SETTINGS"],
+    }),
+    updateSocialLinks: build.mutation({
+      query: (body) => ({
+        url: `/settings/social-links`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_SETTINGS"],
+    }),
+    getItemReviews: build.query({
+      query: ({ itemId, itemType, page = 1, limit = 5 }) => {
+        const params = new URLSearchParams({
+          itemId,
+          itemType,
+          page: String(page),
+          limit: String(limit),
+        });
+        return {
+          url: `/reviews?${params.toString()}`,
+          method: "GET",
+        };
+      },
+    }),
+    getItemReviewsAverage: build.query({
+      query: ({ itemId, itemType }) => ({
+        url: `/reviews/average/${itemType}/${itemId}`,
+        method: "GET",
+      }),
+    }),
     getAllAdminAccounts: build.query({
       query: ({ page, limit, search }) => {
         const params = new URLSearchParams({
@@ -675,6 +716,7 @@ export const adminService = baseApi.injectEndpoints({
 export const {
   useGetAllCategoriesForAdminQuery,
   useGetAllUsersFromAdminQuery,
+  useGetOnlineUsersCountQuery,
   useLazyGetAllUsersFromAdminQuery,
   useGetUserDetailQuery,
   useGetUserStatsQuery,
@@ -717,6 +759,10 @@ export const {
   useGetAllAnnouncementsForAdminQuery,
   useCreateAnnouncementMutation,
   useUpdateAnnouncementMutation,
+  useGetSocialLinksForAdminQuery,
+  useUpdateSocialLinksMutation,
+  useGetItemReviewsQuery,
+  useGetItemReviewsAverageQuery,
   useGetAllAdminAccountsQuery,
   useCreateAdminAccountMutation,
   useUpdateAdminAccountMutation,

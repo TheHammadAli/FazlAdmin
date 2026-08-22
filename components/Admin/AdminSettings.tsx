@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Tags, Layers, Building2, MapPin, Mail, ChevronRight } from "lucide-react";
+import { Tags, Layers, Building2, MapPin, Mail, Share2, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 type SettingsTile = {
@@ -58,6 +58,14 @@ const SETTINGS_TILES: SettingsTile[] = [
         bg: "bg-[#FDEAB8]",
         color: "text-[#946200]",
         comingSoon: true,
+    },
+    {
+        label: "Social Links",
+        description: "Manage the social media links shown in the site footer",
+        href: "/admin/settings/social-links",
+        icon: Share2,
+        bg: "bg-green-4",
+        color: "text-green-1",
     },
 ];
 

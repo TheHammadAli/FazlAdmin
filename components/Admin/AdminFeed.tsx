@@ -45,6 +45,8 @@ type FeedVideo = {
     category: string;
     status: FeedStatus;
     createdAt: string;
+    likesCount: number;
+    sharesCount: number;
 };
 
 type ApiFeedVideo = {
@@ -59,6 +61,8 @@ type ApiFeedVideo = {
     ownerId?: { name?: string };
     isDisabled?: boolean;
     createdAt?: string;
+    likesCount?: number;
+    sharesCount?: number;
 };
 
 type FeedVideosResponse = {
@@ -69,14 +73,24 @@ type FeedVideosResponse = {
     };
 };
 
-const PLACEHOLDER_METRICS: { label: string; icon: LucideIcon; value: string }[] = [
+// Likes and Shares below are wired to real per-video data; the rest are still placeholders.
+const OTHER_PLACEHOLDER_METRICS: { label: string; icon: LucideIcon; value: string }[] = [
     { label: "Total Views", icon: Eye, value: "3,542" },
     { label: "Unique Views", icon: Users, value: "2,187" },
-    { label: "Likes", icon: Heart, value: "412" },
     { label: "Comments", icon: MessageCircle, value: "68" },
-    { label: "Shares", icon: Share2, value: "35" },
     { label: "Saves", icon: Bookmark, value: "91" },
 ];
+
+function buildMetrics(video: FeedVideo): { label: string; icon: LucideIcon; value: string }[] {
+    return [
+        OTHER_PLACEHOLDER_METRICS[0],
+        OTHER_PLACEHOLDER_METRICS[1],
+        { label: "Likes", icon: Heart, value: video.likesCount.toLocaleString() },
+        OTHER_PLACEHOLDER_METRICS[2],
+        { label: "Shares", icon: Share2, value: video.sharesCount.toLocaleString() },
+        OTHER_PLACEHOLDER_METRICS[3],
+    ];
+}
 
 function formatDate(value?: string) {
     if (!value) return "-";
@@ -100,6 +114,8 @@ function mapApiFeedVideo(item: ApiFeedVideo): FeedVideo {
         category: getFeedCategoryLabel(item.category ?? "", "en") || "-",
         status: item.isDisabled ? "suspended" : "active",
         createdAt: formatDate(item.createdAt),
+        likesCount: item.likesCount ?? 0,
+        sharesCount: item.sharesCount ?? 0,
     };
 }
 
@@ -261,7 +277,7 @@ function AdminFeed() {
                         />
 
                         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-y border-gray-9 py-3">
-                            {PLACEHOLDER_METRICS.map((metric) => {
+                            {buildMetrics(previewVideo).map((metric) => {
                                 const Icon = metric.icon;
                                 return (
                                     <span
@@ -512,7 +528,7 @@ function AdminFeed() {
                                             </td>
                                             <td className="py-3.5 pr-4">
                                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                    {PLACEHOLDER_METRICS.map((metric) => {
+                                                    {buildMetrics(video).map((metric) => {
                                                         const Icon = metric.icon;
                                                         return (
                                                             <span
