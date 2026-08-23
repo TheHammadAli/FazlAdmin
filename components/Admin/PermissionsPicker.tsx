@@ -15,7 +15,8 @@ export type AdminPage =
     | "email-logs"
     | "analytics"
     | "settings"
-    | "members";
+    | "members"
+    | "wallet";
 
 export type PermissionEntry = { page: AdminPage; actions: AdminAction[] };
 
@@ -26,6 +27,7 @@ const EXPANDED_PAGES: { value: AdminPage; label: string }[] = [
     { value: "categories", label: "Categories" },
     { value: "bookings", label: "Service Bookings" },
     { value: "members", label: "Members" },
+    { value: "wallet", label: "Wallet" },
 ];
 
 const SIMPLE_PAGES: { value: AdminPage; label: string }[] = [

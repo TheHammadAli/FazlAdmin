@@ -27,6 +27,10 @@ type ApiProductDetail = {
     };
     ownerId?: { name?: string; phone?: string; address?: string };
     parameters?: { name: string; variants: string[] }[];
+    totalViews?: number;
+    uniqueVisitorsCount?: number;
+    contactClicks?: number;
+    whatsappClicks?: number;
 };
 
 function toEditableListing(product: ApiProductDetail): EditableListing {
@@ -54,40 +58,39 @@ type StatTile = {
     comingSoon?: boolean;
 };
 
-const ANALYTICS_TILES: StatTile[] = [
-    {
-        label: "Total Views",
-        value: "1,284",
-        comingSoon: true,
-        icon: Eye,
-        bg: "bg-[#F1E9FE]",
-        color: "text-[#7C4FE0]",
-    },
-    {
-        label: "Unique Visitors",
-        value: "892",
-        comingSoon: true,
-        icon: Users,
-        bg: "bg-[#FDE9DF]",
-        color: "text-orange",
-    },
-    {
-        label: "Contact Clicks",
-        value: "156",
-        comingSoon: true,
-        icon: Phone,
-        bg: "bg-[#FDEAB8]",
-        color: "text-[#946200]",
-    },
-    {
-        label: "WhatsApp Clicks",
-        value: "74",
-        comingSoon: true,
-        icon: MessageCircle,
-        bg: "bg-green-4",
-        color: "text-green-1",
-    },
-];
+function buildAnalyticsTiles(product: ApiProductDetail | undefined, loading: boolean): StatTile[] {
+    const v = (n: number | undefined) => (loading ? "..." : (n ?? 0).toLocaleString());
+    return [
+        {
+            label: "Total Views",
+            value: v(product?.totalViews),
+            icon: Eye,
+            bg: "bg-[#F1E9FE]",
+            color: "text-[#7C4FE0]",
+        },
+        {
+            label: "Unique Visitors",
+            value: v(product?.uniqueVisitorsCount),
+            icon: Users,
+            bg: "bg-[#FDE9DF]",
+            color: "text-orange",
+        },
+        {
+            label: "Contact Clicks",
+            value: v(product?.contactClicks),
+            icon: Phone,
+            bg: "bg-[#FDEAB8]",
+            color: "text-[#946200]",
+        },
+        {
+            label: "WhatsApp Clicks",
+            value: v(product?.whatsappClicks),
+            icon: MessageCircle,
+            bg: "bg-green-4",
+            color: "text-green-1",
+        },
+    ];
+}
 
 type ListingDetailModalProps = {
     productId: string | null;
@@ -256,7 +259,7 @@ function ListingDetailModal({ productId, onClose }: ListingDetailModalProps) {
                                 Listing Analytics
                             </p>
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                {ANALYTICS_TILES.map((stat) => {
+                                {buildAnalyticsTiles(product, loading).map((stat) => {
                                     const Icon = stat.icon;
                                     return (
                                         <div

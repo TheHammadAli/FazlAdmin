@@ -711,6 +711,280 @@ export const adminService = baseApi.injectEndpoints({
       },
       providesTags: ["ADMIN_ACTIVITY_LOGS"],
     }),
+
+    // ---- Wallet: Dashboard ----
+    getWalletDashboardStats: build.query({
+      query: (arg) => {
+        const { startDate, endDate } = arg ?? {};
+        const params = new URLSearchParams();
+        if (startDate) params.set("startDate", startDate);
+        if (endDate) params.set("endDate", endDate);
+        const qs = params.toString();
+        return { url: `/wallet/dashboard/stats${qs ? `?${qs}` : ""}`, method: "GET" };
+      },
+      providesTags: ["ADMIN_WALLET_DASHBOARD"],
+    }),
+
+    // ---- Wallet: User wallets ----
+    getUserWallets: build.query({
+      query: ({ page, limit, search }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (search?.trim()) params.set("search", search.trim());
+        return { url: `/wallet/users?${params.toString()}`, method: "GET" };
+      },
+      providesTags: ["ADMIN_USER_WALLETS"],
+    }),
+    getUserWalletDetail: build.query({
+      query: (userId) => ({ url: `/wallet/users/${userId}`, method: "GET" }),
+      providesTags: ["ADMIN_USER_WALLETS"],
+    }),
+    getUserWalletLedger: build.query({
+      query: ({ userId, page, limit }) => ({
+        url: `/wallet/users/${userId}/ledger?page=${page}&limit=${limit}`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_USER_WALLETS"],
+    }),
+    addUserBalance: build.mutation({
+      query: ({ userId, amountMinor, reason }) => ({
+        url: `/wallet/users/${userId}/add-balance`,
+        method: "POST",
+        body: { amountMinor, reason },
+      }),
+      invalidatesTags: ["ADMIN_USER_WALLETS", "ADMIN_WALLET_TRANSACTIONS", "ADMIN_WALLET_DASHBOARD", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+    deductUserBalance: build.mutation({
+      query: ({ userId, amountMinor, reason }) => ({
+        url: `/wallet/users/${userId}/deduct-balance`,
+        method: "POST",
+        body: { amountMinor, reason },
+      }),
+      invalidatesTags: ["ADMIN_USER_WALLETS", "ADMIN_WALLET_TRANSACTIONS", "ADMIN_WALLET_DASHBOARD", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+    freezeUserWallet: build.mutation({
+      query: ({ userId, reason }) => ({
+        url: `/wallet/users/${userId}/freeze`,
+        method: "POST",
+        body: { reason },
+      }),
+      invalidatesTags: ["ADMIN_USER_WALLETS", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+    unfreezeUserWallet: build.mutation({
+      query: ({ userId }) => ({ url: `/wallet/users/${userId}/unfreeze`, method: "POST" }),
+      invalidatesTags: ["ADMIN_USER_WALLETS", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+    recalculateUserWallet: build.mutation({
+      query: ({ userId }) => ({ url: `/wallet/users/${userId}/recalculate`, method: "POST" }),
+      invalidatesTags: ["ADMIN_USER_WALLETS", "ADMIN_WALLET_DASHBOARD", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+
+    // ---- Wallet: Merchant wallets ----
+    getMerchantWallets: build.query({
+      query: ({ page, limit, search }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (search?.trim()) params.set("search", search.trim());
+        return { url: `/wallet/merchants?${params.toString()}`, method: "GET" };
+      },
+      providesTags: ["ADMIN_MERCHANT_WALLETS"],
+    }),
+    getMerchantWalletDetail: build.query({
+      query: (merchantId) => ({ url: `/wallet/merchants/${merchantId}`, method: "GET" }),
+      providesTags: ["ADMIN_MERCHANT_WALLETS"],
+    }),
+    getMerchantWalletLedger: build.query({
+      query: ({ merchantId, page, limit }) => ({
+        url: `/wallet/merchants/${merchantId}/ledger?page=${page}&limit=${limit}`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_MERCHANT_WALLETS"],
+    }),
+    getMerchantWithdrawals: build.query({
+      query: ({ merchantId, page, limit }) => ({
+        url: `/wallet/merchants/${merchantId}/withdrawals?page=${page}&limit=${limit}`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_WITHDRAWALS"],
+    }),
+    addMerchantBalance: build.mutation({
+      query: ({ merchantId, amountMinor, reason }) => ({
+        url: `/wallet/merchants/${merchantId}/add-balance`,
+        method: "POST",
+        body: { amountMinor, reason },
+      }),
+      invalidatesTags: ["ADMIN_MERCHANT_WALLETS", "ADMIN_WALLET_TRANSACTIONS", "ADMIN_WALLET_DASHBOARD", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+    deductMerchantBalance: build.mutation({
+      query: ({ merchantId, amountMinor, reason }) => ({
+        url: `/wallet/merchants/${merchantId}/deduct-balance`,
+        method: "POST",
+        body: { amountMinor, reason },
+      }),
+      invalidatesTags: ["ADMIN_MERCHANT_WALLETS", "ADMIN_WALLET_TRANSACTIONS", "ADMIN_WALLET_DASHBOARD", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+    freezeMerchantWallet: build.mutation({
+      query: ({ merchantId, reason }) => ({
+        url: `/wallet/merchants/${merchantId}/freeze`,
+        method: "POST",
+        body: { reason },
+      }),
+      invalidatesTags: ["ADMIN_MERCHANT_WALLETS", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+    unfreezeMerchantWallet: build.mutation({
+      query: ({ merchantId }) => ({ url: `/wallet/merchants/${merchantId}/unfreeze`, method: "POST" }),
+      invalidatesTags: ["ADMIN_MERCHANT_WALLETS", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+    recalculateMerchantWallet: build.mutation({
+      query: ({ merchantId }) => ({ url: `/wallet/merchants/${merchantId}/recalculate`, method: "POST" }),
+      invalidatesTags: ["ADMIN_MERCHANT_WALLETS", "ADMIN_WALLET_DASHBOARD", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+
+    // ---- Wallet: Merchant deals ----
+    getMerchantDeal: build.query({
+      query: (merchantId) => ({ url: `/wallet/merchant-deals/${merchantId}`, method: "GET" }),
+      providesTags: ["ADMIN_MERCHANT_DEALS"],
+    }),
+    updateMerchantDeal: build.mutation({
+      query: ({ merchantId, customerDiscountPercent, fazlMarginPercent, reason }) => ({
+        url: `/wallet/merchant-deals/${merchantId}`,
+        method: "POST",
+        body: { customerDiscountPercent, fazlMarginPercent, reason },
+      }),
+      invalidatesTags: ["ADMIN_MERCHANT_DEALS", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+
+    // ---- Wallet: Transactions ----
+    getWalletTransactions: build.query({
+      query: ({ page, limit, search, status, paymentMethod, userId, merchantId, startDate, endDate }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (search?.trim()) params.set("search", search.trim());
+        if (status) params.set("status", status);
+        if (paymentMethod) params.set("paymentMethod", paymentMethod);
+        if (userId) params.set("userId", userId);
+        if (merchantId) params.set("merchantId", merchantId);
+        if (startDate) params.set("startDate", startDate);
+        if (endDate) params.set("endDate", endDate);
+        return { url: `/wallet/transactions?${params.toString()}`, method: "GET" };
+      },
+      providesTags: ["ADMIN_WALLET_TRANSACTIONS"],
+    }),
+    getWalletTransactionDetail: build.query({
+      query: (id) => ({ url: `/wallet/transactions/${id}`, method: "GET" }),
+      providesTags: ["ADMIN_WALLET_TRANSACTIONS"],
+    }),
+
+    // ---- Wallet: Withdrawals ----
+    getWithdrawals: build.query({
+      query: ({ page, limit, search, status, merchantId, startDate, endDate }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (search?.trim()) params.set("search", search.trim());
+        if (status) params.set("status", status);
+        if (merchantId) params.set("merchantId", merchantId);
+        if (startDate) params.set("startDate", startDate);
+        if (endDate) params.set("endDate", endDate);
+        return { url: `/wallet/withdrawals?${params.toString()}`, method: "GET" };
+      },
+      providesTags: ["ADMIN_WITHDRAWALS"],
+    }),
+    getWithdrawalDetail: build.query({
+      query: (id) => ({ url: `/wallet/withdrawals/${id}`, method: "GET" }),
+      providesTags: ["ADMIN_WITHDRAWALS"],
+    }),
+    createWithdrawal: build.mutation({
+      query: (body) => ({ url: `/wallet/withdrawals`, method: "POST", body }),
+      invalidatesTags: ["ADMIN_WITHDRAWALS", "ADMIN_WALLET_AUDIT_LOG", "ADMIN_WALLET_DASHBOARD"],
+    }),
+    approveWithdrawal: build.mutation({
+      query: ({ id }) => ({ url: `/wallet/withdrawals/${id}/approve`, method: "PATCH" }),
+      invalidatesTags: ["ADMIN_WITHDRAWALS", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+    rejectWithdrawal: build.mutation({
+      query: ({ id, reason }) => ({ url: `/wallet/withdrawals/${id}/reject`, method: "PATCH", body: { reason } }),
+      invalidatesTags: ["ADMIN_WITHDRAWALS", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+    markWithdrawalProcessing: build.mutation({
+      query: ({ id }) => ({ url: `/wallet/withdrawals/${id}/processing`, method: "PATCH" }),
+      invalidatesTags: ["ADMIN_WITHDRAWALS", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+    completeWithdrawal: build.mutation({
+      query: ({ id, externalFeeAmountMinor, externalFeeNote }) => ({
+        url: `/wallet/withdrawals/${id}/complete`,
+        method: "PATCH",
+        body: { externalFeeAmountMinor, externalFeeNote },
+      }),
+      invalidatesTags: [
+        "ADMIN_WITHDRAWALS",
+        "ADMIN_MERCHANT_WALLETS",
+        "ADMIN_WALLET_TRANSACTIONS",
+        "ADMIN_WALLET_DASHBOARD",
+        "ADMIN_WALLET_AUDIT_LOG",
+      ],
+    }),
+    cancelWithdrawal: build.mutation({
+      query: ({ id, reason }) => ({ url: `/wallet/withdrawals/${id}/cancel`, method: "PATCH", body: { reason } }),
+      invalidatesTags: ["ADMIN_WITHDRAWALS", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+
+    // ---- Wallet: Refunds ----
+    getRefunds: build.query({
+      query: ({ page, limit, search, refundStatus, customerId, merchantId, startDate, endDate }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (search?.trim()) params.set("search", search.trim());
+        if (refundStatus) params.set("refundStatus", refundStatus);
+        if (customerId) params.set("customerId", customerId);
+        if (merchantId) params.set("merchantId", merchantId);
+        if (startDate) params.set("startDate", startDate);
+        if (endDate) params.set("endDate", endDate);
+        return { url: `/wallet/refunds?${params.toString()}`, method: "GET" };
+      },
+      providesTags: ["ADMIN_REFUNDS"],
+    }),
+    getRefundDetail: build.query({
+      query: (id) => ({ url: `/wallet/refunds/${id}`, method: "GET" }),
+      providesTags: ["ADMIN_REFUNDS"],
+    }),
+    createRefund: build.mutation({
+      query: (body) => ({ url: `/wallet/refunds`, method: "POST", body }),
+      invalidatesTags: ["ADMIN_REFUNDS", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+    completeRefund: build.mutation({
+      query: ({ id }) => ({ url: `/wallet/refunds/${id}/complete`, method: "PATCH" }),
+      invalidatesTags: [
+        "ADMIN_REFUNDS",
+        "ADMIN_USER_WALLETS",
+        "ADMIN_WALLET_TRANSACTIONS",
+        "ADMIN_WALLET_DASHBOARD",
+        "ADMIN_WALLET_AUDIT_LOG",
+      ],
+    }),
+    rejectRefund: build.mutation({
+      query: ({ id, reason }) => ({ url: `/wallet/refunds/${id}/reject`, method: "PATCH", body: { reason } }),
+      invalidatesTags: ["ADMIN_REFUNDS", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
+
+    // ---- Wallet: Audit log ----
+    getWalletAuditLog: build.query({
+      query: ({ page, limit, adminId, action, targetType, subjectUserId, startDate, endDate }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (adminId) params.set("adminId", adminId);
+        if (action) params.set("action", action);
+        if (targetType) params.set("targetType", targetType);
+        if (subjectUserId) params.set("subjectUserId", subjectUserId);
+        if (startDate) params.set("startDate", startDate);
+        if (endDate) params.set("endDate", endDate);
+        return { url: `/wallet/audit-log?${params.toString()}`, method: "GET" };
+      },
+      providesTags: ["ADMIN_WALLET_AUDIT_LOG"],
+    }),
+
+    // ---- Wallet: Settings ----
+    getWalletSettings: build.query({
+      query: () => ({ url: `/wallet/settings`, method: "GET" }),
+      providesTags: ["ADMIN_WALLET_SETTINGS"],
+    }),
+    updateWalletSettings: build.mutation({
+      query: (body) => ({ url: `/wallet/settings`, method: "PUT", body }),
+      invalidatesTags: ["ADMIN_WALLET_SETTINGS", "ADMIN_WALLET_AUDIT_LOG"],
+    }),
   }),
 });
 export const {
@@ -784,4 +1058,42 @@ export const {
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useGetWalletDashboardStatsQuery,
+  useGetUserWalletsQuery,
+  useGetUserWalletDetailQuery,
+  useGetUserWalletLedgerQuery,
+  useAddUserBalanceMutation,
+  useDeductUserBalanceMutation,
+  useFreezeUserWalletMutation,
+  useUnfreezeUserWalletMutation,
+  useRecalculateUserWalletMutation,
+  useGetMerchantWalletsQuery,
+  useGetMerchantWalletDetailQuery,
+  useGetMerchantWalletLedgerQuery,
+  useGetMerchantWithdrawalsQuery,
+  useAddMerchantBalanceMutation,
+  useDeductMerchantBalanceMutation,
+  useFreezeMerchantWalletMutation,
+  useUnfreezeMerchantWalletMutation,
+  useRecalculateMerchantWalletMutation,
+  useGetMerchantDealQuery,
+  useUpdateMerchantDealMutation,
+  useGetWalletTransactionsQuery,
+  useGetWalletTransactionDetailQuery,
+  useGetWithdrawalsQuery,
+  useGetWithdrawalDetailQuery,
+  useCreateWithdrawalMutation,
+  useApproveWithdrawalMutation,
+  useRejectWithdrawalMutation,
+  useMarkWithdrawalProcessingMutation,
+  useCompleteWithdrawalMutation,
+  useCancelWithdrawalMutation,
+  useGetRefundsQuery,
+  useGetRefundDetailQuery,
+  useCreateRefundMutation,
+  useCompleteRefundMutation,
+  useRejectRefundMutation,
+  useGetWalletAuditLogQuery,
+  useGetWalletSettingsQuery,
+  useUpdateWalletSettingsMutation,
 } = adminService;

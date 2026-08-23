@@ -29,6 +29,10 @@ type ApiServiceDetail = {
     ownerId?: { name?: string; email?: string; phone?: string };
     requiresAppointment?: boolean;
     parameters?: { name: string; variants: string[] }[];
+    totalViews?: number;
+    uniqueVisitorsCount?: number;
+    contactClicks?: number;
+    whatsappClicks?: number;
 };
 
 function toEditableService(service: ApiServiceDetail): EditableService {
@@ -65,40 +69,39 @@ type StatTile = {
     expandKey?: "reviews";
 };
 
-const ANALYTICS_TILES: StatTile[] = [
-    {
-        label: "Total Views",
-        value: "956",
-        comingSoon: true,
-        icon: Eye,
-        bg: "bg-[#F1E9FE]",
-        color: "text-[#7C4FE0]",
-    },
-    {
-        label: "Unique Visitors",
-        value: "621",
-        comingSoon: true,
-        icon: Users,
-        bg: "bg-[#FDE9DF]",
-        color: "text-orange",
-    },
-    {
-        label: "Contact Clicks",
-        value: "98",
-        comingSoon: true,
-        icon: Phone,
-        bg: "bg-[#FDEAB8]",
-        color: "text-[#946200]",
-    },
-    {
-        label: "WhatsApp Clicks",
-        value: "52",
-        comingSoon: true,
-        icon: MessageCircle,
-        bg: "bg-green-4",
-        color: "text-green-1",
-    },
-];
+function buildAnalyticsTiles(service: ApiServiceDetail | undefined, loading: boolean): StatTile[] {
+    const v = (n: number | undefined) => (loading ? "..." : (n ?? 0).toLocaleString());
+    return [
+        {
+            label: "Total Views",
+            value: v(service?.totalViews),
+            icon: Eye,
+            bg: "bg-[#F1E9FE]",
+            color: "text-[#7C4FE0]",
+        },
+        {
+            label: "Unique Visitors",
+            value: v(service?.uniqueVisitorsCount),
+            icon: Users,
+            bg: "bg-[#FDE9DF]",
+            color: "text-orange",
+        },
+        {
+            label: "Contact Clicks",
+            value: v(service?.contactClicks),
+            icon: Phone,
+            bg: "bg-[#FDEAB8]",
+            color: "text-[#946200]",
+        },
+        {
+            label: "WhatsApp Clicks",
+            value: v(service?.whatsappClicks),
+            icon: MessageCircle,
+            bg: "bg-green-4",
+            color: "text-green-1",
+        },
+    ];
+}
 
 const REVIEWS_PAGE_LIMIT = 5;
 
@@ -251,7 +254,7 @@ function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
         (avgData as { data?: { avgRating?: number; count?: number } } | undefined)?.data?.count ?? 0;
 
     const stats: StatTile[] = [
-        ...ANALYTICS_TILES,
+        ...buildAnalyticsTiles(service, loading),
         {
             label: "Reviews",
             value: reviewCount > 0 ? `${avgRating.toFixed(1)} (${reviewCount})` : "No reviews",

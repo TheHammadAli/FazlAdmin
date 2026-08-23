@@ -27,6 +27,7 @@ import {
     History,
     Megaphone,
     BarChart3,
+    Wallet,
 } from "lucide-react";
 import FazlLogo from "@/assets/icons/fazal-logo.svg";
 
@@ -56,6 +57,12 @@ const ADMIN_NAV_SECTIONS = [
             { label: "Announcements", href: "/admin/announcements", icon: Megaphone, permission: "announcements" },
             { label: "Feed", href: "/admin/feed", icon: Video, permission: "feed" },
             { label: "Reports", href: "/admin/reports", icon: Flag, permission: "reports" },
+        ],
+    },
+    {
+        section: "Finance",
+        items: [
+            { label: "Wallet", href: "/admin/wallet", icon: Wallet, permission: "wallet" },
         ],
     },
     {

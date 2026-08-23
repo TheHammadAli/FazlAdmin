@@ -131,6 +131,10 @@ function Signin() {
         dispatch(setProfileCompleted(true));
         router.replace("/admin");
       }
+      // Router Cache can hold a pre-login RSC payload for the target route (fetched before the
+      // auth cookies existed) — refresh forces Next to treat it as stale and re-fetch fresh,
+      // which is otherwise only what a manual browser reload was doing.
+      router.refresh();
     } catch (err) {
       const message = getSigninErrorMessage(
         err,
