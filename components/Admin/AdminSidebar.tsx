@@ -28,6 +28,7 @@ import {
     Megaphone,
     BarChart3,
     Wallet,
+    Star,
 } from "lucide-react";
 import FazlLogo from "@/assets/icons/fazal-logo.svg";
 
@@ -57,6 +58,7 @@ const ADMIN_NAV_SECTIONS = [
             { label: "Announcements", href: "/admin/announcements", icon: Megaphone, permission: "announcements" },
             { label: "Feed", href: "/admin/feed", icon: Video, permission: "feed" },
             { label: "Reports", href: "/admin/reports", icon: Flag, permission: "reports" },
+            { label: "Reviews", href: "/admin/reviews", icon: Star, permission: "reviews" },
         ],
     },
     {

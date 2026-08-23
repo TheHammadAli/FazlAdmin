@@ -712,6 +712,17 @@ export const adminService = baseApi.injectEndpoints({
       providesTags: ["ADMIN_ACTIVITY_LOGS"],
     }),
 
+    // ---- Reviews ----
+    getAllReviewsForAdmin: build.query({
+      query: ({ page, limit, itemType, search }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (itemType) params.set("itemType", itemType);
+        if (search?.trim()) params.set("search", search.trim());
+        return { url: `/reviews/admin/all?${params.toString()}`, method: "GET" };
+      },
+      providesTags: ["ADMIN_REVIEWS"],
+    }),
+
     // ---- Wallet: Dashboard ----
     getWalletDashboardStats: build.query({
       query: (arg) => {
@@ -1046,6 +1057,7 @@ export const {
   useDisableShopMutation,
   useEnableShopMutation,
   useGetAllActivityLogsQuery,
+  useGetAllReviewsForAdminQuery,
   useGetFeedVideosQuery,
   useSuspendFeedVideoMutation,
   useEnableFeedVideoMutation,

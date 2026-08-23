@@ -17,7 +17,8 @@ export type AdminPage =
     | "analytics"
     | "settings"
     | "members"
-    | "wallet";
+    | "wallet"
+    | "reviews";
 
 export type PermissionEntry = { page: AdminPage; actions: AdminAction[] };
 
