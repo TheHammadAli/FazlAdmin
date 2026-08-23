@@ -600,6 +600,29 @@ export const adminService = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["ADMIN_FEED"],
     }),
+    suspendFeedServiceVideo: build.mutation({
+      query: (id: string) => ({
+        url: `/services/${id}/status`,
+        method: "PATCH",
+        body: { isDisabled: true },
+      }),
+      invalidatesTags: ["ADMIN_FEED"],
+    }),
+    enableFeedServiceVideo: build.mutation({
+      query: (id: string) => ({
+        url: `/services/${id}/status`,
+        method: "PATCH",
+        body: { isDisabled: false },
+      }),
+      invalidatesTags: ["ADMIN_FEED"],
+    }),
+    deleteFeedServiceVideo: build.mutation({
+      query: (id: string) => ({
+        url: `/services/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["ADMIN_FEED"],
+    }),
     getAllMembers: build.query({
       query: () => ({
         url: `/users/members`,
@@ -1061,6 +1084,9 @@ export const {
   useGetFeedVideosQuery,
   useSuspendFeedVideoMutation,
   useEnableFeedVideoMutation,
+  useSuspendFeedServiceVideoMutation,
+  useEnableFeedServiceVideoMutation,
+  useDeleteFeedServiceVideoMutation,
   useGetAllMembersQuery,
   useCreateMemberMutation,
   useUpdateMemberMutation,

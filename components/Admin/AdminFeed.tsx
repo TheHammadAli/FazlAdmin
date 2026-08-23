@@ -7,12 +7,8 @@ import { toast } from "react-hot-toast";
 import {
     Play,
     Trash2,
-    Eye,
-    Users,
     Heart,
-    MessageCircle,
     Share2,
-    Bookmark,
     type LucideIcon,
 } from "lucide-react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
@@ -23,7 +19,10 @@ import {
     useGetFeedVideosQuery,
     useSuspendFeedVideoMutation,
     useEnableFeedVideoMutation,
+    useSuspendFeedServiceVideoMutation,
+    useEnableFeedServiceVideoMutation,
     useDeleteProductMutation,
+    useDeleteFeedServiceVideoMutation,
 } from "@/store/services/adminService";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
@@ -35,13 +34,30 @@ const PAGE_LIMIT = 50;
 
 type FeedStatus = "active" | "suspended";
 
+type FeedItemType = "shop" | "product" | "service";
+
+const FEED_ITEM_TYPE_LABEL: Record<FeedItemType, string> = {
+    shop: "Shop",
+    product: "Product",
+    service: "Service",
+};
+
+const FEED_ITEM_TYPE_BADGE_CLASS: Record<FeedItemType, string> = {
+    shop: "bg-blue-50 text-blue-700",
+    product: "bg-amber-50 text-amber-700",
+    service: "bg-purple-50 text-purple-700",
+};
+
 type FeedVideo = {
     id: string;
+    itemType: FeedItemType;
     videoCode: string;
     title: string;
     video: string;
     thumbnail?: string;
     ownerLabel: string;
+    uploaderName: string;
+    uploaderEmail?: string;
     category: string;
     status: FeedStatus;
     createdAt: string;
@@ -52,13 +68,14 @@ type FeedVideo = {
 type ApiFeedVideo = {
     _id?: string;
     id?: string;
-    videoCode?: string;
+    itemType?: FeedItemType;
+    displayCode?: string;
     title?: string;
     video?: string;
     images?: string[];
     category?: { name?: { en?: string; ur?: string } } | string;
-    shopId?: { title?: string };
-    ownerId?: { name?: string };
+    shopTitle?: string;
+    uploader?: { _id?: string; name?: string; email?: string } | null;
     isDisabled?: boolean;
     createdAt?: string;
     likesCount?: number;
@@ -73,22 +90,10 @@ type FeedVideosResponse = {
     };
 };
 
-// Likes and Shares below are wired to real per-video data; the rest are still placeholders.
-const OTHER_PLACEHOLDER_METRICS: { label: string; icon: LucideIcon; value: string }[] = [
-    { label: "Total Views", icon: Eye, value: "3,542" },
-    { label: "Unique Views", icon: Users, value: "2,187" },
-    { label: "Comments", icon: MessageCircle, value: "68" },
-    { label: "Saves", icon: Bookmark, value: "91" },
-];
-
 function buildMetrics(video: FeedVideo): { label: string; icon: LucideIcon; value: string }[] {
     return [
-        OTHER_PLACEHOLDER_METRICS[0],
-        OTHER_PLACEHOLDER_METRICS[1],
         { label: "Likes", icon: Heart, value: video.likesCount.toLocaleString() },
-        OTHER_PLACEHOLDER_METRICS[2],
         { label: "Shares", icon: Share2, value: video.sharesCount.toLocaleString() },
-        OTHER_PLACEHOLDER_METRICS[3],
     ];
 }
 
@@ -104,13 +109,17 @@ function formatDate(value?: string) {
 }
 
 function mapApiFeedVideo(item: ApiFeedVideo): FeedVideo {
+    const itemType: FeedItemType = item.itemType ?? "product";
     return {
         id: item._id ?? item.id ?? "",
-        videoCode: item.videoCode ?? "-",
+        itemType,
+        videoCode: item.displayCode ?? "-",
         title: item.title ?? "-",
         video: item.video ?? "",
         thumbnail: item.images?.[0],
-        ownerLabel: item.shopId?.title ?? item.ownerId?.name ?? "-",
+        ownerLabel: itemType === "shop" ? (item.shopTitle ?? "-") : (item.uploader?.name ?? "-"),
+        uploaderName: item.uploader?.name ?? "-",
+        uploaderEmail: item.uploader?.email,
         category: getFeedCategoryLabel(item.category ?? "", "en") || "-",
         status: item.isDisabled ? "suspended" : "active",
         createdAt: formatDate(item.createdAt),
@@ -155,10 +164,13 @@ function AdminFeed() {
         isFetching,
     } = useGetFeedVideosQuery({ page, limit: PAGE_LIMIT, search });
 
-    const [suspendFeedVideo, { isLoading: isSuspending }] = useSuspendFeedVideoMutation();
-    const [enableFeedVideo, { isLoading: isEnabling }] = useEnableFeedVideoMutation();
-    const isChangingStatus = isSuspending || isEnabling;
+    const [suspendFeedVideo, { isLoading: isSuspendingProduct }] = useSuspendFeedVideoMutation();
+    const [enableFeedVideo, { isLoading: isEnablingProduct }] = useEnableFeedVideoMutation();
+    const [suspendFeedServiceVideo, { isLoading: isSuspendingService }] = useSuspendFeedServiceVideoMutation();
+    const [enableFeedServiceVideo, { isLoading: isEnablingService }] = useEnableFeedServiceVideoMutation();
+    const isChangingStatus = isSuspendingProduct || isEnablingProduct || isSuspendingService || isEnablingService;
     const [deleteProduct] = useDeleteProductMutation();
+    const [deleteFeedServiceVideo] = useDeleteFeedServiceVideoMutation();
 
     const videos = ((feedResponse as FeedVideosResponse | undefined)?.data ?? []).map(
         mapApiFeedVideo,
@@ -194,11 +206,16 @@ function AdminFeed() {
 
     async function handleConfirmStatusChange() {
         if (!pendingStatusChange) return;
+        const { video, action } = pendingStatusChange;
+        const isService = video.itemType === "service";
         try {
-            const response =
-                pendingStatusChange.action === "suspend"
-                    ? await suspendFeedVideo(pendingStatusChange.video.id).unwrap()
-                    : await enableFeedVideo(pendingStatusChange.video.id).unwrap();
+            const response = isService
+                ? action === "suspend"
+                    ? await suspendFeedServiceVideo(video.id).unwrap()
+                    : await enableFeedServiceVideo(video.id).unwrap()
+                : action === "suspend"
+                    ? await suspendFeedVideo(video.id).unwrap()
+                    : await enableFeedVideo(video.id).unwrap();
             toast.success((response as { message?: string })?.message ?? "Video status updated");
             setIsStatusModalOpen(false);
             // Keep the preview modal's own copy of status in sync if it's open for this video.
@@ -223,7 +240,10 @@ function AdminFeed() {
         if (!deletingVideo) return;
         setIsDeleting(true);
         try {
-            const response = await deleteProduct(deletingVideo.id).unwrap();
+            const response =
+                deletingVideo.itemType === "service"
+                    ? await deleteFeedServiceVideo(deletingVideo.id).unwrap()
+                    : await deleteProduct(deletingVideo.id).unwrap();
             toast.success(response.message ?? "Video deleted successfully");
             setDeletingVideo(null);
             setPreviewVideo((prev) => (prev && prev.id === deletingVideo.id ? null : prev));
@@ -251,11 +271,23 @@ function AdminFeed() {
                     <div className="hide-scrollbar w-[92vw] max-w-[820px] rounded-[12px] bg-white p-5 shadow-xl">
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
-                                <h2 className="truncate text-[16px] font-semibold text-[#001907]">
-                                    {previewVideo.title}
-                                </h2>
+                                <div className="flex items-center gap-2">
+                                    <h2 className="truncate text-[16px] font-semibold text-[#001907]">
+                                        {previewVideo.title}
+                                    </h2>
+                                    <span
+                                        className={`shrink-0 rounded-[4px] px-1.5 py-0.5 text-[11px] font-medium ${FEED_ITEM_TYPE_BADGE_CLASS[previewVideo.itemType]}`}
+                                    >
+                                        {FEED_ITEM_TYPE_LABEL[previewVideo.itemType]}
+                                    </span>
+                                </div>
                                 <p className="mt-0.5 truncate text-[12px] text-gray-11">
                                     {previewVideo.ownerLabel} · {previewVideo.category} · {previewVideo.videoCode}
+                                </p>
+                                <p className="mt-0.5 truncate text-[12px] text-gray-11">
+                                    Uploaded by{" "}
+                                    <span className="font-medium text-gray-8">{previewVideo.uploaderName}</span>
+                                    {previewVideo.uploaderEmail ? ` (${previewVideo.uploaderEmail})` : ""}
                                 </p>
                             </div>
                             <button
@@ -432,7 +464,7 @@ function AdminFeed() {
             <div className="bg-white">
                 <div className="container px-5 lg:px-10 mx-auto mt-4">
                     <div className="overflow-x-auto">
-                        <table className="min-w-[880px] w-full">
+                        <table className="min-w-[1120px] w-full">
                             <thead>
                                 <tr className="text-left">
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
@@ -440,6 +472,12 @@ function AdminFeed() {
                                     </th>
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Video
+                                    </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Type
+                                    </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Uploaded By
                                     </th>
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Category
@@ -462,7 +500,7 @@ function AdminFeed() {
                                 {loading &&
                                     Array.from({ length: PAGE_LIMIT }).map((_, index) => (
                                         <tr key={`skeleton-${index}`} className="bg-white">
-                                            {Array.from({ length: 7 }).map((__, cellIndex) => (
+                                            {Array.from({ length: 9 }).map((__, cellIndex) => (
                                                 <td key={cellIndex} className="py-3.5 pr-4">
                                                     <div className="h-4 w-full max-w-[160px] animate-pulse rounded bg-gray-200" />
                                                 </td>
@@ -473,7 +511,7 @@ function AdminFeed() {
                                 {!loading && videos.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={9}
                                             className="py-8 text-center text-[14px] text-gray-11"
                                         >
                                             No feed videos found
@@ -522,6 +560,23 @@ function AdminFeed() {
                                                         </span>
                                                     </span>
                                                 </button>
+                                            </td>
+                                            <td className="whitespace-nowrap py-3.5 pr-4">
+                                                <span
+                                                    className={`rounded-[4px] px-1.5 py-0.5 text-[11px] font-medium ${FEED_ITEM_TYPE_BADGE_CLASS[video.itemType]}`}
+                                                >
+                                                    {FEED_ITEM_TYPE_LABEL[video.itemType]}
+                                                </span>
+                                            </td>
+                                            <td className="max-w-[160px] py-3.5 pr-4">
+                                                <span className="block truncate text-[14px] font-normal text-[#001907]">
+                                                    {video.uploaderName}
+                                                </span>
+                                                {video.uploaderEmail && (
+                                                    <span className="block truncate text-[12px] text-gray-11">
+                                                        {video.uploaderEmail}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="py-3.5 pr-4 text-[14px] font-normal capitalize text-gray-11">
                                                 {video.category}
