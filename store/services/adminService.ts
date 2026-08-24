@@ -737,10 +737,12 @@ export const adminService = baseApi.injectEndpoints({
 
     // ---- Reviews ----
     getAllReviewsForAdmin: build.query({
-      query: ({ page, limit, itemType, search }) => {
+      query: ({ page, limit, itemType, search, startDate, endDate }) => {
         const params = new URLSearchParams({ page: String(page), limit: String(limit) });
         if (itemType) params.set("itemType", itemType);
         if (search?.trim()) params.set("search", search.trim());
+        if (startDate) params.set("startDate", startDate);
+        if (endDate) params.set("endDate", endDate);
         return { url: `/reviews/admin/all?${params.toString()}`, method: "GET" };
       },
       providesTags: ["ADMIN_REVIEWS"],

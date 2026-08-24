@@ -16,6 +16,7 @@ import {
     Flag,
     Mail,
     Tags,
+    Star,
     ChevronRight,
 } from "lucide-react";
 import {
@@ -27,6 +28,7 @@ import {
     useGetAllBroadcastsForAdminQuery,
     useGetFeedVideosQuery,
     useGetAllCategoriesForAdminQuery,
+    useGetAllReviewsForAdminQuery,
 } from "@/store/services/adminService";
 import DateRangeFilter, { type DateFilterValue } from "@/components/Ui/DateRangeFilter";
 import AdminProfileMenu from "@/components/Admin/AdminProfileMenu";
@@ -81,6 +83,12 @@ type BookingStatsResponse = {
 
 type CategoriesResponse = {
     data?: unknown[];
+};
+
+type ReviewsResponse = {
+    meta?: {
+        total?: number | string;
+    };
 };
 
 type StatCard = {
@@ -184,6 +192,15 @@ function AdminDashboard() {
     const totalCategories = (categoriesResponse as CategoriesResponse | undefined)?.data?.length;
     const loadingCategories = isCategoriesLoading || isCategoriesFetching;
 
+    const {
+        data: reviewsResponse,
+        isLoading: isReviewsLoading,
+        isFetching: isReviewsFetching,
+    } = useGetAllReviewsForAdminQuery({ page: 1, limit: 1, startDate, endDate });
+
+    const totalReviews = (reviewsResponse as ReviewsResponse | undefined)?.meta?.total;
+    const loadingReviews = isReviewsLoading || isReviewsFetching;
+
     const stats: StatCard[] = [
         {
             label: "Total Users",
@@ -248,6 +265,14 @@ function AdminDashboard() {
             bg: "bg-[#FDE9DF]",
             color: "text-orange",
             href: "/admin/feed",
+        },
+        {
+            label: "Total Reviews",
+            value: loadingReviews ? "..." : String(totalReviews ?? 0),
+            icon: Star,
+            bg: "bg-[#FDEAB8]",
+            color: "text-[#946200]",
+            href: "/admin/reviews",
         },
         {
             label: "Pending Shop Approvals",
