@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import {
     Play,
     Trash2,
+    Eye,
     Heart,
     Share2,
     type LucideIcon,
@@ -61,6 +62,7 @@ type FeedVideo = {
     category: string;
     status: FeedStatus;
     createdAt: string;
+    viewsCount: number;
     likesCount: number;
     sharesCount: number;
 };
@@ -78,6 +80,7 @@ type ApiFeedVideo = {
     uploader?: { _id?: string; name?: string; email?: string } | null;
     isDisabled?: boolean;
     createdAt?: string;
+    viewsCount?: number;
     likesCount?: number;
     sharesCount?: number;
 };
@@ -92,6 +95,7 @@ type FeedVideosResponse = {
 
 function buildMetrics(video: FeedVideo): { label: string; icon: LucideIcon; value: string }[] {
     return [
+        { label: "Views", icon: Eye, value: video.viewsCount.toLocaleString() },
         { label: "Likes", icon: Heart, value: video.likesCount.toLocaleString() },
         { label: "Shares", icon: Share2, value: video.sharesCount.toLocaleString() },
     ];
@@ -123,6 +127,7 @@ function mapApiFeedVideo(item: ApiFeedVideo): FeedVideo {
         category: getFeedCategoryLabel(item.category ?? "", "en") || "-",
         status: item.isDisabled ? "suspended" : "active",
         createdAt: formatDate(item.createdAt),
+        viewsCount: item.viewsCount ?? 0,
         likesCount: item.likesCount ?? 0,
         sharesCount: item.sharesCount ?? 0,
     };
