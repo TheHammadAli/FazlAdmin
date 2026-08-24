@@ -3,7 +3,7 @@ name: Deploy Fazl Admin Frontend
 on:
   push:
     branches:
-      - develop
+      - main
 
 jobs:
   deploy:
@@ -30,11 +30,11 @@ jobs:
 
             cd "$APP_DIR"
 
-            echo "Fetching develop branch..."
-            git fetch origin develop
+            echo "Fetching main branch..."
+            git fetch origin main
 
             echo "Updating production code..."
-            git reset --hard origin/develop
+            git reset --hard origin/main
 
             echo "Installing dependencies..."
             npm ci
