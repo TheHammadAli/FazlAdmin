@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { Wrench, Eye, Users, Phone, MessageCircle, Pencil, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { Wrench, Eye, Users, Phone, MessageCircle, Heart, Pencil, Star, ChevronDown, ChevronUp } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
 import {
     useGetServiceDetailQuery,
@@ -13,6 +13,7 @@ import {
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 import ServiceEditModal, { type EditableService } from "@/components/Admin/ServiceEditModal";
+import FeedEngagementModal from "@/components/Admin/FeedEngagementModal";
 
 type PaymentType = "hourly" | "fixed" | "call_for_price";
 
@@ -33,6 +34,7 @@ type ApiServiceDetail = {
     uniqueVisitorsCount?: number;
     contactClicks?: number;
     whatsappClicks?: number;
+    likesCount?: number;
 };
 
 function toEditableService(service: ApiServiceDetail): EditableService {
@@ -67,6 +69,7 @@ type StatTile = {
     color: string;
     comingSoon?: boolean;
     expandKey?: "reviews";
+    clickable?: boolean;
 };
 
 function buildAnalyticsTiles(service: ApiServiceDetail | undefined, loading: boolean): StatTile[] {
@@ -99,6 +102,14 @@ function buildAnalyticsTiles(service: ApiServiceDetail | undefined, loading: boo
             icon: MessageCircle,
             bg: "bg-green-4",
             color: "text-green-1",
+        },
+        {
+            label: "Likes",
+            value: v(service?.likesCount),
+            icon: Heart,
+            bg: "bg-[#FDD5D5]",
+            color: "text-[#E92440]",
+            clickable: true,
         },
     ];
 }
@@ -225,11 +236,13 @@ function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [expandedTile, setExpandedTile] = useState<"reviews" | null>(null);
     const [reviewsPage, setReviewsPage] = useState(1);
+    const [showLikers, setShowLikers] = useState(false);
 
     useEffect(() => {
         setIsEditOpen(false);
         setExpandedTile(null);
         setReviewsPage(1);
+        setShowLikers(false);
     }, [serviceId]);
 
     function toggleExpanded(key: "reviews") {
@@ -285,7 +298,7 @@ function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
             open={isOpen}
             setOpen={handleSetOpen}
             centered
-            disableOutsideClick={isEditOpen}
+            disableOutsideClick={isEditOpen || showLikers}
         >
             <div className="flex max-h-[90vh] w-[92vw] max-w-[500px] flex-col rounded-[12px] bg-white shadow-xl">
                 <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-9 px-6 pt-6 pb-4">
@@ -449,10 +462,13 @@ function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
                                         );
                                     }
 
+                                    const Wrapper = stat.clickable ? "button" : "div";
                                     return (
-                                        <div
+                                        <Wrapper
                                             key={stat.label}
-                                            className="flex items-center gap-3 rounded-[10px] border border-gray-9 p-3"
+                                            type={stat.clickable ? "button" : undefined}
+                                            onClick={stat.clickable ? () => setShowLikers(true) : undefined}
+                                            className={`flex items-center gap-3 rounded-[10px] border border-gray-9 p-3 text-left ${stat.clickable ? "cursor-pointer hover:border-gray-8" : ""}`}
                                         >
                                             <span
                                                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] ${stat.bg}`}
@@ -472,7 +488,7 @@ function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
                                                     )}
                                                 </p>
                                             </div>
-                                        </div>
+                                        </Wrapper>
                                     );
                                 })}
                             </div>
@@ -498,6 +514,19 @@ function ServiceDetailModal({ serviceId, onClose }: ServiceDetailModalProps) {
             service={service ? toEditableService(service) : null}
             onClose={() => setIsEditOpen(false)}
         />
+
+        {serviceId && (
+            <FeedEngagementModal
+                open={showLikers}
+                onClose={() => setShowLikers(false)}
+                itemId={serviceId}
+                itemType="service"
+                initialMetricType="likes"
+                visibleMetrics={["likes"]}
+                counts={{ likes: service?.likesCount ?? 0 }}
+                videoTitle={service?.title ?? ""}
+            />
+        )}
         </>
     );
 }

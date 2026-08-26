@@ -41,6 +41,7 @@ function FeedEngagementModal({
     initialMetricType,
     videoTitle,
     counts,
+    visibleMetrics = ["views", "likes", "shares"],
 }: {
     open: boolean;
     onClose: () => void;
@@ -48,11 +49,13 @@ function FeedEngagementModal({
     itemType: "product" | "service";
     initialMetricType: MetricType;
     videoTitle: string;
-    counts: Record<MetricType, number>;
+    counts: Partial<Record<MetricType, number>>;
+    visibleMetrics?: MetricType[];
 }) {
     const [activeMetric, setActiveMetric] = useState<MetricType>(initialMetricType);
     const [page, setPage] = useState(1);
     const modalRef = useRef<HTMLDivElement>(null);
+    const tabs = METRIC_TABS.filter((tab) => visibleMetrics.includes(tab.metricType));
 
     const args = { itemId, itemType, page, limit: PAGE_LIMIT };
     const likersQuery = useGetFeedLikersQuery(args, { skip: !open || activeMetric !== "likes" });
@@ -92,7 +95,9 @@ function FeedEngagementModal({
             <div className="hide-scrollbar w-[92vw] max-w-[460px] rounded-[12px] bg-white p-5 shadow-xl">
                 <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                        <h2 className="text-[16px] font-semibold text-[#001907]">Engagement</h2>
+                        <h2 className="text-[16px] font-semibold text-[#001907]">
+                            {tabs.length === 1 ? tabs[0].label : "Engagement"}
+                        </h2>
                         <p className="mt-0.5 truncate text-[12px] text-gray-11">{videoTitle}</p>
                     </div>
                     <button
@@ -105,27 +110,29 @@ function FeedEngagementModal({
                     </button>
                 </div>
 
-                <div className="mt-4 flex gap-2 border-b border-gray-9">
-                    {METRIC_TABS.map((tab) => {
-                        const Icon = tab.icon;
-                        const isActive = tab.metricType === activeMetric;
-                        return (
-                            <button
-                                type="button"
-                                key={tab.metricType}
-                                onClick={() => switchMetric(tab.metricType)}
-                                className={`flex cursor-pointer items-center gap-1.5 border-b-2 px-1 pb-2 text-[13px] font-medium transition-colors ${isActive
-                                    ? "border-green-1 text-green-1"
-                                    : "border-transparent text-gray-11 hover:text-gray-8"
-                                    }`}
-                            >
-                                <Icon className="h-4 w-4" strokeWidth={2} />
-                                {tab.label}
-                                <span className="text-[12px]">({counts[tab.metricType].toLocaleString()})</span>
-                            </button>
-                        );
-                    })}
-                </div>
+                {tabs.length > 1 && (
+                    <div className="mt-4 flex gap-2 border-b border-gray-9">
+                        {tabs.map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = tab.metricType === activeMetric;
+                            return (
+                                <button
+                                    type="button"
+                                    key={tab.metricType}
+                                    onClick={() => switchMetric(tab.metricType)}
+                                    className={`flex cursor-pointer items-center gap-1.5 border-b-2 px-1 pb-2 text-[13px] font-medium transition-colors ${isActive
+                                        ? "border-green-1 text-green-1"
+                                        : "border-transparent text-gray-11 hover:text-gray-8"
+                                        }`}
+                                >
+                                    <Icon className="h-4 w-4" strokeWidth={2} />
+                                    {tab.label}
+                                    <span className="text-[12px]">({(counts[tab.metricType] ?? 0).toLocaleString()})</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
 
                 <div className="mt-3 max-h-[50vh] space-y-1 overflow-y-auto">
                     {loading &&

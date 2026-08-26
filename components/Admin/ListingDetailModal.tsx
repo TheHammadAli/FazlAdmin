@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { ClipboardList, Eye, Users, Phone, MessageCircle, Pencil } from "lucide-react";
+import { ClipboardList, Eye, Users, Phone, MessageCircle, Heart, Pencil } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
 import { useGetProductDetailQuery } from "@/store/services/adminService";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 import ListingEditModal, { type EditableListing } from "@/components/Admin/ListingEditModal";
+import FeedEngagementModal from "@/components/Admin/FeedEngagementModal";
 
 type ApiProductDetail = {
     _id?: string;
@@ -31,6 +32,7 @@ type ApiProductDetail = {
     uniqueVisitorsCount?: number;
     contactClicks?: number;
     whatsappClicks?: number;
+    likesCount?: number;
 };
 
 function toEditableListing(product: ApiProductDetail): EditableListing {
@@ -56,6 +58,7 @@ type StatTile = {
     bg: string;
     color: string;
     comingSoon?: boolean;
+    clickable?: boolean;
 };
 
 function buildAnalyticsTiles(product: ApiProductDetail | undefined, loading: boolean): StatTile[] {
@@ -89,6 +92,14 @@ function buildAnalyticsTiles(product: ApiProductDetail | undefined, loading: boo
             bg: "bg-green-4",
             color: "text-green-1",
         },
+        {
+            label: "Likes",
+            value: v(product?.likesCount),
+            icon: Heart,
+            bg: "bg-[#FDD5D5]",
+            color: "text-[#E92440]",
+            clickable: true,
+        },
     ];
 }
 
@@ -100,9 +111,11 @@ type ListingDetailModalProps = {
 function ListingDetailModal({ productId, onClose }: ListingDetailModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [showLikers, setShowLikers] = useState(false);
 
     useEffect(() => {
         setIsEditOpen(false);
+        setShowLikers(false);
     }, [productId]);
 
     const { data, isLoading, isFetching } = useGetProductDetailQuery(productId ?? "", {
@@ -132,7 +145,7 @@ function ListingDetailModal({ productId, onClose }: ListingDetailModalProps) {
             open={isOpen}
             setOpen={handleSetOpen}
             centered
-            disableOutsideClick={isEditOpen}
+            disableOutsideClick={isEditOpen || showLikers}
         >
             <div className="flex max-h-[90vh] w-[92vw] max-w-[500px] flex-col rounded-[12px] bg-white shadow-xl">
                 <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-9 px-6 pt-6 pb-4">
@@ -261,10 +274,13 @@ function ListingDetailModal({ productId, onClose }: ListingDetailModalProps) {
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 {buildAnalyticsTiles(product, loading).map((stat) => {
                                     const Icon = stat.icon;
+                                    const Wrapper = stat.clickable ? "button" : "div";
                                     return (
-                                        <div
+                                        <Wrapper
                                             key={stat.label}
-                                            className="flex items-center gap-3 rounded-[10px] border border-gray-9 p-3"
+                                            type={stat.clickable ? "button" : undefined}
+                                            onClick={stat.clickable ? () => setShowLikers(true) : undefined}
+                                            className={`flex items-center gap-3 rounded-[10px] border border-gray-9 p-3 text-left ${stat.clickable ? "cursor-pointer hover:border-gray-8" : ""}`}
                                         >
                                             <span
                                                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] ${stat.bg}`}
@@ -284,7 +300,7 @@ function ListingDetailModal({ productId, onClose }: ListingDetailModalProps) {
                                                     )}
                                                 </p>
                                             </div>
-                                        </div>
+                                        </Wrapper>
                                     );
                                 })}
                             </div>
@@ -310,6 +326,19 @@ function ListingDetailModal({ productId, onClose }: ListingDetailModalProps) {
             listing={product ? toEditableListing(product) : null}
             onClose={() => setIsEditOpen(false)}
         />
+
+        {productId && (
+            <FeedEngagementModal
+                open={showLikers}
+                onClose={() => setShowLikers(false)}
+                itemId={productId}
+                itemType="product"
+                initialMetricType="likes"
+                visibleMetrics={["likes"]}
+                counts={{ likes: product?.likesCount ?? 0 }}
+                videoTitle={product?.title ?? ""}
+            />
+        )}
         </>
     );
 }
