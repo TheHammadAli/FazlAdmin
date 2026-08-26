@@ -623,6 +623,25 @@ export const adminService = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["ADMIN_FEED"],
     }),
+    getFeedLikers: build.query({
+      query: ({ itemId, itemType, page, limit }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        return { url: `/likes/admin/${itemType}/${itemId}?${params.toString()}`, method: "GET" };
+      },
+    }),
+    getFeedSharers: build.query({
+      query: ({ itemId, itemType, page, limit }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        return { url: `/shares/admin/${itemType}/${itemId}?${params.toString()}`, method: "GET" };
+      },
+    }),
+    getFeedViewers: build.query({
+      query: ({ itemId, itemType, page, limit }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        const resource = itemType === "service" ? "services" : "products";
+        return { url: `/${resource}/${itemId}/admin/viewers?${params.toString()}`, method: "GET" };
+      },
+    }),
     getAllMembers: build.query({
       query: () => ({
         url: `/users/members`,
@@ -1089,6 +1108,9 @@ export const {
   useSuspendFeedServiceVideoMutation,
   useEnableFeedServiceVideoMutation,
   useDeleteFeedServiceVideoMutation,
+  useGetFeedLikersQuery,
+  useGetFeedSharersQuery,
+  useGetFeedViewersQuery,
   useGetAllMembersQuery,
   useCreateMemberMutation,
   useUpdateMemberMutation,

@@ -27,6 +27,7 @@ import {
 } from "@/store/services/adminService";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
+import FeedEngagementModal from "./FeedEngagementModal";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 
@@ -93,11 +94,15 @@ type FeedVideosResponse = {
     };
 };
 
-function buildMetrics(video: FeedVideo): { label: string; icon: LucideIcon; value: string }[] {
+type MetricType = "views" | "likes" | "shares";
+
+function buildMetrics(
+    video: FeedVideo,
+): { label: string; icon: LucideIcon; value: string; metricType: MetricType }[] {
     return [
-        { label: "Views", icon: Eye, value: video.viewsCount.toLocaleString() },
-        { label: "Likes", icon: Heart, value: video.likesCount.toLocaleString() },
-        { label: "Shares", icon: Share2, value: video.sharesCount.toLocaleString() },
+        { label: "Views", icon: Eye, value: video.viewsCount.toLocaleString(), metricType: "views" },
+        { label: "Likes", icon: Heart, value: video.likesCount.toLocaleString(), metricType: "likes" },
+        { label: "Shares", icon: Share2, value: video.sharesCount.toLocaleString(), metricType: "shares" },
     ];
 }
 
@@ -145,6 +150,10 @@ function AdminFeed() {
 
     const [previewVideo, setPreviewVideo] = useState<FeedVideo | null>(null);
     const previewModalRef = useRef<HTMLDivElement>(null);
+
+    const [engagementTarget, setEngagementTarget] = useState<
+        { video: FeedVideo; metricType: MetricType } | null
+    >(null);
 
     const [pendingStatusChange, setPendingStatusChange] = useState<PendingStatusChange | null>(null);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -317,13 +326,17 @@ function AdminFeed() {
                             {buildMetrics(previewVideo).map((metric) => {
                                 const Icon = metric.icon;
                                 return (
-                                    <span
+                                    <button
+                                        type="button"
                                         key={metric.label}
-                                        className="inline-flex items-center gap-1.5 text-[12px] text-gray-8"
+                                        onClick={() =>
+                                            setEngagementTarget({ video: previewVideo, metricType: metric.metricType })
+                                        }
+                                        className="inline-flex cursor-pointer items-center gap-1.5 text-[12px] text-gray-8 hover:underline"
                                     >
                                         <Icon className="h-3.5 w-3.5 text-gray-6" strokeWidth={2} />
                                         {metric.label}: <span className="font-medium text-gray-6">{metric.value}</span>
-                                    </span>
+                                    </button>
                                 );
                             })}
                         </div>
@@ -591,14 +604,18 @@ function AdminFeed() {
                                                     {buildMetrics(video).map((metric) => {
                                                         const Icon = metric.icon;
                                                         return (
-                                                            <span
+                                                            <button
+                                                                type="button"
                                                                 key={metric.label}
                                                                 title={metric.label}
-                                                                className="inline-flex items-center gap-0.5 text-[11px] text-gray-6"
+                                                                onClick={() =>
+                                                                    setEngagementTarget({ video, metricType: metric.metricType })
+                                                                }
+                                                                className="inline-flex cursor-pointer items-center gap-0.5 text-[11px] text-gray-6 hover:underline"
                                                             >
                                                                 <Icon className="h-3 w-3" strokeWidth={2} />
                                                                 {metric.value}
-                                                            </span>
+                                                            </button>
                                                         );
                                                     })}
                                                 </div>
@@ -649,6 +666,22 @@ function AdminFeed() {
                     />
                 )}
             </div>
+
+            {engagementTarget && (
+                <FeedEngagementModal
+                    open={Boolean(engagementTarget)}
+                    onClose={() => setEngagementTarget(null)}
+                    itemId={engagementTarget.video.id}
+                    itemType={engagementTarget.video.itemType === "service" ? "service" : "product"}
+                    initialMetricType={engagementTarget.metricType}
+                    videoTitle={engagementTarget.video.title}
+                    counts={{
+                        views: engagementTarget.video.viewsCount,
+                        likes: engagementTarget.video.likesCount,
+                        shares: engagementTarget.video.sharesCount,
+                    }}
+                />
+            )}
         </section>
     );
 }
