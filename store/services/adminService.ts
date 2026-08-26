@@ -790,6 +790,37 @@ export const adminService = baseApi.injectEndpoints({
       providesTags: ["ADMIN_ACTIVITY_LOGS"],
     }),
 
+    // ---- Email Logs ----
+    getEmailLogStats: build.query({
+      query: () => ({
+        url: `/email-logs/stats`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_EMAIL_LOGS"],
+    }),
+    getAllEmailLogs: build.query({
+      query: ({ page, limit, search, eventType, deliveryStatus }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (search?.trim()) {
+          params.set("search", search.trim());
+        }
+        if (eventType?.trim()) {
+          params.set("eventType", eventType.trim());
+        }
+        if (deliveryStatus?.trim()) {
+          params.set("deliveryStatus", deliveryStatus.trim());
+        }
+        return {
+          url: `/email-logs?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["ADMIN_EMAIL_LOGS"],
+    }),
+
     // ---- Reviews ----
     getAllReviewsForAdmin: build.query({
       query: ({ page, limit, itemType, search, startDate, endDate }) => {
@@ -1137,6 +1168,8 @@ export const {
   useDisableShopMutation,
   useEnableShopMutation,
   useGetAllActivityLogsQuery,
+  useGetAllEmailLogsQuery,
+  useGetEmailLogStatsQuery,
   useGetAllReviewsForAdminQuery,
   useGetFeedVideosQuery,
   useSuspendFeedVideoMutation,
