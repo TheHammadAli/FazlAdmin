@@ -27,7 +27,11 @@ type MemberStatCard = {
 };
 
 function MemberDashboard() {
-    const { data, isLoading } = useGetMyTaskStatsQuery(undefined);
+    // Counts change when the admin reviews in another session — poll + refetch keeps them current.
+    const { data, isLoading } = useGetMyTaskStatsQuery(undefined, {
+        refetchOnMountOrArgChange: true,
+        pollingInterval: 25000,
+    });
     const stats = (data as StatsResponse | undefined)?.data;
 
     const cards: MemberStatCard[] = [

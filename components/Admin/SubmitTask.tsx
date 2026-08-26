@@ -63,9 +63,10 @@ function SubmitTask() {
     }, []);
 
     // One list feeds both the modal's task select and the submissions table below.
+    // Admin reviews happen in another session, so poll + refetch to pick up status changes.
     const { data: tasksResponse, isLoading } = useGetMyTasksQuery(
         { page: 1, limit: 100 },
-        { skip: !isMember },
+        { skip: !isMember, refetchOnMountOrArgChange: true, pollingInterval: 25000 },
     );
     const [submitTask, { isLoading: isSubmitting }] = useSubmitTaskMutation();
 
@@ -288,6 +289,15 @@ function SubmitTask() {
                 </div>
 
                 <div className="container mx-auto mt-4 flex flex-wrap items-center justify-between gap-3 px-5 lg:px-10">
+                    <button
+                        type="button"
+                        onClick={() => openSubmitModal()}
+                        className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] bg-green-1 px-4 text-[14px] font-medium text-white"
+                    >
+                        <Upload className="h-4 w-4" strokeWidth={2} />
+                        Submit Task
+                    </button>
+
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
@@ -298,15 +308,6 @@ function SubmitTask() {
                         <option value="revision">Revision</option>
                         <option value="completed">Completed</option>
                     </select>
-
-                    <button
-                        type="button"
-                        onClick={() => openSubmitModal()}
-                        className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[8px] bg-green-1 px-4 text-[14px] font-medium text-white"
-                    >
-                        <Upload className="h-4 w-4" strokeWidth={2} />
-                        Submit Task
-                    </button>
                 </div>
             </div>
 

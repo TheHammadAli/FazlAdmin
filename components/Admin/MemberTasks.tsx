@@ -85,7 +85,7 @@ function MemberTasks() {
         isFetching,
     } = useGetMyTasksQuery(
         { page, limit: PAGE_LIMIT, status: statusFilter },
-        { skip: !isMember },
+        { skip: !isMember, refetchOnMountOrArgChange: true, pollingInterval: 25000 },
     );
 
     const tasks = (tasksResponse as TasksResponse | undefined)?.data ?? [];
@@ -118,7 +118,7 @@ function MemberTasks() {
                     </p>
                 </div>
 
-                <div className="container mx-auto mt-4 flex flex-wrap items-center gap-3 px-5 lg:px-10">
+                <div className="container mx-auto mt-4 flex flex-wrap items-center justify-end gap-3 px-5 lg:px-10">
                     <select
                         value={statusFilter}
                         onChange={(e) => {
