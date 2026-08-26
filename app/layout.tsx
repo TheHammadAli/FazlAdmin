@@ -3,8 +3,8 @@ import "./[lang]/globals.css";
 import "@fontsource-variable/ibm-plex-sans";
 import Providers from "./providers";
 
-const FAVICON_PNG = "/favicon.png?v=1";
-const FAVICON_ICO = "/favicon.ico?v=1";
+const FAVICON_PNG = "/favicon.png?v=2";
+const FAVICON_ICO = "/favicon.ico?v=2";
 
 export const metadata: Metadata = {
   title: "Fazl Admin",
@@ -15,6 +15,7 @@ export const metadata: Metadata = {
       { url: FAVICON_ICO, type: "image/x-icon" },
     ],
     shortcut: FAVICON_ICO,
+    apple: FAVICON_PNG,
   },
 };
 
