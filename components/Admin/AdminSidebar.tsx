@@ -29,6 +29,7 @@ import {
     BarChart3,
     Wallet,
     Star,
+    Upload,
 } from "lucide-react";
 import FazlLogo from "@/assets/icons/fazal-logo.svg";
 
@@ -83,6 +84,18 @@ const ADMIN_NAV_SECTIONS = [
     },
 ];
 
+/** What a member (moderator role) sees instead of the admin nav. */
+const MEMBER_NAV_SECTIONS = [
+    {
+        section: "Overview",
+        items: [
+            { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+            { label: "Tasks Assigned", href: "/admin/my-tasks", icon: ListTodo },
+            { label: "Submit Task", href: "/admin/submit-task", icon: Upload },
+        ],
+    },
+];
+
 function isNavActive(pathname: string, href: string) {
     if (href === "/admin") {
         return pathname === "/admin";
@@ -97,16 +110,19 @@ function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
     const { isSuperAdmin, roles: currentUserRoles, has } = useCurrentAdminPermissions();
 
     const isAdminOrSuperAdmin = isSuperAdmin || currentUserRoles.includes("admin");
+    const isMember = !isAdminOrSuperAdmin && currentUserRoles.includes("moderator");
 
-    const navSections = ADMIN_NAV_SECTIONS.map((group) => ({
-        ...group,
-        items: group.items.filter((item) => {
-            if (item.href === "/admin/admins" || item.href === "/admin/activity-logs") return isSuperAdmin;
-            if (item.href === "/admin/tasks") return isAdminOrSuperAdmin;
-            if (item.permission) return has(item.permission as Parameters<typeof has>[0]);
-            return true;
-        }),
-    })).filter((group) => group.items.length > 0);
+    const navSections = isMember
+        ? MEMBER_NAV_SECTIONS
+        : ADMIN_NAV_SECTIONS.map((group) => ({
+            ...group,
+            items: group.items.filter((item) => {
+                if (item.href === "/admin/admins" || item.href === "/admin/activity-logs") return isSuperAdmin;
+                if (item.href === "/admin/tasks") return isAdminOrSuperAdmin;
+                if ("permission" in item && item.permission) return has(item.permission as Parameters<typeof has>[0]);
+                return true;
+            }),
+        })).filter((group) => group.items.length > 0);
 
     return (
         <div className="flex h-full w-full flex-col bg-white">
@@ -119,7 +135,7 @@ function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-green-1">
                     <User className="h-4 w-4" strokeWidth={2} />
                 </span>
-                <span className="text-[13px] font-medium text-[#001907]">Admin</span>
+                <span className="text-[13px] font-medium text-[#001907]">{isMember ? "Member" : "Admin"}</span>
             </div>
 
             <div className="hide-scrollbar mt-2 min-h-0 flex-1 overflow-y-auto border-t border-gray-9 bg-white px-4 pt-5 pb-5">

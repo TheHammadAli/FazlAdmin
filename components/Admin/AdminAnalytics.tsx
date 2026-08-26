@@ -321,6 +321,7 @@ function AdminAnalytics() {
             icon: Wifi,
             bg: "bg-green-4",
             color: "text-green-1",
+            href: "/admin/users?online=1",
         },
     ];
 

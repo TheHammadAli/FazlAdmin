@@ -5,7 +5,7 @@ import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
-import { ChevronDown, Megaphone, Save, Send, Clock } from "lucide-react";
+import { ChevronDown, Megaphone, Save, Send, Clock, Video as VideoIcon } from "lucide-react";
 import DoodleButton from "@/components/Ui/DoodleButton";
 import Modal from "@/components/Ui/Modals/Modal";
 import {
@@ -36,6 +36,7 @@ export type EditableAnnouncement = {
     title: string;
     message: string;
     image?: string;
+    video?: string;
     targetAudience?: string[];
     category?: string;
     location?: string;
@@ -47,6 +48,11 @@ export type EditableAnnouncement = {
 };
 
 export type AnnouncementFormMode = "add" | { type: "edit"; announcement: EditableAnnouncement };
+
+/** Announcement videos we host ourselves always live under this S3 key prefix — anything else is a pasted link (e.g. YouTube). */
+function isUploadedAnnouncementVideo(url?: string): boolean {
+    return Boolean(url) && url!.includes("/announcements/videos/");
+}
 
 function toDatetimeLocalValue(iso?: string): string {
     if (!iso) return "";
@@ -80,11 +86,15 @@ function AnnouncementFormModal({ open, mode = "add", onClose, onSuccess }: Annou
     const editAnnouncement = isEdit ? mode.announcement : null;
     const modalRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
 
     const [title, setTitle] = useState("");
     const [message, setMessage] = useState("");
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [imageFile, setImageFile] = useState<File | null>(null);
+    const [videoPreview, setVideoPreview] = useState<string | null>(null);
+    const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [videoLink, setVideoLink] = useState("");
     const [targetBuyers, setTargetBuyers] = useState(false);
     const [targetSellers, setTargetSellers] = useState(false);
     const [category, setCategory] = useState("");
@@ -109,6 +119,11 @@ function AnnouncementFormModal({ open, mode = "add", onClose, onSuccess }: Annou
         setMessage(editAnnouncement?.message ?? "");
         setImagePreview(editAnnouncement?.image ?? null);
         setImageFile(null);
+        const existingVideo = editAnnouncement?.video ?? "";
+        const existingVideoIsUpload = isUploadedAnnouncementVideo(existingVideo);
+        setVideoPreview(existingVideoIsUpload ? existingVideo : null);
+        setVideoFile(null);
+        setVideoLink(existingVideoIsUpload ? "" : existingVideo);
         setTargetBuyers(editAnnouncement?.targetAudience?.includes("buyer") ?? false);
         setTargetSellers(editAnnouncement?.targetAudience?.includes("seller") ?? false);
         setCategory(editAnnouncement?.category ?? "");
@@ -167,14 +182,16 @@ function AnnouncementFormModal({ open, mode = "add", onClose, onSuccess }: Annou
         if (location.trim()) fields.location = location.trim();
         if (ctaLabel.trim()) fields.ctaLabel = ctaLabel.trim();
         if (ctaDestination.trim()) fields.ctaDestination = ctaDestination.trim();
+        if (!videoFile && videoLink.trim()) fields.video = videoLink.trim();
         if (scheduledAt) fields.scheduledAt = new Date(scheduledAt).toISOString();
         if (expiresAt) fields.expiresAt = new Date(expiresAt).toISOString();
 
-        const body = imageFile
+        const body = imageFile || videoFile
             ? (() => {
                 const formData = new FormData();
                 Object.entries(fields).forEach(([key, value]) => formData.append(key, value));
-                formData.append("image", imageFile);
+                if (imageFile) formData.append("image", imageFile);
+                if (videoFile) formData.append("video", videoFile);
                 return formData;
             })()
             : fields;
@@ -330,6 +347,71 @@ function AnnouncementFormModal({ open, mode = "add", onClose, onSuccess }: Annou
                                 if (!file) return;
                                 setImageFile(file);
                                 setImagePreview(URL.createObjectURL(file));
+                            }}
+                        />
+                    </div>
+
+                    <div className="mt-5">
+                        <p className="text-[14px] font-normal text-gray-11">Video (optional)</p>
+                        <div className="mt-2 flex items-center gap-4">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E6FBFB]">
+                                {videoPreview ? (
+                                    <video src={videoPreview} className="h-full w-full rounded-full object-cover" muted />
+                                ) : (
+                                    <VideoIcon className="h-5 w-5 text-green-1" strokeWidth={2} />
+                                )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => videoInputRef.current?.click()}
+                                    className="cursor-pointer text-[13px] font-medium text-green-1"
+                                >
+                                    {videoPreview ? "Change video" : "Upload video"}
+                                </button>
+                                {videoPreview && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setVideoFile(null);
+                                            setVideoPreview(null);
+                                            if (videoInputRef.current) videoInputRef.current.value = "";
+                                        }}
+                                        className="cursor-pointer text-[13px] font-medium text-red-1"
+                                    >
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {!videoPreview && (
+                            <div className="mt-3">
+                                <label htmlFor="announcement-video-link" className="text-[13px] font-normal text-gray-11">
+                                    Or paste a video link (e.g. YouTube)
+                                </label>
+                                <input
+                                    id="announcement-video-link"
+                                    type="text"
+                                    value={videoLink}
+                                    onChange={(event) => setVideoLink(event.target.value)}
+                                    placeholder="https://youtube.com/watch?v=..."
+                                    className="mt-1 w-full border-0 border-b border-gray-9 bg-transparent py-2 text-[14px] text-[#001907] outline-none focus:border-green-1"
+                                />
+                            </div>
+                        )}
+
+                        <input
+                            ref={videoInputRef}
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                if (!file) return;
+                                setVideoFile(file);
+                                setVideoLink("");
+                                setVideoPreview(URL.createObjectURL(file));
                             }}
                         />
                     </div>

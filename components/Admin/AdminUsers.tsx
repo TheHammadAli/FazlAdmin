@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronsUpDown, Download, Eye, Pencil } from "lucide-react";
+import { ChevronsUpDown, Download, Eye, Pencil, Wifi, X } from "lucide-react";
 import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
 import Pagination from "@/components/Ui/Pagination";
@@ -147,6 +147,7 @@ function AdminUsers() {
     const [searchInput, setSearchInput] = useState("");
     const [search, setSearch] = useState("");
     const [dateFilter, setDateFilter] = useState<DateFilterValue>("all");
+    const [onlineOnly, setOnlineOnly] = useState(false);
     const [customStartDate, setCustomStartDate] = useState("");
     const [customEndDate, setCustomEndDate] = useState("");
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
@@ -166,6 +167,9 @@ function AdminUsers() {
         if (linkedUserId) {
             setViewingUserId(linkedUserId);
         }
+        if (params.get("online") === "1" || params.get("online") === "true") {
+            setOnlineOnly(true);
+        }
     }, []);
 
     useEffect(() => {
@@ -179,7 +183,7 @@ function AdminUsers() {
 
     useEffect(() => {
         setPage(1);
-    }, [dateFilter, customStartDate, customEndDate]);
+    }, [dateFilter, customStartDate, customEndDate, onlineOnly]);
 
     const { startDate, endDate } = getDateRangeForFilter(
         dateFilter,
@@ -192,7 +196,7 @@ function AdminUsers() {
         isLoading,
         isFetching,
     } = useGetAllUsersFromAdminQuery(
-        { page, limit: PAGE_LIMIT, search, startDate, endDate },
+        { page, limit: PAGE_LIMIT, search, startDate, endDate, online: onlineOnly },
         { pollingInterval: 25000 },
     );
 
@@ -276,6 +280,7 @@ function AdminUsers() {
                 search,
                 startDate,
                 endDate,
+                online: onlineOnly,
             }).unwrap();
             const rows = ((response as AdminUsersResponse)?.data ?? []).map(mapApiUser);
             if (rows.length === 0) {
@@ -508,6 +513,23 @@ function AdminUsers() {
                         </button>
                     </div>
                 </div>
+
+                {onlineOnly && (
+                    <div className="container mx-auto mt-3 px-5 lg:px-10">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-green-4 py-1.5 pl-3 pr-2 text-[13px] font-medium text-green-1">
+                            <Wifi className="h-3.5 w-3.5" strokeWidth={2} />
+                            Showing online users only
+                            <button
+                                type="button"
+                                onClick={() => setOnlineOnly(false)}
+                                aria-label="Clear online filter"
+                                className="cursor-pointer rounded-full p-0.5 hover:bg-white/60"
+                            >
+                                <X className="h-3.5 w-3.5" strokeWidth={2} />
+                            </button>
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div className="bg-white">

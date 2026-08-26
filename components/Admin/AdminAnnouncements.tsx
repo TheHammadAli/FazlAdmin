@@ -24,6 +24,7 @@ type Announcement = {
     createdAt: string;
     status: AnnouncementStatus;
     image?: string;
+    video?: string;
     targetAudience?: string[];
     categoryId?: string;
     location?: string;
@@ -42,6 +43,7 @@ type ApiAnnouncement = {
     createdAt?: string;
     status?: string;
     image?: string;
+    video?: string;
     targetAudience?: string[];
     category?: { _id?: string } | string;
     location?: string;
@@ -97,6 +99,7 @@ function mapApiAnnouncement(announcement: ApiAnnouncement): Announcement {
         createdAt: formatDateTime(announcement.createdAt),
         status: toAnnouncementStatus(announcement.status),
         image: announcement.image,
+        video: announcement.video,
         targetAudience: announcement.targetAudience,
         categoryId,
         location: announcement.location,
@@ -148,6 +151,7 @@ function AdminAnnouncements() {
                 title: announcement.title,
                 message: announcement.message,
                 image: announcement.image,
+                video: announcement.video,
                 targetAudience: announcement.targetAudience,
                 category: announcement.categoryId,
                 location: announcement.location,

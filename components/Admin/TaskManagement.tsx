@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { BeatLoader } from "react-spinners";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { ListTodo, Pencil, Trash2 } from "lucide-react";
+import { ClipboardCheck, ListTodo, Pencil, Trash2 } from "lucide-react";
 import Pagination from "@/components/Ui/Pagination";
 import Modal from "@/components/Ui/Modals/Modal";
 import {
@@ -13,6 +13,7 @@ import {
     useCreateTaskMutation,
     useUpdateTaskMutation,
     useDeleteTaskMutation,
+    useReviewTaskMutation,
     useGetUserDetailQuery,
 } from "@/store/services/adminService";
 import { useAppSelector } from "@/store/store";
@@ -32,6 +33,8 @@ const PRIORITY_OPTIONS = [
 const STATUS_OPTIONS = [
     { value: "pending", label: "Pending" },
     { value: "in_progress", label: "In Progress" },
+    { value: "submitted", label: "Submitted" },
+    { value: "revision", label: "Revision" },
     { value: "completed", label: "Completed" },
     { value: "cancelled", label: "Cancelled" },
 ];
@@ -45,6 +48,8 @@ const PRIORITY_BADGE_STYLES: Record<string, string> = {
 const STATUS_BADGE_STYLES: Record<string, string> = {
     pending: "bg-[#E7F0FF] text-[#2F6FE4]",
     in_progress: "bg-[#FDEAB8] text-[#946200]",
+    submitted: "bg-[#F1E9FE] text-[#7C4FE0]",
+    revision: "bg-[#FDD5D5] text-[#E92440]",
     completed: "bg-green-4 text-green-1",
     cancelled: "bg-gray-10 text-gray-8",
 };
@@ -55,6 +60,14 @@ function labelFor(options: { value: string; label: string }[], value: string) {
 
 type Member = { _id: string; name?: string; email?: string };
 
+type TaskSubmission = {
+    notes?: string;
+    link?: string;
+    attachments?: { url: string; name: string }[];
+    submittedBy?: { _id?: string; name?: string; email?: string } | string;
+    submittedAt?: string;
+};
+
 type ApiTask = {
     _id?: string;
     title?: string;
@@ -64,6 +77,8 @@ type ApiTask = {
     status?: string;
     dueDate?: string;
     createdAt?: string;
+    submissions?: TaskSubmission[];
+    revisionReason?: string;
 };
 
 type Task = {
@@ -75,6 +90,8 @@ type Task = {
     status: string;
     dueDate: string;
     dueDateInput: string;
+    submissions: TaskSubmission[];
+    revisionReason: string;
 };
 
 type TasksResponse = { data?: ApiTask[]; meta?: { total?: number | string; totalPages?: number | string } };
@@ -95,6 +112,8 @@ function mapApiTask(task: ApiTask): Task {
         status: task.status ?? "pending",
         dueDate: task.dueDate ? formatDate(task.dueDate) : "-",
         dueDateInput: task.dueDate ? task.dueDate.slice(0, 10) : "",
+        submissions: task.submissions ?? [],
+        revisionReason: task.revisionReason ?? "",
     };
 }
 
@@ -140,9 +159,15 @@ function TaskManagement() {
     const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
+    const [reviewingTask, setReviewingTask] = useState<Task | null>(null);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [revisionReason, setRevisionReason] = useState("");
+    const [showRevisionInput, setShowRevisionInput] = useState(false);
+
     const createModalRef = useRef<HTMLDivElement>(null);
     const editModalRef = useRef<HTMLDivElement>(null);
     const deleteModalRef = useRef<HTMLDivElement>(null);
+    const reviewModalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -168,6 +193,7 @@ function TaskManagement() {
     const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
     const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
     const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
+    const [reviewTask, { isLoading: isReviewing }] = useReviewTaskMutation();
 
     const tasks = ((tasksResponse as TasksResponse | undefined)?.data ?? []).map(mapApiTask);
     const members = (membersResponse as MembersResponse | undefined)?.data ?? [];
@@ -256,6 +282,36 @@ function TaskManagement() {
             toast.success(response?.message ?? "Task updated successfully");
             setIsEditModalOpen(false);
             setEditingTask(null);
+        } catch (err) {
+            const errorData = err as { data?: { message?: string } };
+            toast.error(errorData?.data?.message ?? "Something went wrong");
+        }
+    }
+
+    function openReviewModal(task: Task) {
+        setReviewingTask(task);
+        setRevisionReason("");
+        setShowRevisionInput(false);
+        setIsReviewModalOpen(true);
+    }
+
+    async function handleReview(decision: "completed" | "revision") {
+        if (!reviewingTask) return;
+        if (decision === "revision" && !revisionReason.trim()) {
+            toast.error("Please write a reason for the revision");
+            return;
+        }
+        try {
+            const response = await reviewTask({
+                id: reviewingTask.id,
+                body: {
+                    decision,
+                    ...(decision === "revision" ? { reason: revisionReason.trim() } : {}),
+                },
+            }).unwrap();
+            toast.success(response?.message ?? "Review saved");
+            setIsReviewModalOpen(false);
+            setReviewingTask(null);
         } catch (err) {
             const errorData = err as { data?: { message?: string } };
             toast.error(errorData?.data?.message ?? "Something went wrong");
@@ -478,6 +534,133 @@ function TaskManagement() {
                 </div>
             </Modal>
 
+            {/* Review submission modal */}
+            <Modal editModalRef={reviewModalRef} open={isReviewModalOpen} setOpen={setIsReviewModalOpen} centered>
+                <div className="hide-scrollbar max-h-[85vh] w-[92vw] max-w-[460px] overflow-y-auto rounded-[12px] bg-white p-6 shadow-xl">
+                    <div className="flex items-start justify-between gap-4">
+                        <h2 className="flex items-center gap-2 text-[18px] font-semibold text-[#001907]">
+                            <ClipboardCheck className="h-5 w-5 text-green-1" strokeWidth={2} />
+                            Review Submission
+                        </h2>
+                        <button
+                            type="button"
+                            onClick={() => setIsReviewModalOpen(false)}
+                            aria-label="Close"
+                            className="inline-flex h-8 w-8 items-center justify-center"
+                        >
+                            <XMarkIcon className="h-5 w-5 text-[#001907]" />
+                        </button>
+                    </div>
+
+                    {(() => {
+                        const latest = reviewingTask?.submissions[reviewingTask.submissions.length - 1];
+                        const submitter =
+                            latest && typeof latest.submittedBy === "object" ? latest.submittedBy?.name : undefined;
+                        return (
+                            <div className="mt-4">
+                                <p className="text-[15px] font-medium text-[#001907]">{reviewingTask?.title}</p>
+                                {latest ? (
+                                    <div className="mt-3 rounded-[8px] border border-gray-9 bg-[#F6F8FA] p-3">
+                                        <p className="text-[12px] text-gray-11">
+                                            Submitted by {submitter ?? "member"}
+                                            {latest.submittedAt ? ` on ${formatDate(latest.submittedAt)}` : ""}
+                                        </p>
+                                        <p className="mt-2 whitespace-pre-line text-[14px] text-[#001907]">
+                                            {latest.notes}
+                                        </p>
+                                        {latest.link && (
+                                            <a
+                                                href={latest.link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="mt-2 block break-all text-[13px] font-medium text-green-1 hover:underline"
+                                            >
+                                                {latest.link}
+                                            </a>
+                                        )}
+                                        {(latest.attachments?.length ?? 0) > 0 && (
+                                            <ul className="mt-2 space-y-1">
+                                                {latest.attachments!.map((file, index) => (
+                                                    <li key={index}>
+                                                        <a
+                                                            href={file.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="break-all text-[13px] font-medium text-green-1 hover:underline"
+                                                        >
+                                                            {file.name}
+                                                        </a>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p className="mt-3 text-[13px] text-gray-11">No submission details found.</p>
+                                )}
+
+                                {showRevisionInput && (
+                                    <div className="mt-4">
+                                        <label className="block text-[14px] font-normal text-gray-11">
+                                            Revision reason
+                                        </label>
+                                        <textarea
+                                            value={revisionReason}
+                                            onChange={(e) => setRevisionReason(e.target.value)}
+                                            rows={3}
+                                            placeholder="Tell the member what needs to change..."
+                                            className="mt-2 w-full rounded-[8px] border border-gray-9 bg-white px-3 py-2 text-[14px] text-[#001907] outline-none focus:border-green-1"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="mt-6 flex gap-3">
+                                    {showRevisionInput ? (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowRevisionInput(false)}
+                                                disabled={isReviewing}
+                                                className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-green-1 text-[14px] font-medium text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                Back
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={isReviewing}
+                                                onClick={() => handleReview("revision")}
+                                                className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-[#E92440] bg-[#E92440] text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {isReviewing ? <BeatLoader color="white" size={8} /> : "Send for Revision"}
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowRevisionInput(true)}
+                                                disabled={isReviewing}
+                                                className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-[#E92440] text-[14px] font-medium text-[#E92440] disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                Request Revision
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={isReviewing}
+                                                onClick={() => handleReview("completed")}
+                                                className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-green-1 bg-green-1 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {isReviewing ? <BeatLoader color="white" size={8} /> : "Approve"}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </div>
+            </Modal>
+
             <div className="bg-[#F6F8FA] pt-10 pb-5">
                 <div className="container mx-auto px-5 lg:px-10">
                     <h1 className="text-[20px] font-semibold text-[#001907] sm:text-[22px]">Tasks</h1>
@@ -592,6 +775,16 @@ function TaskManagement() {
                                             </td>
                                             <td className="py-3.5">
                                                 <div className="flex items-center justify-center gap-4">
+                                                    {task.status === "submitted" && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openReviewModal(task)}
+                                                            className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-[#7C4FE0] hover:underline"
+                                                        >
+                                                            <ClipboardCheck className="h-3.5 w-3.5" />
+                                                            Review
+                                                        </button>
+                                                    )}
                                                     <button
                                                         type="button"
                                                         onClick={() => openEditModal(task)}

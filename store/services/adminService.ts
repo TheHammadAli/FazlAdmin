@@ -2,7 +2,7 @@ import { baseApi } from "../baseApi";
 export const adminService = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getAllUsersFromAdmin: build.query({
-      query: ({ page, limit, search, startDate, endDate }) => {
+      query: ({ page, limit, search, startDate, endDate, online }) => {
         const params = new URLSearchParams({
           page: String(page),
           limit: String(limit),
@@ -15,6 +15,9 @@ export const adminService = baseApi.injectEndpoints({
         }
         if (endDate) {
           params.set("endDate", endDate);
+        }
+        if (online) {
+          params.set("online", "true");
         }
         return {
           url: `/users/allUsers?${params.toString()}`,
@@ -728,6 +731,45 @@ export const adminService = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["ADMIN_TASKS"],
     }),
+    getMyTasks: build.query({
+      query: ({ page, limit, status }: { page: number; limit: number; status?: string }) => {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (status?.trim()) {
+          params.set("status", status.trim());
+        }
+        return {
+          url: `/tasks/my?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["MEMBER_TASKS"],
+    }),
+    getMyTaskStats: build.query({
+      query: () => ({
+        url: `/tasks/my/stats`,
+        method: "GET",
+      }),
+      providesTags: ["MEMBER_TASK_STATS"],
+    }),
+    submitTask: build.mutation({
+      query: ({ id, formData }: { id: string; formData: FormData }) => ({
+        url: `/tasks/${id}/submit`,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["MEMBER_TASKS", "MEMBER_TASK_STATS", "ADMIN_TASKS"],
+    }),
+    reviewTask: build.mutation({
+      query: ({ id, body }: { id: string; body: { decision: string; reason?: string } }) => ({
+        url: `/tasks/${id}/review`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["ADMIN_TASKS", "MEMBER_TASKS", "MEMBER_TASK_STATS"],
+    }),
     getAllActivityLogs: build.query({
       query: ({ page, limit, search, action, role, actorId }) => {
         const params = new URLSearchParams({
@@ -1120,6 +1162,10 @@ export const {
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useGetMyTasksQuery,
+  useGetMyTaskStatsQuery,
+  useSubmitTaskMutation,
+  useReviewTaskMutation,
   useGetWalletDashboardStatsQuery,
   useGetUserWalletsQuery,
   useGetUserWalletDetailQuery,

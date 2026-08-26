@@ -1,7 +1,7 @@
-import AdminDashboard from "@/components/Admin/AdminDashboard";
+import DashboardSwitch from "@/components/Admin/DashboardSwitch";
 
 function AdminPage() {
-  return <AdminDashboard />;
+  return <DashboardSwitch />;
 }
 
 export default AdminPage;
