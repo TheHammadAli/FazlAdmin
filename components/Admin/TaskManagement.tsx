@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { BeatLoader } from "react-spinners";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { ClipboardCheck, ListTodo, Pencil, Trash2 } from "lucide-react";
+import { ClipboardCheck, ListTodo, Paperclip, Pencil, Trash2, X } from "lucide-react";
 import Pagination from "@/components/Ui/Pagination";
 import Modal from "@/components/Ui/Modals/Modal";
 import {
@@ -77,6 +77,7 @@ type ApiTask = {
     status?: string;
     dueDate?: string;
     createdAt?: string;
+    attachments?: { url: string; name: string }[];
     submissions?: TaskSubmission[];
     revisionReason?: string;
 };
@@ -90,6 +91,7 @@ type Task = {
     status: string;
     dueDate: string;
     dueDateInput: string;
+    attachments: { url: string; name: string }[];
     submissions: TaskSubmission[];
     revisionReason: string;
 };
@@ -112,6 +114,7 @@ function mapApiTask(task: ApiTask): Task {
         status: task.status ?? "pending",
         dueDate: task.dueDate ? formatDate(task.dueDate) : "-",
         dueDateInput: task.dueDate ? task.dueDate.slice(0, 10) : "",
+        attachments: task.attachments ?? [],
         submissions: task.submissions ?? [],
         revisionReason: task.revisionReason ?? "",
     };
@@ -155,6 +158,8 @@ function TaskManagement() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
+    const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+    const attachmentInputRef = useRef<HTMLInputElement>(null);
 
     const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -208,6 +213,7 @@ function TaskManagement() {
 
     function openCreateModal() {
         setForm(EMPTY_FORM);
+        setAttachmentFiles([]);
         setIsCreateModalOpen(true);
     }
 
@@ -221,7 +227,29 @@ function TaskManagement() {
             status: task.status,
             dueDate: task.dueDateInput,
         });
+        setAttachmentFiles([]);
         setIsEditModalOpen(true);
+    }
+
+    function handleAttachmentsChosen(fileList: FileList | null) {
+        if (!fileList) return;
+        setAttachmentFiles((prev) => [...prev, ...Array.from(fileList)].slice(0, 5));
+    }
+
+    function removeAttachmentFile(index: number) {
+        setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
+    }
+
+    function buildTaskFormData(withStatus: boolean) {
+        const formData = new FormData();
+        formData.append("title", form.title);
+        if (form.description) formData.append("description", form.description);
+        formData.append("assignees", JSON.stringify(form.assignees));
+        formData.append("priority", form.priority);
+        if (withStatus) formData.append("status", form.status);
+        if (form.dueDate) formData.append("dueDate", form.dueDate);
+        attachmentFiles.forEach((file) => formData.append("attachments", file));
+        return formData;
     }
 
     function toggleAssignee(memberId: string) {
@@ -245,15 +273,10 @@ function TaskManagement() {
             return;
         }
         try {
-            const response = await createTask({
-                title: form.title,
-                description: form.description || undefined,
-                assignees: form.assignees,
-                priority: form.priority,
-                dueDate: form.dueDate || undefined,
-            }).unwrap();
+            const response = await createTask(buildTaskFormData(false)).unwrap();
             toast.success(response?.message ?? "Task created successfully");
             setIsCreateModalOpen(false);
+            setAttachmentFiles([]);
         } catch (err) {
             const errorData = err as { data?: { message?: string } };
             toast.error(errorData?.data?.message ?? "Something went wrong");
@@ -270,18 +293,12 @@ function TaskManagement() {
         try {
             const response = await updateTask({
                 id: editingTask.id,
-                body: {
-                    title: form.title,
-                    description: form.description || undefined,
-                    assignees: form.assignees,
-                    priority: form.priority,
-                    status: form.status,
-                    dueDate: form.dueDate || undefined,
-                },
+                body: buildTaskFormData(true),
             }).unwrap();
             toast.success(response?.message ?? "Task updated successfully");
             setIsEditModalOpen(false);
             setEditingTask(null);
+            setAttachmentFiles([]);
         } catch (err) {
             const errorData = err as { data?: { message?: string } };
             toast.error(errorData?.data?.message ?? "Something went wrong");
@@ -383,6 +400,68 @@ function TaskManagement() {
                         </label>
                     ))}
                 </div>
+            </div>
+
+            <div className="mt-4">
+                <label className="block text-[14px] font-normal text-gray-11">
+                    Attachments (optional, up to 5)
+                </label>
+                {isEditModalOpen && (editingTask?.attachments.length ?? 0) > 0 && (
+                    <ul className="mt-2 space-y-1">
+                        {editingTask!.attachments.map((file, index) => (
+                            <li key={`existing-${index}`}>
+                                <a
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 break-all text-[13px] font-medium text-green-1 hover:underline"
+                                >
+                                    <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                                    {file.name}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+                <button
+                    type="button"
+                    onClick={() => attachmentInputRef.current?.click()}
+                    disabled={attachmentFiles.length >= 5}
+                    className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-[8px] border border-gray-9 px-3 py-2 text-[13px] font-medium text-gray-8 hover:border-green-1 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    <Paperclip className="h-4 w-4" strokeWidth={2} />
+                    Add files
+                </button>
+                <input
+                    ref={attachmentInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                        handleAttachmentsChosen(e.target.files);
+                        e.target.value = "";
+                    }}
+                />
+                {attachmentFiles.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                        {attachmentFiles.map((file, index) => (
+                            <li
+                                key={`${file.name}-${index}`}
+                                className="flex items-center justify-between gap-2 rounded-[8px] bg-gray-10 px-3 py-1.5 text-[13px] text-[#001907]"
+                            >
+                                <span className="min-w-0 truncate">{file.name}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => removeAttachmentFile(index)}
+                                    aria-label={`Remove ${file.name}`}
+                                    className="shrink-0 cursor-pointer text-gray-8 hover:text-[#E92440]"
+                                >
+                                    <X className="h-3.5 w-3.5" strokeWidth={2} />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3">

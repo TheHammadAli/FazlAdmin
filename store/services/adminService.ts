@@ -703,26 +703,20 @@ export const adminService = baseApi.injectEndpoints({
       providesTags: ["ADMIN_TASKS"],
     }),
     createTask: build.mutation({
-      query: (body: {
-        title: string;
-        description?: string;
-        assignees: string[];
-        priority?: string;
-        dueDate?: string;
-      }) => ({
+      query: (body: FormData) => ({
         url: `/tasks`,
         method: "POST",
         body,
       }),
-      invalidatesTags: ["ADMIN_TASKS"],
+      invalidatesTags: ["ADMIN_TASKS", "MEMBER_TASKS", "MEMBER_TASK_STATS"],
     }),
     updateTask: build.mutation({
-      query: ({ id, body }) => ({
+      query: ({ id, body }: { id: string; body: FormData }) => ({
         url: `/tasks/${id}`,
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["ADMIN_TASKS"],
+      invalidatesTags: ["ADMIN_TASKS", "MEMBER_TASKS", "MEMBER_TASK_STATS"],
     }),
     deleteTask: build.mutation({
       query: (id: string) => ({

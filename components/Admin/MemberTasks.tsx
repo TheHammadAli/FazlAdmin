@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Paperclip } from "lucide-react";
 import Pagination from "@/components/Ui/Pagination";
 import { useGetMyTasksQuery } from "@/store/services/adminService";
 import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
@@ -52,6 +53,7 @@ type ApiTask = {
     status?: string;
     dueDate?: string;
     createdBy?: { name?: string; email?: string };
+    attachments?: { url: string; name: string }[];
     revisionReason?: string;
 };
 
@@ -177,6 +179,23 @@ function MemberTasks() {
                                                     <p className="mt-1 max-w-[320px] text-[12px] text-gray-11">
                                                         {task.description}
                                                     </p>
+                                                )}
+                                                {(task.attachments?.length ?? 0) > 0 && (
+                                                    <ul className="mt-1.5 space-y-1">
+                                                        {task.attachments!.map((file, index) => (
+                                                            <li key={index}>
+                                                                <a
+                                                                    href={file.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-1.5 break-all text-[12px] font-medium text-green-1 hover:underline"
+                                                                >
+                                                                    <Paperclip className="h-3 w-3 shrink-0" />
+                                                                    {file.name}
+                                                                </a>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
                                                 )}
                                             </td>
                                             <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
