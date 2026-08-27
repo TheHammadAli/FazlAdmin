@@ -21,6 +21,7 @@ import { setAdminRoleCookie } from "@/utils/authCookies";
 export type Body = {
   email?: string;
   password?: string;
+  loginContext?: "web" | "admin";
 };
 
 const SIGNIN_ERROR_TOAST_ID = "signin-error";
@@ -82,7 +83,7 @@ function Signin() {
 
     try {
       toast.dismiss(SIGNIN_ERROR_TOAST_ID);
-      const body: Body = { email, password };
+      const body: Body = { email, password, loginContext: "admin" };
 
       const res = await signin(body).unwrap();
 

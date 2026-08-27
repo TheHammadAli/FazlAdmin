@@ -143,9 +143,14 @@ function MemberManagement() {
             const response = await createMember(createForm).unwrap();
             toast.success(response?.message ?? "Member created successfully");
             setIsCreateModalOpen(false);
-            setPasswordModalHeading("Member Created");
-            setGeneratedPassword(response?.data?.generatedPassword ?? null);
-            setIsPasswordModalOpen(true);
+            const password = response?.data?.generatedPassword;
+            if (password) {
+                // Brand-new account — show the one-time password to copy/share.
+                setPasswordModalHeading("Member Created");
+                setGeneratedPassword(password);
+                setIsPasswordModalOpen(true);
+            }
+            // Existing user promoted to member: no new password — they keep logging in as before.
         } catch (err) {
             const errorData = err as { data?: { message?: string } };
             toast.error(errorData?.data?.message ?? "Something went wrong");
@@ -257,6 +262,9 @@ function MemberManagement() {
                             onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
                             className="mt-2 w-full rounded-[8px] border border-gray-9 bg-white px-3 py-2 text-[14px] text-[#001907] outline-none focus:border-green-1"
                         />
+                        <p className="mt-1 text-[12px] text-gray-11">
+                            If this email already has an account, member access is added to it with a separate admin-panel password — their existing account password is unaffected.
+                        </p>
                         <div className="mt-6 flex gap-3">
                             <button
                                 type="button"

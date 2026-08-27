@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Megaphone, Pencil, Plus } from "lucide-react";
+import { Eye, Megaphone, Pencil, Plus } from "lucide-react";
 import Pagination from "@/components/Ui/Pagination";
 import DoodleButton from "@/components/Ui/DoodleButton";
 import AnnouncementFormModal, {
     type AnnouncementFormMode,
 } from "@/components/Admin/AnnouncementFormModal";
+import AnnouncementViewersModal from "@/components/Admin/AnnouncementViewersModal";
 import { useGetAllAnnouncementsForAdminQuery } from "@/store/services/adminService";
 import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
@@ -116,6 +117,7 @@ function AdminAnnouncements() {
     const [page, setPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [formMode, setFormMode] = useState<AnnouncementFormMode>("add");
+    const [viewersTarget, setViewersTarget] = useState<Announcement | null>(null);
 
     const {
         data: announcementsResponse,
@@ -173,6 +175,15 @@ function AdminAnnouncements() {
                 onClose={() => setIsFormOpen(false)}
                 onSuccess={() => setPage(1)}
             />
+
+            {viewersTarget && (
+                <AnnouncementViewersModal
+                    open={viewersTarget != null}
+                    onClose={() => setViewersTarget(null)}
+                    announcementId={viewersTarget.id}
+                    announcementTitle={viewersTarget.title}
+                />
+            )}
 
             <div className="bg-[#F6F8FA] pt-10 pb-5">
                 <div className="container mx-auto flex flex-wrap items-start justify-between gap-4 px-5 lg:px-10">
@@ -271,17 +282,29 @@ function AdminAnnouncements() {
                                                 </span>
                                             </td>
                                             <td className="whitespace-nowrap py-3.5 pr-4">
-                                                {announcement.status === "draft" && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openEditForm(announcement)}
-                                                        disabled={!canSend}
-                                                        className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-green-1 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
-                                                    >
-                                                        <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
-                                                        Edit
-                                                    </button>
-                                                )}
+                                                <div className="flex items-center gap-4">
+                                                    {announcement.status !== "draft" && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setViewersTarget(announcement)}
+                                                            className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-[#2F6FE4] hover:underline"
+                                                        >
+                                                            <Eye className="h-3.5 w-3.5" strokeWidth={2} />
+                                                            Views
+                                                        </button>
+                                                    )}
+                                                    {announcement.status === "draft" && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openEditForm(announcement)}
+                                                            disabled={!canSend}
+                                                            className="inline-flex cursor-pointer items-center gap-1 text-[13px] font-medium text-green-1 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                                                            Edit
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

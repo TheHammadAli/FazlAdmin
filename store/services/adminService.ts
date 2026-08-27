@@ -645,6 +645,12 @@ export const adminService = baseApi.injectEndpoints({
         return { url: `/${resource}/${itemId}/admin/viewers?${params.toString()}`, method: "GET" };
       },
     }),
+    getAnnouncementViewers: build.query({
+      query: ({ announcementId, page, limit }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        return { url: `/announcements/${announcementId}/admin/viewers?${params.toString()}`, method: "GET" };
+      },
+    }),
     getAllMembers: build.query({
       query: () => ({
         url: `/users/members`,
@@ -1180,6 +1186,7 @@ export const {
   useGetFeedLikersQuery,
   useGetFeedSharersQuery,
   useGetFeedViewersQuery,
+  useGetAnnouncementViewersQuery,
   useGetAllMembersQuery,
   useCreateMemberMutation,
   useUpdateMemberMutation,
