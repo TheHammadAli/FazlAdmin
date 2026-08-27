@@ -17,6 +17,7 @@ import {
     Mail,
     Tags,
     Star,
+    Heart,
     ChevronRight,
 } from "lucide-react";
 import {
@@ -29,6 +30,7 @@ import {
     useGetFeedVideosQuery,
     useGetAllCategoriesForAdminQuery,
     useGetAllReviewsForAdminQuery,
+    useGetTotalLikeCountQuery,
 } from "@/store/services/adminService";
 import DateRangeFilter, { type DateFilterValue } from "@/components/Ui/DateRangeFilter";
 import AdminProfileMenu from "@/components/Admin/AdminProfileMenu";
@@ -88,6 +90,12 @@ type CategoriesResponse = {
 type ReviewsResponse = {
     meta?: {
         total?: number | string;
+    };
+};
+
+type LikesResponse = {
+    data?: {
+        total?: number;
     };
 };
 
@@ -201,6 +209,15 @@ function AdminDashboard() {
     const totalReviews = (reviewsResponse as ReviewsResponse | undefined)?.meta?.total;
     const loadingReviews = isReviewsLoading || isReviewsFetching;
 
+    const {
+        data: likesResponse,
+        isLoading: isLikesLoading,
+        isFetching: isLikesFetching,
+    } = useGetTotalLikeCountQuery(undefined);
+
+    const totalLikes = (likesResponse as LikesResponse | undefined)?.data?.total;
+    const loadingLikes = isLikesLoading || isLikesFetching;
+
     const stats: StatCard[] = [
         {
             label: "Total Users",
@@ -273,6 +290,14 @@ function AdminDashboard() {
             bg: "bg-[#FDEAB8]",
             color: "text-[#946200]",
             href: "/admin/reviews",
+        },
+        {
+            label: "Total Likes",
+            value: loadingLikes ? "..." : String(totalLikes ?? 0),
+            icon: Heart,
+            bg: "bg-[#FDD5D5]",
+            color: "text-[#E92440]",
+            href: "/admin/feed",
         },
         {
             label: "Pending Shop Approvals",

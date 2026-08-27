@@ -626,6 +626,12 @@ export const adminService = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["ADMIN_FEED"],
     }),
+    getTotalLikeCount: build.query({
+      query: () => ({
+        url: `/likes/admin/total-count`,
+        method: "GET",
+      }),
+    }),
     getFeedLikers: build.query({
       query: ({ itemId, itemType, page, limit }) => {
         const params = new URLSearchParams({ page: String(page), limit: String(limit) });
@@ -1186,6 +1192,7 @@ export const {
   useGetFeedLikersQuery,
   useGetFeedSharersQuery,
   useGetFeedViewersQuery,
+  useGetTotalLikeCountQuery,
   useGetAnnouncementViewersQuery,
   useGetAllMembersQuery,
   useCreateMemberMutation,
