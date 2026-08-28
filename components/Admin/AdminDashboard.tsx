@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
@@ -19,6 +19,7 @@ import {
     Star,
     Heart,
     ChevronRight,
+    ChevronDown,
 } from "lucide-react";
 import {
     useGetAllUsersFromAdminQuery,
@@ -107,6 +108,10 @@ type StatCard = {
     color: string;
     comingSoon?: boolean;
     href?: string;
+    // For totals that span several sections — likes are counted across feed
+    // videos, listings and services — so the card offers a choice of
+    // destination instead of guessing one.
+    links?: { label: string; href: string }[];
 };
 
 function IconBadge({ icon: Icon, bg, color }: { icon: LucideIcon; bg: string; color: string }) {
@@ -218,6 +223,32 @@ function AdminDashboard() {
     const totalLikes = (likesResponse as LikesResponse | undefined)?.data?.total;
     const loadingLikes = isLikesLoading || isLikesFetching;
 
+    // Label of the card whose destination menu is open, or null when none is.
+    // Only one can be open at a time, so a single ref is enough to detect an
+    // outside click.
+    const [openMenuFor, setOpenMenuFor] = useState<string | null>(null);
+    const menuRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (!openMenuFor) return;
+
+        const closeOnOutsideClick = (event: MouseEvent) => {
+            if (!menuRef.current?.contains(event.target as Node)) {
+                setOpenMenuFor(null);
+            }
+        };
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setOpenMenuFor(null);
+        };
+
+        document.addEventListener("mousedown", closeOnOutsideClick);
+        document.addEventListener("keydown", closeOnEscape);
+        return () => {
+            document.removeEventListener("mousedown", closeOnOutsideClick);
+            document.removeEventListener("keydown", closeOnEscape);
+        };
+    }, [openMenuFor]);
+
     const stats: StatCard[] = [
         {
             label: "Total Users",
@@ -297,7 +328,11 @@ function AdminDashboard() {
             icon: Heart,
             bg: "bg-[#FDD5D5]",
             color: "text-[#E92440]",
-            href: "/admin/feed",
+            links: [
+                { label: "Feed likes", href: "/admin/feed" },
+                { label: "Listing likes", href: "/admin/listings" },
+                { label: "Service likes", href: "/admin/services" },
+            ],
         },
         {
             label: "Pending Shop Approvals",
@@ -408,14 +443,51 @@ function AdminDashboard() {
                                     </div>
                                 </div>
 
-                                {stat.href && (
-                                    <Link
-                                        href={stat.href}
-                                        className="mt-3 inline-flex items-center gap-1 self-end text-[12px] font-medium text-green-1 hover:underline"
+                                {stat.links ? (
+                                    <div
+                                        className="relative mt-3 self-end"
+                                        ref={openMenuFor === stat.label ? menuRef : undefined}
                                     >
-                                        View Details
-                                        <ChevronRight className="h-3.5 w-3.5" />
-                                    </Link>
+                                        <button
+                                            type="button"
+                                            aria-expanded={openMenuFor === stat.label}
+                                            onClick={() =>
+                                                setOpenMenuFor((current) =>
+                                                    current === stat.label ? null : stat.label,
+                                                )
+                                            }
+                                            className="inline-flex cursor-pointer items-center gap-1 text-[12px] font-medium text-green-1 hover:underline"
+                                        >
+                                            View Details
+                                            <ChevronDown className="h-3.5 w-3.5" />
+                                        </button>
+
+                                        {openMenuFor === stat.label && (
+                                            <div className="absolute right-0 z-20 mt-1 w-[150px] overflow-hidden rounded-[8px] border border-gray-9 bg-white shadow-lg">
+                                                {stat.links.map((link) => (
+                                                    <Link
+                                                        key={link.href}
+                                                        href={link.href}
+                                                        onClick={() => setOpenMenuFor(null)}
+                                                        className="flex items-center justify-between gap-2 px-3 py-2 text-[12px] font-medium text-[#001907] hover:bg-gray-10"
+                                                    >
+                                                        {link.label}
+                                                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-6" />
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    stat.href && (
+                                        <Link
+                                            href={stat.href}
+                                            className="mt-3 inline-flex items-center gap-1 self-end text-[12px] font-medium text-green-1 hover:underline"
+                                        >
+                                            View Details
+                                            <ChevronRight className="h-3.5 w-3.5" />
+                                        </Link>
+                                    )
                                 )}
                             </div>
                         ))}
