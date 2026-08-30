@@ -112,11 +112,12 @@ function mapApiAdminAccount(account: ApiAdminAccount): AdminAccount {
 type FormState = {
     name: string;
     email: string;
+    password: string;
     role: AdminRole;
     permissions: PermissionEntry[];
 };
 
-const EMPTY_FORM: FormState = { name: "", email: "", role: "admin", permissions: [] };
+const EMPTY_FORM: FormState = { name: "", email: "", password: "", role: "admin", permissions: [] };
 
 type PendingStatusChange = {
     admin: AdminAccount;
@@ -196,7 +197,7 @@ function AdminAccounts() {
     const loading = isLoading || isFetching;
 
     function openCreateModal() {
-        setForm(EMPTY_FORM);
+        setForm({ ...EMPTY_FORM, password: generateSuggestedPassword() });
         setIsCreateModalOpen(true);
     }
 
@@ -205,6 +206,7 @@ function AdminAccounts() {
         setForm({
             name: admin.name,
             email: admin.email,
+            password: "",
             role: admin.role,
             permissions: admin.permissions,
         });
@@ -345,6 +347,29 @@ function AdminAccounts() {
                             onChange={(e) => setForm({ ...form, email: e.target.value })}
                             className="mt-2 w-full rounded-[8px] border border-gray-9 bg-white px-3 py-2 text-[14px] text-[#001907] outline-none focus:border-green-1"
                         />
+                        <label className="mt-4 block text-[14px] font-normal text-gray-11">Password</label>
+                        <div className="mt-2 flex items-center gap-2">
+                            <input
+                                type="text"
+                                required
+                                minLength={8}
+                                value={form.password}
+                                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                                className="w-full rounded-[8px] border border-gray-9 bg-white px-3 py-2 font-mono text-[14px] text-[#001907] outline-none focus:border-green-1"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setForm({ ...form, password: generateSuggestedPassword() })}
+                                aria-label="Regenerate suggested password"
+                                className="inline-flex h-[38px] shrink-0 cursor-pointer items-center gap-1 rounded-[8px] border border-gray-9 px-3 text-[13px] font-medium text-gray-8 hover:border-green-1 hover:text-green-1"
+                            >
+                                <RefreshCw className="h-3.5 w-3.5" />
+                                Regenerate
+                            </button>
+                        </div>
+                        <p className="mt-1.5 text-[12px] text-gray-11">
+                            This is the password used to log into the admin panel. Minimum 8 characters.
+                        </p>
                         <label className="mt-4 block text-[14px] font-normal text-gray-11">Role</label>
                         <select
                             value={form.role}
