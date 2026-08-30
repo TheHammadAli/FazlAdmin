@@ -514,7 +514,6 @@ export const adminService = baseApi.injectEndpoints({
       query: (body: {
         name: string;
         email: string;
-        password?: string;
         role: string;
         permissions?: { page: string; actions: string[] }[];
       }) => ({
