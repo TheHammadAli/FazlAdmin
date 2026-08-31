@@ -31,6 +31,7 @@ import {
     useGetFeedVideosQuery,
     useGetAllCategoriesForAdminQuery,
     useGetAllReviewsForAdminQuery,
+    useGetAllReportsForAdminQuery,
     useGetTotalLikeCountQuery,
 } from "@/store/services/adminService";
 import DateRangeFilter, { type DateFilterValue } from "@/components/Ui/DateRangeFilter";
@@ -89,6 +90,12 @@ type CategoriesResponse = {
 };
 
 type ReviewsResponse = {
+    meta?: {
+        total?: number | string;
+    };
+};
+
+type ReportsResponse = {
     meta?: {
         total?: number | string;
     };
@@ -213,6 +220,15 @@ function AdminDashboard() {
 
     const totalReviews = (reviewsResponse as ReviewsResponse | undefined)?.meta?.total;
     const loadingReviews = isReviewsLoading || isReviewsFetching;
+
+    const {
+        data: reportsResponse,
+        isLoading: isReportsLoading,
+        isFetching: isReportsFetching,
+    } = useGetAllReportsForAdminQuery({ page: 1, limit: 1, status: "open" });
+
+    const totalOpenReports = (reportsResponse as ReportsResponse | undefined)?.meta?.total;
+    const loadingReports = isReportsLoading || isReportsFetching;
 
     const {
         data: likesResponse,
@@ -363,8 +379,7 @@ function AdminDashboard() {
         },
         {
             label: "Pending Reports",
-            value: "3",
-            comingSoon: true,
+            value: loadingReports ? "..." : String(totalOpenReports ?? 0),
             icon: Flag,
             bg: "bg-[#FDD5D5]",
             color: "text-[#E92440]",

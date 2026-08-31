@@ -846,6 +846,43 @@ export const adminService = baseApi.injectEndpoints({
       providesTags: ["ADMIN_REVIEWS"],
     }),
 
+    // ---- Reports ----
+    getAllReportsForAdmin: build.query({
+      query: ({ page, limit, entityType, status, reason, search, startDate, endDate }) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (entityType) params.set("entityType", entityType);
+        if (status) params.set("status", status);
+        if (reason) params.set("reason", reason);
+        if (search?.trim()) params.set("search", search.trim());
+        if (startDate) params.set("startDate", startDate);
+        if (endDate) params.set("endDate", endDate);
+        return { url: `/reports/admin/all?${params.toString()}`, method: "GET" };
+      },
+      providesTags: ["ADMIN_REPORTS"],
+    }),
+    closeReport: build.mutation({
+      query: ({ id }: { id: string }) => ({
+        url: `/reports/admin/${id}/close`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["ADMIN_REPORTS"],
+    }),
+    removeReportedContent: build.mutation({
+      query: ({ id }: { id: string }) => ({
+        url: `/reports/admin/${id}/remove-content`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["ADMIN_REPORTS"],
+    }),
+    respondToReport: build.mutation({
+      query: ({ id, response }: { id: string; response: string }) => ({
+        url: `/reports/admin/${id}/respond`,
+        method: "PATCH",
+        body: { response },
+      }),
+      invalidatesTags: ["ADMIN_REPORTS"],
+    }),
+
     // ---- Wallet: Dashboard ----
     getWalletDashboardStats: build.query({
       query: (arg) => {
@@ -1183,6 +1220,10 @@ export const {
   useGetAllEmailLogsQuery,
   useGetEmailLogStatsQuery,
   useGetAllReviewsForAdminQuery,
+  useGetAllReportsForAdminQuery,
+  useCloseReportMutation,
+  useRemoveReportedContentMutation,
+  useRespondToReportMutation,
   useGetFeedVideosQuery,
   useSuspendFeedVideoMutation,
   useEnableFeedVideoMutation,
