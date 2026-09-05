@@ -204,13 +204,14 @@ function AdminCategories() {
         }
         downloadCsv(
             `${activeTab}-categories-${new Date().toISOString().slice(0, 10)}.csv`,
-            ["Sort Number", "Category Name (EN)", "Category Name (UR)", "Status", "Created Date"],
+            ["Sort Number", "Category Name (EN)", "Category Name (UR)", "Status", "Created Date", "Parameters (JSON)"],
             tabCategories.map((category) => [
                 category.sortNumber ?? "",
                 category.name.en,
                 category.name.ur,
                 STATUS_STYLES[category.status].label,
                 csvText(category.createdAt),
+                JSON.stringify(category.parameters ?? { en: [], ur: [] }),
             ]),
         );
     }
