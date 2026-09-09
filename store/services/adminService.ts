@@ -403,6 +403,20 @@ export const adminService = baseApi.injectEndpoints({
       }),
       providesTags: ["ADMIN_BROADCASTS"],
     }),
+    getBroadcastOffers: build.query({
+      query: (broadcastId: string) => ({
+        url: `/broadcast/admin/${broadcastId}/offers`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_BROADCASTS"],
+    }),
+    getProductOffers: build.query({
+      query: (productId: string) => ({
+        url: `/products/admin/${productId}/offers`,
+        method: "GET",
+      }),
+      providesTags: ["ADMIN_PRODUCTS"],
+    }),
     getBroadcastThreadMessages: build.query({
       query: ({ broadcastId, sellerId, page, limit }) => {
         const params = new URLSearchParams({
@@ -1198,6 +1212,8 @@ export const {
   useGetAllBroadcastsForAdminQuery,
   useGetBroadcastDetailQuery,
   useGetBroadcastRecipientsQuery,
+  useGetBroadcastOffersQuery,
+  useGetProductOffersQuery,
   useGetBroadcastThreadMessagesQuery,
   useCloseBroadcastMutation,
   useDeleteBroadcastMutation,

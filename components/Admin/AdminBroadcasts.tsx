@@ -8,6 +8,7 @@ import { Ban, Eye, Trash2 } from "lucide-react";
 import Pagination from "@/components/Ui/Pagination";
 import Modal from "@/components/Ui/Modals/Modal";
 import BroadcastRecipientsModal from "@/components/Admin/BroadcastRecipientsModal";
+import OffersModal from "@/components/Admin/OffersModal";
 import BroadcastDetailModal from "@/components/Admin/BroadcastDetailModal";
 import {
     useGetAllBroadcastsForAdminQuery,
@@ -43,6 +44,7 @@ type Broadcast = {
     status: BroadcastStatus;
     sentTo: number;
     repliedSellers: number;
+    offerCount: number;
     createdAt: string;
 };
 
@@ -56,6 +58,7 @@ type ApiBroadcast = {
     status?: BroadcastStatus;
     sentTo?: number;
     repliedSellers?: number;
+    offerCount?: number;
     createdAt?: string;
 };
 
@@ -89,6 +92,7 @@ function mapApiBroadcast(broadcast: ApiBroadcast): Broadcast {
         status: broadcast.status ?? "open",
         sentTo: broadcast.sentTo ?? 0,
         repliedSellers: broadcast.repliedSellers ?? 0,
+        offerCount: broadcast.offerCount ?? 0,
         createdAt: formatDate(broadcast.createdAt),
     };
 }
@@ -110,6 +114,7 @@ function AdminBroadcasts() {
     const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [recipientsBroadcast, setRecipientsBroadcast] = useState<Broadcast | null>(null);
+    const [offersBroadcast, setOffersBroadcast] = useState<Broadcast | null>(null);
     const [viewingBroadcastId, setViewingBroadcastId] = useState<string | null>(null);
     const confirmModalRef = useRef<HTMLDivElement>(null);
 
@@ -219,6 +224,13 @@ function AdminBroadcasts() {
                 </div>
             </Modal>
 
+            <OffersModal
+                kind="broadcast"
+                entityId={offersBroadcast?.id ?? null}
+                subtitle={offersBroadcast?.broadcastCode ?? undefined}
+                onClose={() => setOffersBroadcast(null)}
+            />
+
             <BroadcastRecipientsModal
                 broadcastId={recipientsBroadcast?.id ?? null}
                 broadcastCode={recipientsBroadcast?.broadcastCode}
@@ -282,7 +294,7 @@ function AdminBroadcasts() {
             <div className="bg-white">
                 <div className="container px-5 lg:px-10 mx-auto mt-4">
                     <div className="overflow-x-auto">
-                        <table className="min-w-[1060px] w-full">
+                        <table className="min-w-[1160px] w-full">
                             <thead>
                                 <tr className="text-left">
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
@@ -307,6 +319,9 @@ function AdminBroadcasts() {
                                         Replied
                                     </th>
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Offers
+                                    </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Created
                                     </th>
                                     <th className="py-3 text-center text-[14px] font-medium text-[#001907]">
@@ -318,7 +333,7 @@ function AdminBroadcasts() {
                                 {loading &&
                                     Array.from({ length: PAGE_LIMIT }).map((_, index) => (
                                         <tr key={`skeleton-${index}`} className="bg-white">
-                                            {Array.from({ length: 9 }).map((__, cellIndex) => (
+                                            {Array.from({ length: 10 }).map((__, cellIndex) => (
                                                 <td key={cellIndex} className="py-3.5 pr-4">
                                                     <div className="h-4 w-full max-w-[160px] animate-pulse rounded bg-gray-200" />
                                                 </td>
@@ -329,7 +344,7 @@ function AdminBroadcasts() {
                                 {!loading && broadcasts.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={9}
+                                            colSpan={10}
                                             className="py-8 text-center text-[14px] text-gray-11"
                                         >
                                             No broadcasts found
@@ -374,6 +389,19 @@ function AdminBroadcasts() {
                                             </td>
                                             <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
                                                 {broadcast.repliedSellers}
+                                            </td>
+                                            <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
+                                                {broadcast.offerCount > 0 ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setOffersBroadcast(broadcast)}
+                                                        className="cursor-pointer font-medium text-green-1 hover:underline"
+                                                    >
+                                                        {broadcast.offerCount}
+                                                    </button>
+                                                ) : (
+                                                    broadcast.offerCount
+                                                )}
                                             </td>
                                             <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
                                                 {broadcast.createdAt}

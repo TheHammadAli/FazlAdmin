@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import Pagination from "@/components/Ui/Pagination";
 import Modal from "@/components/Ui/Modals/Modal";
 import ListingDetailModal from "@/components/Admin/ListingDetailModal";
+import OffersModal from "@/components/Admin/OffersModal";
 import {
     useDeleteProductMutation,
     useGetAllProductsForAdminQuery,
@@ -31,6 +32,7 @@ type AdminListing = {
     category: string;
     price: number;
     createdAt: string;
+    offerCount: number;
 };
 
 type ApiAdminListing = {
@@ -42,6 +44,7 @@ type ApiAdminListing = {
     category?: { name?: { en?: string; ur?: string } } | string;
     price?: number;
     createdAt?: string;
+    offerCount?: number;
 };
 
 type AdminListingsResponse = {
@@ -67,6 +70,7 @@ function mapApiListing(product: ApiAdminListing): AdminListing {
         category: getFeedCategoryLabel(product.category ?? "", "en") || "-",
         price: product.price ?? 0,
         createdAt,
+        offerCount: product.offerCount ?? 0,
     };
 }
 
@@ -76,6 +80,7 @@ function AdminListings() {
     const [searchInput, setSearchInput] = useState("");
     const [search, setSearch] = useState("");
     const [viewingProductId, setViewingProductId] = useState<string | null>(null);
+    const [offersListing, setOffersListing] = useState<AdminListing | null>(null);
     const [deletingListing, setDeletingListing] = useState<AdminListing | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const deleteModalRef = useRef<HTMLDivElement>(null);
@@ -128,12 +133,13 @@ function AdminListings() {
             }
             downloadCsv(
                 `listings-${new Date().toISOString().slice(0, 10)}.csv`,
-                ["Listing ID", "Title", "Category", "Price", "Created Date"],
+                ["Listing ID", "Title", "Category", "Price", "Offers", "Created Date"],
                 rows.map((listing) => [
                     listing.listingCode,
                     listing.title,
                     listing.category,
                     listing.price,
+                    listing.offerCount,
                     csvText(listing.createdAt),
                 ]),
             );
@@ -165,6 +171,13 @@ function AdminListings() {
 
     return (
         <section>
+            <OffersModal
+                kind="listing"
+                entityId={offersListing?.id ?? null}
+                subtitle={offersListing?.title}
+                onClose={() => setOffersListing(null)}
+            />
+
             <ListingDetailModal
                 productId={viewingProductId}
                 onClose={() => setViewingProductId(null)}
@@ -258,7 +271,7 @@ function AdminListings() {
             <div className="bg-white">
                 <div className="container px-5 lg:px-10 mx-auto mt-4">
                     <div className="overflow-x-auto">
-                        <table className="min-w-[720px] w-full">
+                        <table className="min-w-[820px] w-full">
                             <thead>
                                 <tr className="text-left">
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
@@ -272,6 +285,9 @@ function AdminListings() {
                                     </th>
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Price
+                                    </th>
+                                    <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
+                                        Offers
                                     </th>
                                     <th className="py-3 pr-4 text-[14px] font-medium text-[#001907]">
                                         Created Date
@@ -288,7 +304,7 @@ function AdminListings() {
                                 {loading &&
                                     Array.from({ length: PAGE_LIMIT }).map((_, index) => (
                                         <tr key={`skeleton-${index}`} className="bg-white">
-                                            {Array.from({ length: 7 }).map((__, cellIndex) => (
+                                            {Array.from({ length: 8 }).map((__, cellIndex) => (
                                                 <td key={cellIndex} className="py-3.5 pr-4">
                                                     <div className="h-4 w-full max-w-[180px] animate-pulse rounded bg-gray-200" />
                                                 </td>
@@ -299,7 +315,7 @@ function AdminListings() {
                                 {!loading && listings.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={8}
                                             className="py-8 text-center text-[14px] text-gray-11"
                                         >
                                             No listings found
@@ -341,6 +357,19 @@ function AdminListings() {
                                             </td>
                                             <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
                                                 Rs. {listing.price.toLocaleString()}
+                                            </td>
+                                            <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
+                                                {listing.offerCount > 0 ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setOffersListing(listing)}
+                                                        className="cursor-pointer font-medium text-green-1 hover:underline"
+                                                    >
+                                                        {listing.offerCount}
+                                                    </button>
+                                                ) : (
+                                                    listing.offerCount
+                                                )}
                                             </td>
                                             <td className="whitespace-nowrap py-3.5 pr-4 text-[14px] font-normal text-gray-11">
                                                 {listing.createdAt}
