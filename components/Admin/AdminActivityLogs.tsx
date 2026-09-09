@@ -7,9 +7,8 @@ import Pagination from "@/components/Ui/Pagination";
 import {
     useGetAllActivityLogsQuery,
     useGetAllAdminAccountsQuery,
-    useGetUserDetailQuery,
 } from "@/store/services/adminService";
-import { useAppSelector } from "@/store/store";
+import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 
@@ -173,14 +172,14 @@ function formatRelativeTime(value: string) {
 }
 
 function AdminActivityLogs() {
-    const currentUserId = useAppSelector((state) => state.authReducer.userId);
-    const { data: currentUserData, isLoading: isCurrentUserLoading } = useGetUserDetailQuery(
-        currentUserId,
-        { skip: !currentUserId },
-    );
-    const currentUserRoles =
-        (currentUserData as { data?: { roles?: string[] } } | undefined)?.data?.roles ?? [];
-    const isSuperAdmin = currentUserRoles.includes("super_admin");
+    // Via the shared hook rather than a lookup by id: staff are no longer rows
+    // in `users`, so GET /users/detail/:id returns 404 for them and every role
+    // check here silently fell through to "not a super admin".
+    const {
+        isLoading: isCurrentUserLoading,
+        isSuperAdmin,
+        roles: currentUserRoles,
+    } = useCurrentAdminPermissions();
 
     const [page, setPage] = useState(1);
     const [searchInput, setSearchInput] = useState("");
@@ -193,9 +192,15 @@ function AdminActivityLogs() {
         { skip: !isSuperAdmin },
     );
 
+    // Sub admins act too, and GET /admins returns them alongside admins — so
+    // filtering on "admin" alone would leave their entries unfilterable.
     const adminOptions = (
         (adminAccountsResponse as AdminAccountsResponse | undefined)?.data ?? []
-    ).filter((account) => account.roles?.includes("admin") && account._id);
+    ).filter(
+        (account) =>
+            account._id &&
+            (account.roles?.includes("admin") || account.roles?.includes("subadmin")),
+    );
 
     const ACTOR_FILTERS: { label: string; value: ActorFilterValue }[] = [
         { label: "All", value: "" },

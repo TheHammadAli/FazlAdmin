@@ -14,9 +14,8 @@ import {
     useUpdateTaskMutation,
     useDeleteTaskMutation,
     useReviewTaskMutation,
-    useGetUserDetailQuery,
 } from "@/store/services/adminService";
-import { useAppSelector } from "@/store/store";
+import { useCurrentAdminPermissions } from "@/custom-hooks/useCurrentAdminPermissions";
 import { parsePositiveInt } from "@/utils/parsePositiveInt";
 import searchIcon from "@/assets/icons/searchIcon.svg";
 import Image from "next/image";
@@ -139,14 +138,14 @@ const EMPTY_FORM: FormState = {
 };
 
 function TaskManagement() {
-    const currentUserId = useAppSelector((state) => state.authReducer.userId);
-    const { data: currentUserData, isLoading: isCurrentUserLoading } = useGetUserDetailQuery(
-        currentUserId,
-        { skip: !currentUserId },
-    );
-    const currentUserRoles =
-        (currentUserData as { data?: { roles?: string[] } } | undefined)?.data?.roles ?? [];
-    const isSuperAdmin = currentUserRoles.includes("super_admin");
+    // Via the shared hook rather than a lookup by id: staff are no longer rows
+    // in `users`, so GET /users/detail/:id returns 404 for them and every role
+    // check here silently fell through to "not a super admin".
+    const {
+        isLoading: isCurrentUserLoading,
+        isSuperAdmin,
+        roles: currentUserRoles,
+    } = useCurrentAdminPermissions();
     const canManageTasks = isSuperAdmin || currentUserRoles.includes("admin");
 
     const [page, setPage] = useState(1);
