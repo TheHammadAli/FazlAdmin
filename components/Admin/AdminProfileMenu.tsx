@@ -3,8 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { User, Activity, LogOut } from "lucide-react";
-import { useAppSelector } from "@/store/store";
-import { useGetUserDetailQuery } from "@/store/services/adminService";
+import { useGetOwnProfileQuery } from "@/store/services/profileService";
 import { useClickOutside } from "@/custom-hooks/useClickOutside";
 import LogoutConfirmModal from "@/components/Admin/LogoutConfirmModal";
 
@@ -41,8 +40,7 @@ function AdminProfileMenu() {
     const menuRef = useRef<HTMLDivElement>(null);
     useClickOutside(menuRef, () => setIsOpen(false));
 
-    const userId = useAppSelector((state) => state.authReducer.userId);
-    const { data } = useGetUserDetailQuery(userId, { skip: !userId });
+    const { data } = useGetOwnProfileQuery(undefined);
     const user = (data as { data?: ApiUserDetail } | undefined)?.data;
     const role = toAdminRole(user?.roles);
     const roleLabel = ROLE_LABELS[role] ?? role;

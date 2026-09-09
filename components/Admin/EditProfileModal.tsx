@@ -6,9 +6,7 @@ import { toast } from "react-hot-toast";
 import { BeatLoader } from "react-spinners";
 import { UserCog } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
-import { useAppSelector } from "@/store/store";
-import { useGetUserDetailQuery } from "@/store/services/adminService";
-import { useUpdateProfileMutation } from "@/store/services/profileService";
+import { useUpdateProfileMutation, useGetOwnProfileQuery } from "@/store/services/profileService";
 
 type ApiUserDetail = {
     name?: string;
@@ -24,10 +22,7 @@ type EditProfileModalProps = {
 
 function EditProfileModal({ open, onClose }: EditProfileModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
-    const userId = useAppSelector((state) => state.authReducer.userId);
-    const { data, isLoading, isFetching } = useGetUserDetailQuery(userId, {
-        skip: !userId || !open,
-    });
+    const { data, isLoading, isFetching } = useGetOwnProfileQuery(undefined, { skip: !open });
     const user = (data as { data?: ApiUserDetail } | undefined)?.data;
     const loading = isLoading || isFetching;
 
@@ -51,14 +46,8 @@ function EditProfileModal({ open, onClose }: EditProfileModalProps) {
 
     async function handleSubmit(event: React.FormEvent) {
         event.preventDefault();
-        if (!userId) return;
-
-        const formData = new FormData();
-        formData.append("phone", phone);
-        formData.append("address", address);
-
         try {
-            const response = await updateProfile({ formData, id: userId }).unwrap();
+            const response = await updateProfile({ phone, address }).unwrap();
             toast.success(response?.message ?? "Profile updated successfully");
             onClose();
         } catch (err) {

@@ -23,8 +23,6 @@ export function proxy(request: NextRequest) {
   const params = Object.fromEntries(urlSearchParams.entries());
   const token = request.cookies.get("token")?.value || "";
   const isAdmin = request.cookies.get("isAdmin")?.value === "true";
-  const completeProfile =
-    request.cookies.get("profileCompleted")?.value === "true";
   const urlParams = "?" + new URLSearchParams(params);
   let pathname = request.nextUrl.pathname;
   const locale = request.cookies.get("lang")?.value || "en";
@@ -77,15 +75,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
 
-  if (token && !completeProfile) {
-    if (pathname !== `/${locale}/complete-info`) {
-      return NextResponse.redirect(
-        new URL(`/${locale}/complete-info`, request.url),
-      );
-    }
-  }
-
-  if (token && completeProfile && pathname === `/${locale}/complete-info`) {
+  // Only staff can sign in here, and staff have no profile to complete — that
+  // page saves through PATCH /users/:id, which no staff account is a row in
+  // since staff moved to their own tables. Nobody is sent there any more, and
+  // anyone who lands on it (an old bookmark, a stale redirect) goes to the
+  // dashboard instead.
+  if (token && pathname === `/${locale}/complete-info`) {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
 

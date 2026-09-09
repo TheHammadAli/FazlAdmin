@@ -17,9 +17,11 @@ import {
 } from "lucide-react";
 import Modal from "@/components/Ui/Modals/Modal";
 import EditProfileModal from "@/components/Admin/EditProfileModal";
-import { useAppDispatch, useAppSelector } from "@/store/store";
-import { useGetUserDetailQuery } from "@/store/services/adminService";
-import { useDeleteAccountMutation } from "@/store/services/authService";
+import { useAppDispatch } from "@/store/store";
+import {
+    useDeactivateOwnAccountMutation,
+    useGetOwnProfileQuery,
+} from "@/store/services/profileService";
 import { beginLogout, logout } from "@/store/reducers/authReducer";
 
 type ApiUserDetail = {
@@ -68,14 +70,11 @@ function toAdminRole(roles?: string[]): string {
 function AdminProfile() {
     const router = useRouter();
     const dispatch = useAppDispatch();
-    const userId = useAppSelector((state) => state.authReducer.userId);
-    const { data, isLoading, isFetching } = useGetUserDetailQuery(userId, {
-        skip: !userId,
-    });
+    const { data, isLoading, isFetching } = useGetOwnProfileQuery(undefined);
     const user = (data as { data?: ApiUserDetail } | undefined)?.data;
     const loading = isLoading || isFetching;
 
-    const [deleteAccount, { isLoading: isDeleting }] = useDeleteAccountMutation();
+    const [deleteAccount, { isLoading: isDeleting }] = useDeactivateOwnAccountMutation();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const deleteModalRef = useRef<HTMLDivElement>(null);
@@ -84,10 +83,8 @@ function AdminProfile() {
     const roleLabel = ROLE_LABELS[role] ?? capitalize(role);
 
     async function handleConfirmDelete() {
-        if (!userId) return;
-
         try {
-            const response = await deleteAccount({ id: userId }).unwrap();
+            const response = await deleteAccount(undefined).unwrap();
             toast.success(response?.message ?? "Account deleted successfully");
             setIsDeleteModalOpen(false);
             dispatch(beginLogout());

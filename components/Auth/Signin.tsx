@@ -126,13 +126,14 @@ function Signin() {
         return;
       }
 
-      if (!res?.data?.user?.phone) {
-        dispatch(setProfileCompleted(false));
-        router.replace("/complete-info");
-      } else {
-        dispatch(setProfileCompleted(true));
-        router.replace("/admin");
-      }
+      // Staff have nothing to complete. An admin or member account is created
+      // by a super admin with the name and email it needs, the panel never
+      // reads their phone or location, and the page this used to redirect to
+      // saves through PATCH /users/:id — which no staff account is a row in
+      // since staff moved to their own tables. A missing phone is normal here,
+      // not an incomplete profile.
+      dispatch(setProfileCompleted(true));
+      router.replace("/admin");
       // Router Cache can hold a pre-login RSC payload for the target route (fetched before the
       // auth cookies existed) — refresh forces Next to treat it as stale and re-fetch fresh,
       // which is otherwise only what a manual browser reload was doing.
