@@ -26,24 +26,26 @@ import Image from "next/image";
 const SEARCH_DEBOUNCE_MS = 400;
 const PAGE_LIMIT = 50;
 
-type AdminRole = "super_admin" | "admin" | "moderator";
+// Moderators are not admins: they are their own table and are managed on the
+// Members page. This screen covers the `admins` table only.
+type AdminRole = "super_admin" | "admin" | "subadmin";
 
 // Super Admin is a single, fixed account and is never assignable from this UI.
 const ROLE_OPTIONS: { value: Exclude<AdminRole, "super_admin">; label: string }[] = [
     { value: "admin", label: "Admin" },
-    { value: "moderator", label: "Moderator" },
+    { value: "subadmin", label: "Sub Admin" },
 ];
 
 const ROLE_LABELS: Record<AdminRole, string> = {
     super_admin: "Super Admin",
     admin: "Admin",
-    moderator: "Moderator",
+    subadmin: "Sub Admin",
 };
 
 const ROLE_BADGE_STYLES: Record<AdminRole, string> = {
     super_admin: "bg-[#FDEAB8] text-[#946200]",
     admin: "bg-green-4 text-green-1",
-    moderator: "bg-[#E7F0FF] text-[#2F6FE4]",
+    subadmin: "bg-[#E7F0FF] text-[#2F6FE4]",
 };
 
 type AdminAccount = {
@@ -85,7 +87,7 @@ function formatDate(value?: string) {
 
 function toAdminRole(roles?: string[]): AdminRole {
     if (roles?.includes("super_admin")) return "super_admin";
-    if (roles?.includes("moderator")) return "moderator";
+    if (roles?.includes("subadmin")) return "subadmin";
     return "admin";
 }
 

@@ -22,7 +22,11 @@ function DashboardSwitch() {
         );
     }
 
-    const isMember = !isSuperAdmin && !roles.includes("admin") && roles.includes("moderator");
+    const isMember =
+        !isSuperAdmin &&
+        !roles.includes("admin") &&
+        !roles.includes("subadmin") &&
+        roles.includes("moderator");
 
     return isMember ? <MemberDashboard /> : <AdminDashboard />;
 }

@@ -504,7 +504,7 @@ export const adminService = baseApi.injectEndpoints({
           params.set("search", search.trim());
         }
         return {
-          url: `/users/admins?${params.toString()}`,
+          url: `/admins?${params.toString()}`,
           method: "GET",
         };
       },
@@ -517,7 +517,7 @@ export const adminService = baseApi.injectEndpoints({
         role: string;
         permissions?: { page: string; actions: string[] }[];
       }) => ({
-        url: `/users/admins`,
+        url: `/admins`,
         method: "POST",
         body,
       }),
@@ -525,7 +525,7 @@ export const adminService = baseApi.injectEndpoints({
     }),
     updateAdminAccount: build.mutation({
       query: ({ id, body }) => ({
-        url: `/users/admins/${id}`,
+        url: `/admins/${id}`,
         method: "PATCH",
         body,
       }),
@@ -533,21 +533,21 @@ export const adminService = baseApi.injectEndpoints({
     }),
     disableAdminAccount: build.mutation({
       query: (id: string) => ({
-        url: `/users/admins/${id}/disable`,
+        url: `/admins/${id}/disable`,
         method: "PATCH",
       }),
       invalidatesTags: ["ADMIN_ACCOUNTS"],
     }),
     enableAdminAccount: build.mutation({
       query: (id: string) => ({
-        url: `/users/admins/${id}/enable`,
+        url: `/admins/${id}/enable`,
         method: "PATCH",
       }),
       invalidatesTags: ["ADMIN_ACCOUNTS"],
     }),
     resetAdminPassword: build.mutation({
       query: ({ id, body }: { id: string; body: { newPassword?: string } }) => ({
-        url: `/users/admins/${id}/reset-password`,
+        url: `/admins/${id}/reset-password`,
         method: "PATCH",
         body,
       }),
@@ -659,14 +659,14 @@ export const adminService = baseApi.injectEndpoints({
     }),
     getAllMembers: build.query({
       query: () => ({
-        url: `/users/members`,
+        url: `/members`,
         method: "GET",
       }),
       providesTags: ["ADMIN_MEMBERS"],
     }),
     createMember: build.mutation({
       query: (body: { name: string; email: string }) => ({
-        url: `/users/members`,
+        url: `/members`,
         method: "POST",
         body,
       }),
@@ -674,7 +674,7 @@ export const adminService = baseApi.injectEndpoints({
     }),
     updateMember: build.mutation({
       query: ({ id, body }: { id: string; body: { name?: string; email?: string } }) => ({
-        url: `/users/members/${id}`,
+        url: `/members/${id}`,
         method: "PATCH",
         body,
       }),
@@ -682,14 +682,14 @@ export const adminService = baseApi.injectEndpoints({
     }),
     deleteMember: build.mutation({
       query: (id: string) => ({
-        url: `/users/members/${id}`,
+        url: `/members/${id}`,
         method: "DELETE",
       }),
       invalidatesTags: ["ADMIN_MEMBERS", "ADMIN_TASKS"],
     }),
     resetMemberPassword: build.mutation({
       query: ({ id, body }: { id: string; body: { newPassword?: string } }) => ({
-        url: `/users/members/${id}/reset-password`,
+        url: `/members/${id}/reset-password`,
         method: "PATCH",
         body,
       }),

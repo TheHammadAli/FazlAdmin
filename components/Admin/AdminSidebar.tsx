@@ -109,7 +109,8 @@ function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
 
     const { isSuperAdmin, roles: currentUserRoles, has } = useCurrentAdminPermissions();
 
-    const isAdminOrSuperAdmin = isSuperAdmin || currentUserRoles.includes("admin");
+    const isAdminOrSuperAdmin =
+        isSuperAdmin || currentUserRoles.includes("admin") || currentUserRoles.includes("subadmin");
     const isMember = !isAdminOrSuperAdmin && currentUserRoles.includes("moderator");
 
     const navSections = isMember

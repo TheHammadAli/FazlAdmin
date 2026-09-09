@@ -105,7 +105,8 @@ function Signin() {
 
       dispatch(setUserId(res.data.user.id));
 
-      const ADMIN_PANEL_ROLES = ["admin", "super_admin", "moderator"];
+      // admins table: super_admin | admin | subadmin. members table: "moderator".
+      const ADMIN_PANEL_ROLES = ["admin", "subadmin", "super_admin", "moderator"];
       const roles = res?.data?.user?.roles ?? res?.data?.roles;
       const isAdmin =
         Array.isArray(roles) &&
