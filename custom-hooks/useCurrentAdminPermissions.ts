@@ -1,5 +1,4 @@
-import { useAppSelector } from "@/store/store";
-import { useGetUserDetailQuery } from "@/store/services/adminService";
+import { useGetOwnProfileQuery } from "@/store/services/profileService";
 
 export type AdminAction = "view" | "edit" | "delete";
 export type AdminPage =
@@ -28,10 +27,13 @@ type CurrentUserData = {
 };
 
 /** Reads the logged-in admin's roles/permissions and exposes page + action checks.
- *  super_admin always passes every check, matching the backend guard's bypass. */
+ *  super_admin always passes every check, matching the backend guard's bypass.
+ *
+ *  Sourced from /admins/me. It used to read GET /users/detail/:id, which stopped
+ *  resolving when staff moved out of that table — every check then fell back to
+ *  an empty permission list, so even a super admin was shown nothing. */
 export function useCurrentAdminPermissions() {
-    const userId = useAppSelector((state) => state.authReducer.userId);
-    const { data, isLoading } = useGetUserDetailQuery(userId, { skip: !userId });
+    const { data, isLoading } = useGetOwnProfileQuery(undefined);
     const currentUser = (data as { data?: CurrentUserData } | undefined)?.data;
 
     const roles = currentUser?.roles ?? [];
