@@ -431,6 +431,12 @@ function ValueList({
                             addValue();
                         }
                     }}
+                    // A value typed here isn't part of the parameter until it's
+                    // committed — without this, clicking straight from this box
+                    // to Save/Save as draft (skipping Enter or the + button)
+                    // silently discarded whatever was typed, saving the
+                    // parameter's name with no values at all.
+                    onBlur={addValue}
                     className="w-full rounded-[6px] border border-dashed border-gray-9 bg-white px-2 py-1 text-[13px] text-[#001907] outline-none focus:border-green-1"
                 />
                 <button
