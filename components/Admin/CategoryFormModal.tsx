@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
@@ -7,18 +7,17 @@ import Image from "next/image";
 import { toast } from "react-hot-toast";
 import DoodleButton from "@/components/Ui/DoodleButton";
 import Modal from "@/components/Ui/Modals/Modal";
-import { Check, ChevronDown, ChevronUp, Languages, Plus, Tag, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Plus, Tag, X } from "lucide-react";
 import {
     useCreateNewCategoryMutation,
     useUpdateCategoryMutation,
-    useTranslateTextMutation,
 } from "@/store/services/adminService";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 
 export type CategoryType = "product" | "service" | "shop";
 
 /**
- * One localised parameter definition as the API stores it — mirrors
+ * One localised parameter definition as the API stores it â€” mirrors
  * `CategoryParameter` in the backend (`src/category/model/category.model.ts`).
  *
  * The admin editor never works with this shape directly (see `ParameterPair`
@@ -42,11 +41,11 @@ export type CategoryParameter = {
     dependsOn?: string;
     /** Present when `dependsOn` is set: parent value key -> this parameter's
      *  values under that parent value. `values` above is always the union of
-     *  these lists — a plain client that has never heard of `dependsOn` still
+     *  these lists â€” a plain client that has never heard of `dependsOn` still
      *  gets a full, usable option list. */
     valuesByParent?: Record<string, string[]>;
     /** Same shape as `valuesByParent`, but holding THIS parameter's own value
-     *  keys instead of display text — what a grandchild parameter (depending
+     *  keys instead of display text â€” what a grandchild parameter (depending
      *  on this one) resolves against once a cascade has narrowed this
      *  parameter down to one bucket. Sent explicitly so the server never has
      *  to fall back to guessing keys for us. */
@@ -83,22 +82,22 @@ type FormErrors = {
 };
 
 // ---------------------------------------------------------------------------
-// Parameter editor — internal "paired" model
+// Parameter editor â€” internal "paired" model
 //
 // The API keeps English and Urdu parameters as two independent arrays, lined
 // up only by array position. Editing them as two independent lists (the old
-// design) let that pairing drift silently — reorder one side, or add a value
+// design) let that pairing drift silently â€” reorder one side, or add a value
 // to only one, and English parameter 3 quietly becomes Urdu parameter 4.
 //
-// Internally the editor keeps ONE list of pairs — each pair carries both
-// locales' text for one parameter and one set of values — so "same count in
+// Internally the editor keeps ONE list of pairs â€” each pair carries both
+// locales' text for one parameter and one set of values â€” so "same count in
 // both languages" and "value N has both an English and an Urdu string" are
 // true by construction instead of a submit-time check. It only splits back
 // into { en: [...], ur: [...] } at save time (`pairsToApiParameters`) and
 // only merges the two back together on open (`hydratePairs`).
 // ---------------------------------------------------------------------------
 
-/** One value inside a parameter — `key` is what a dependent (child) parameter
+/** One value inside a parameter â€” `key` is what a dependent (child) parameter
  *  addresses it by, never shown to the admin. */
 type ParameterValue = {
     key: string;
@@ -108,7 +107,7 @@ type ParameterValue = {
 
 type ParameterPair = {
     /** Client-only id, used to reference this parameter as another one's
-     *  parent. Never sent to the API — `pairsToApiParameters` turns it into
+     *  parent. Never sent to the API â€” `pairsToApiParameters` turns it into
      *  the parent's actual name for `dependsOn`. */
     id: string;
     nameEn: string;
@@ -117,7 +116,7 @@ type ParameterPair = {
     allowCustomValue: boolean;
     allowMultiple: boolean;
     /** Another pair's `id`, or null. Must resolve to a pair EARLIER in the
-     *  list — enforced wherever this can change (see `wouldBreakOrder`). */
+     *  list â€” enforced wherever this can change (see `wouldBreakOrder`). */
     dependsOnId: string | null;
     /** Used when `dependsOnId` is null. */
     values: ParameterValue[];
@@ -144,7 +143,7 @@ function emptyPair(): ParameterPair {
     };
 }
 
-/** The values a pair itself "owns" — its flat list if it isn't dependent,
+/** The values a pair itself "owns" â€” its flat list if it isn't dependent,
  *  otherwise every value across every parent bucket (what a parameter
  *  further down the chain would see as this one's options). */
 function ownValues(pair: ParameterPair): ParameterValue[] {
@@ -169,9 +168,9 @@ function descendantsOf(pairs: ParameterPair[], pairId: string): ParameterPair[] 
 }
 
 /**
- * Removes the given value keys from `pairId`'s own store, then — because
+ * Removes the given value keys from `pairId`'s own store, then â€” because
  * those keys may be exactly what a child parameter's `valuesByParent` is
- * keyed on — removes the matching buckets from every direct child, and
+ * keyed on â€” removes the matching buckets from every direct child, and
  * recurses into whichever of THEIR keys just disappeared as a result. This is
  * what keeps a multi-level chain (e.g. Variant depending on Model depending
  * on Make) consistent when a value anywhere in the middle is deleted.
@@ -211,7 +210,7 @@ function removeValuesCascade(
 }
 
 /** Splits the paired model back into the API's two-array shape. Assumes every
- *  pair is already complete (see `validateParameters`) — it does not filter. */
+ *  pair is already complete (see `validateParameters`) â€” it does not filter. */
 function pairsToApiParameters(pairs: ParameterPair[]): CategoryParameters {
     const nameById = new Map(pairs.map((pair) => [pair.id, { en: pair.nameEn.trim(), ur: pair.nameUr.trim() }]));
 
@@ -234,7 +233,7 @@ function pairsToApiParameters(pairs: ParameterPair[]): CategoryParameters {
                 valuesByParent[key] = values.map((value) => (locale === "en" ? value.en : value.ur).trim());
                 // Sent explicitly, bucket by bucket, so the server never has to
                 // guess which of this parameter's own keys belongs to which of
-                // ITS parent's buckets — that pairing is what a grandchild
+                // ITS parent's buckets â€” that pairing is what a grandchild
                 // parameter (e.g. Variant, off Model, off Make) resolves
                 // against once a cascade has narrowed this one down to a
                 // single bucket.
@@ -274,7 +273,7 @@ function hydratePairs(en: CategoryParameter[], ur: CategoryParameter[]): Paramet
 
         const parentIndex = entry?.dependsOn ? nameToIndex.get(entry.dependsOn) : undefined;
         // Guard against stored data that is malformed (a forward or unknown
-        // reference) rather than let it crash the editor — it just opens as a
+        // reference) rather than let it crash the editor â€” it just opens as a
         // flat, non-dependent parameter, which the admin can re-link.
         const dependsOnId =
             parentIndex !== undefined && parentIndex < index ? ids[parentIndex] : null;
@@ -289,7 +288,7 @@ function hydratePairs(en: CategoryParameter[], ur: CategoryParameter[]): Paramet
                 const hasStoredKeys = Array.isArray(storedKeys) && storedKeys.length === values.length;
                 valuesByParent[key] = values.map((text, valueIndex) => ({
                     // Preserve the API's own key for this value when available
-                    // — a grandchild parameter's `valuesByParent` is keyed
+                    // â€” a grandchild parameter's `valuesByParent` is keyed
                     // against THESE. Regenerating them at random here (as this
                     // used to) left a saved cascade with two disconnected key
                     // spaces: this parameter's own values kept the real keys,
@@ -339,7 +338,7 @@ function validateParameters(pairs: ParameterPair[]): string | undefined {
 
         const parent = pairs.find((candidate) => candidate.id === pair.dependsOnId);
         if (!parent) {
-            return `"${label}" depends on a parameter that no longer exists — pick another one`;
+            return `"${label}" depends on a parameter that no longer exists â€” pick another one`;
         }
         const buckets = Object.values(pair.valuesByParent);
         if (buckets.every((values) => values.length === 0)) {
@@ -362,7 +361,7 @@ function buildParametersPayload(pairs: ParameterPair[]): CategoryParameters | un
     return pairsToApiParameters(pairs);
 }
 
-/** A row of paired EN/UR text inputs plus a delete button — the atomic unit
+/** A row of paired EN/UR text inputs plus a delete button â€” the atomic unit
  *  for a value, used both for a flat parameter's list and for one bucket
  *  inside a dependent parameter's master/detail editor. */
 function ValueList({
@@ -375,15 +374,12 @@ function ValueList({
     onChange: (values: ParameterValue[]) => void;
 }) {
     const [draftEn, setDraftEn] = useState("");
-    const [draftUr, setDraftUr] = useState("");
 
     function addValue() {
         const en = draftEn.trim();
-        const ur = draftUr.trim();
         if (!en) return;
-        onChange([...values, { key: randomId("v"), en, ur }]);
+        onChange([...values, { key: randomId("v"), en, ur: en }]);
         setDraftEn("");
-        setDraftUr("");
     }
 
     function updateValue(key: string, patch: Partial<ParameterValue>) {
@@ -407,14 +403,6 @@ function ValueList({
                                 onChange={(event) => updateValue(value.key, { en: event.target.value })}
                                 className="w-full rounded-[6px] border border-gray-9 bg-white px-2 py-1 text-[13px] text-[#001907] outline-none focus:border-green-1"
                             />
-                            <input
-                                type="text"
-                                dir="rtl"
-                                value={value.ur}
-                                placeholder="اردو"
-                                onChange={(event) => updateValue(value.key, { ur: event.target.value })}
-                                className="w-full rounded-[6px] border border-gray-9 bg-white px-2 py-1 text-[13px] text-[#001907] outline-none focus:border-green-1"
-                            />
                             <button
                                 type="button"
                                 onClick={() => removeValue(value.key)}
@@ -434,21 +422,6 @@ function ValueList({
                     value={draftEn}
                     placeholder="Add value (English)"
                     onChange={(event) => setDraftEn(event.target.value)}
-                    onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                            event.preventDefault();
-                            addValue();
-                        }
-                    }}
-                    className="w-full rounded-[6px] border border-dashed border-gray-9 bg-white px-2 py-1 text-[13px] text-[#001907] outline-none focus:border-green-1"
-                />
-                <input
-                    id={`${idPrefix}-add-ur`}
-                    type="text"
-                    dir="rtl"
-                    value={draftUr}
-                    placeholder="اردو (اختیاری)"
-                    onChange={(event) => setDraftUr(event.target.value)}
                     onKeyDown={(event) => {
                         if (event.key === "Enter") {
                             event.preventDefault();
@@ -520,7 +493,7 @@ function DependentValueEditor({
                                     : "text-gray-11 hover:bg-gray-13"
                             }`}
                         >
-                            {value.en || value.ur || "—"}
+                            {value.en || value.ur || "â€”"}
                             <span className="ml-1 text-[11px] text-gray-11">({count})</span>
                         </button>
                     );
@@ -570,7 +543,7 @@ function ParameterPairRow({
 
     function handleDependsOnChange(nextParentId: string) {
         // Switching what this depends on invalidates the old parent-keyed
-        // buckets — there's no sound way to carry values across to a
+        // buckets â€” there's no sound way to carry values across to a
         // different parent, so it starts fresh rather than silently keeping
         // stale data under the wrong parent.
         onChange({
@@ -584,22 +557,13 @@ function ParameterPairRow({
     return (
         <div className="rounded-[8px] border border-gray-9 p-3">
             <div className="flex items-start gap-2">
-                <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="flex-1">
                     <input
                         id={`${idPrefix}-name-en-${index}`}
                         type="text"
                         value={pair.nameEn}
                         placeholder="Parameter name (English), e.g. Make"
                         onChange={(event) => onChange({ ...pair, nameEn: event.target.value })}
-                        className="w-full border-0 border-b border-gray-9 bg-transparent py-1 text-[14px] font-medium text-[#001907] outline-none focus:border-green-1"
-                    />
-                    <input
-                        id={`${idPrefix}-name-ur-${index}`}
-                        type="text"
-                        dir="rtl"
-                        value={pair.nameUr}
-                        placeholder="پیرامیٹر کا نام، مثلاً میک"
-                        onChange={(event) => onChange({ ...pair, nameUr: event.target.value })}
                         className="w-full border-0 border-b border-gray-9 bg-transparent py-1 text-[14px] font-medium text-[#001907] outline-none focus:border-green-1"
                     />
                 </div>
@@ -689,7 +653,7 @@ function ParameterPairRow({
                     disabled={earlierPairs.length === 0}
                     className="mt-1 block w-full max-w-[260px] rounded-[6px] border border-gray-9 bg-white px-2 py-1.5 text-[13px] text-[#001907] outline-none focus:border-green-1 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    <option value="">Not dependent — its own value list</option>
+                    <option value="">Not dependent â€” its own value list</option>
                     {earlierPairs.map((candidate) => (
                         <option key={candidate.id} value={candidate.id}>
                             {candidate.nameEn.trim() || candidate.nameUr.trim() || "(unnamed)"}
@@ -726,7 +690,7 @@ function ParameterPairEditor({
     onChange: (pairs: ParameterPair[]) => void;
 }) {
     function updatePair(index: number, next: ParameterPair) {
-        // Any edit can shrink this pair's own value set — deleting a value
+        // Any edit can shrink this pair's own value set â€” deleting a value
         // chip, deleting a value from one parent-bucket, or changing what
         // this parameter depends on (which resets it to empty). Whenever that
         // happens, cascade the same way `removeValuesCascade` does for an
@@ -795,7 +759,7 @@ type CategoryFormModalProps = {
     open: boolean;
     mode: CategoryFormMode;
     onClose: () => void;
-    /** Pre-selected type for "add" mode — e.g. matching whichever tab is active. */
+    /** Pre-selected type for "add" mode â€” e.g. matching whichever tab is active. */
     defaultType?: CategoryType;
 };
 
@@ -815,16 +779,16 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
 
     const [createNewCategory, { isLoading: isCreatingCategory }] = useCreateNewCategoryMutation();
     const [updateCategory, { isLoading: isUpdatingCategory }] = useUpdateCategoryMutation();
-    const [translateText] = useTranslateTextMutation();
-    const [isTranslating, setIsTranslating] = useState(false);
     const isSubmitting = isCreatingCategory || isUpdatingCategory;
 
     useEffect(() => {
         if (!open) return;
 
-        setNameEn(editCategory?.name.en ?? "");
-        setNameUr(editCategory?.name.ur ?? "");
-        setType(editCategory?.type ?? defaultType ?? "product");
+        const savedDraft = !editCategory ? localStorage.getItem("fazl-admin-category-draft") : null;
+        const draft = savedDraft ? JSON.parse(savedDraft) as { nameEn?: string; nameUr?: string; type?: CategoryType; sortNumber?: string; pairs?: ParameterPair[] } : null;
+        setNameEn(draft?.nameEn ?? editCategory?.name.en ?? "");
+        setNameUr(draft?.nameUr ?? editCategory?.name.ur ?? "");
+        setType(draft?.type ?? editCategory?.type ?? defaultType ?? "product");
         setSortNumber(
             editCategory?.sortNumber !== undefined && editCategory?.sortNumber !== null
                 ? String(editCategory.sortNumber)
@@ -832,7 +796,7 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
         );
         setIconPreview(editCategory?.icon ?? null);
         setIconFile(null);
-        setPairs(hydratePairs(editCategory?.parameters?.en ?? [], editCategory?.parameters?.ur ?? []));
+        setPairs(draft?.pairs ?? hydratePairs(editCategory?.parameters?.en ?? [], editCategory?.parameters?.ur ?? []));
         setErrors({});
     }, [open, editCategory, defaultType]);
 
@@ -845,49 +809,12 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
         clearParametersError();
     }
 
-    async function translateOne(text: string): Promise<string> {
-        const result = await translateText(text).unwrap();
-        return result.translatedText;
+    function handleSaveDraft() {
+        const draft = { nameEn, nameUr, type, sortNumber, pairs };
+        localStorage.setItem("fazl-admin-category-draft", JSON.stringify(draft));
+        toast.success("Category draft saved. Open Add category to continue it later.");
+        onClose();
     }
-
-    /** Fills in every Urdu string from its English counterpart. Because the
-     *  paired model carries flags/dependsOn/valueKeys once per parameter
-     *  rather than once per locale, this can no longer drop them the way the
-     *  old two-array version did — it only ever touches `nameUr` and each
-     *  value's `.ur`. */
-    async function handleTranslateFromEnglish() {
-        if (pairs.length === 0) return;
-        setIsTranslating(true);
-        try {
-            async function translateValues(values: ParameterValue[]): Promise<ParameterValue[]> {
-                const translated: ParameterValue[] = [];
-                for (const value of values) {
-                    const ur = value.en.trim() ? await translateOne(value.en) : value.ur;
-                    translated.push({ ...value, ur });
-                }
-                return translated;
-            }
-
-            const next: ParameterPair[] = [];
-            for (const pair of pairs) {
-                const nameUr = pair.nameEn.trim() ? await translateOne(pair.nameEn) : pair.nameUr;
-                const values = await translateValues(pair.values);
-                const valuesByParent: Record<string, ParameterValue[]> = {};
-                for (const [key, list] of Object.entries(pair.valuesByParent)) {
-                    valuesByParent[key] = await translateValues(list);
-                }
-                next.push({ ...pair, nameUr, values, valuesByParent });
-            }
-            setPairs(next);
-            clearParametersError();
-        } catch (err) {
-            const errorData = err as { data?: { message?: string } };
-            toast.error(errorData?.data?.message ?? "Translation failed. Please try again.");
-        } finally {
-            setIsTranslating(false);
-        }
-    }
-
     function handleSetOpen(value: React.SetStateAction<boolean>) {
         const nextOpen = typeof value === "function" ? value(open) : value;
         if (!nextOpen && !isSubmitting) {
@@ -1144,7 +1071,7 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                                     setErrors((prev) => ({ ...prev, nameUr: undefined }));
                                 }
                             }}
-                            placeholder="کیٹیگری کا نام لکھیں"
+                            placeholder="Ú©ÛŒÙ¹ÛŒÚ¯Ø±ÛŒ Ú©Ø§ Ù†Ø§Ù… Ù„Ú©Ú¾ÛŒÚº"
                             dir="rtl"
                             className={`mt-2 w-full border-0 border-b bg-transparent py-2 text-[14px] text-[#001907] outline-none ${errors.nameUr ? "border-red-1 focus:border-red-1" : "border-gray-9 focus:border-green-1"}`}
                         />
@@ -1162,24 +1089,9 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                             </p>
                             <p className="mt-0.5 text-[12px] text-gray-11">
                                 Set &quot;Depends on&quot; to make a parameter&apos;s options change with an
-                                earlier one — e.g. Model depends on Make, Variant depends on Model.
+                                earlier one â€” e.g. Model depends on Make, Variant depends on Model.
                             </p>
                         </div>
-                        <button
-                            type="button"
-                            onClick={handleTranslateFromEnglish}
-                            disabled={pairs.length === 0 || isTranslating}
-                            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-[6px] border border-gray-9 px-2.5 py-1.5 text-[12px] font-medium text-gray-8 transition-colors hover:border-green-1 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            {isTranslating ? (
-                                <BeatLoader size={5} color="#007781" />
-                            ) : (
-                                <>
-                                    <Languages className="h-3.5 w-3.5" strokeWidth={2} />
-                                    Translate from English
-                                </>
-                            )}
-                        </button>
                     </div>
                     <div className="mt-4">
                         <ParameterPairEditor pairs={pairs} onChange={handlePairsChange} />
@@ -1198,7 +1110,14 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                     >
                         Cancel
                     </button>
-                    <DoodleButton
+                    <button
+                        type="button"
+                        onClick={handleSaveDraft}
+                        disabled={isSubmitting}
+                        className="h-[40px] min-w-[120px] cursor-pointer rounded-[8px] border border-green-1 px-4 text-[14px] font-medium text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        Save as draft
+                    </button>                    <DoodleButton
                         type="button"
                         disabled={isSubmitting}
                         onClick={handleSubmit}
