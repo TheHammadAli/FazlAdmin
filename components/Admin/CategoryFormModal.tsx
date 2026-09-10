@@ -45,6 +45,12 @@ export type CategoryParameter = {
      *  these lists — a plain client that has never heard of `dependsOn` still
      *  gets a full, usable option list. */
     valuesByParent?: Record<string, string[]>;
+    /** Same shape as `valuesByParent`, but holding THIS parameter's own value
+     *  keys instead of display text — what a grandchild parameter (depending
+     *  on this one) resolves against once a cascade has narrowed this
+     *  parameter down to one bucket. Sent explicitly so the server never has
+     *  to fall back to guessing keys for us. */
+    valueKeysByParent?: Record<string, string[]>;
 };
 
 export type CategoryParameters = {
@@ -223,11 +229,20 @@ function pairsToApiParameters(pairs: ParameterPair[]): CategoryParameters {
         if (pair.dependsOnId) {
             const parentName = nameById.get(pair.dependsOnId)?.[locale];
             const valuesByParent: Record<string, string[]> = {};
+            const valueKeysByParent: Record<string, string[]> = {};
             for (const [key, values] of Object.entries(pair.valuesByParent)) {
                 valuesByParent[key] = values.map((value) => (locale === "en" ? value.en : value.ur).trim());
+                // Sent explicitly, bucket by bucket, so the server never has to
+                // guess which of this parameter's own keys belongs to which of
+                // ITS parent's buckets — that pairing is what a grandchild
+                // parameter (e.g. Variant, off Model, off Make) resolves
+                // against once a cascade has narrowed this one down to a
+                // single bucket.
+                valueKeysByParent[key] = values.map((value) => value.key);
             }
             entry.dependsOn = parentName ?? "";
             entry.valuesByParent = valuesByParent;
+            entry.valueKeysByParent = valueKeysByParent;
         }
 
         return entry;

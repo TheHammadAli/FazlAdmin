@@ -100,6 +100,7 @@ function toSafeParameterArray(value: unknown): CategoryParameter[] {
                     valueKeys?: unknown;
                     dependsOn?: unknown;
                     valuesByParent?: unknown;
+                    valueKeysByParent?: unknown;
                 }
                 | null
                 | undefined;
@@ -135,6 +136,19 @@ function toSafeParameterArray(value: unknown): CategoryParameter[] {
                     }
                 }
                 parameter.valuesByParent = valuesByParent;
+            }
+            if (
+                record?.valueKeysByParent &&
+                typeof record.valueKeysByParent === "object" &&
+                !Array.isArray(record.valueKeysByParent)
+            ) {
+                const valueKeysByParent: Record<string, string[]> = {};
+                for (const [key, list] of Object.entries(record.valueKeysByParent as Record<string, unknown>)) {
+                    if (Array.isArray(list)) {
+                        valueKeysByParent[key] = list.filter((v: unknown): v is string => typeof v === "string");
+                    }
+                }
+                parameter.valueKeysByParent = valueKeysByParent;
             }
 
             return parameter;
