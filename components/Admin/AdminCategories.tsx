@@ -80,7 +80,12 @@ function toSafeString(value: unknown): string {
 }
 
 /** Same legacy-data risk applies to parameters.en/parameters.ur array elements —
- *  drop anything that isn't a well-formed { name, values } parameter entry. */
+ *  drop anything that isn't a well-formed parameter entry, but otherwise carry
+ *  every field through. This used to whitelist only { name, values,
+ *  isOptional, allowCustomValue, allowMultiple } — the moment a category with
+ *  a Make -> Model cascade was opened for editing, this mapper alone would
+ *  have stripped dependsOn/valueKeys/valuesByParent before CategoryFormModal
+ *  ever saw them. */
 function toSafeParameterArray(value: unknown): CategoryParameter[] {
     if (!Array.isArray(value)) return [];
     return value
@@ -92,10 +97,14 @@ function toSafeParameterArray(value: unknown): CategoryParameter[] {
                     isOptional?: unknown;
                     allowCustomValue?: unknown;
                     allowMultiple?: unknown;
+                    valueKeys?: unknown;
+                    dependsOn?: unknown;
+                    valuesByParent?: unknown;
                 }
                 | null
                 | undefined;
-            return {
+
+            const parameter: CategoryParameter = {
                 name: typeof record?.name === "string" ? record.name : "",
                 values: Array.isArray(record?.values)
                     ? record.values.filter((v: unknown): v is string => typeof v === "string")
@@ -104,6 +113,31 @@ function toSafeParameterArray(value: unknown): CategoryParameter[] {
                 allowCustomValue: typeof record?.allowCustomValue === "boolean" ? record.allowCustomValue : false,
                 allowMultiple: typeof record?.allowMultiple === "boolean" ? record.allowMultiple : false,
             };
+
+            if (
+                Array.isArray(record?.valueKeys) &&
+                record.valueKeys.every((k: unknown): k is string => typeof k === "string")
+            ) {
+                parameter.valueKeys = record.valueKeys;
+            }
+            if (typeof record?.dependsOn === "string" && record.dependsOn.trim()) {
+                parameter.dependsOn = record.dependsOn;
+            }
+            if (
+                record?.valuesByParent &&
+                typeof record.valuesByParent === "object" &&
+                !Array.isArray(record.valuesByParent)
+            ) {
+                const valuesByParent: Record<string, string[]> = {};
+                for (const [key, list] of Object.entries(record.valuesByParent as Record<string, unknown>)) {
+                    if (Array.isArray(list)) {
+                        valuesByParent[key] = list.filter((v: unknown): v is string => typeof v === "string");
+                    }
+                }
+                parameter.valuesByParent = valuesByParent;
+            }
+
+            return parameter;
         })
         .filter((parameter) => parameter.name.trim() !== "");
 }
