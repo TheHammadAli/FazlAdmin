@@ -127,7 +127,12 @@ function mapApiCategory(category: ApiCategory): Category {
         displayName: getFeedCategoryLabel(category.name ?? "", "en") || "-",
         createdAt,
         status: mapCategoryStatus(category),
-        type: category.type === "service" ? "service" : "product",
+        // Narrowed to the two known values before, which quietly relabelled a
+        // shop category as a product one.
+        type:
+            category.type === "service" || category.type === "shop"
+                ? category.type
+                : "product",
         icon: category.icon,
         parameters: category.parameters
             ? {
@@ -147,6 +152,7 @@ type PendingStatusChange = {
 const CATEGORY_TABS: { value: CategoryType; label: string }[] = [
     { value: "product", label: "Product" },
     { value: "service", label: "Service" },
+    { value: "shop", label: "Shop" },
 ];
 
 function AdminCategories() {

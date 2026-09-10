@@ -15,7 +15,7 @@ import {
 } from "@/store/services/adminService";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 
-export type CategoryType = "product" | "service";
+export type CategoryType = "product" | "service" | "shop";
 
 export type CategoryParameter = {
     name: string;
@@ -46,6 +46,7 @@ export type CategoryFormMode = "add" | { type: "edit"; category: CategoryFormCat
 const CATEGORY_TYPE_OPTIONS: { value: CategoryType; label: string }[] = [
     { value: "product", label: "Product" },
     { value: "service", label: "Service" },
+    { value: "shop", label: "Shop" },
 ];
 
 type FormErrors = {
