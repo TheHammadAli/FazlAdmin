@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
@@ -17,7 +17,7 @@ import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
 export type CategoryType = "product" | "service" | "shop";
 
 /**
- * One localised parameter definition as the API stores it â€” mirrors
+ * One localised parameter definition as the API stores it Ã¢â‚¬â€ mirrors
  * `CategoryParameter` in the backend (`src/category/model/category.model.ts`).
  *
  * The admin editor never works with this shape directly (see `ParameterPair`
@@ -41,11 +41,11 @@ export type CategoryParameter = {
     dependsOn?: string;
     /** Present when `dependsOn` is set: parent value key -> this parameter's
      *  values under that parent value. `values` above is always the union of
-     *  these lists â€” a plain client that has never heard of `dependsOn` still
+     *  these lists Ã¢â‚¬â€ a plain client that has never heard of `dependsOn` still
      *  gets a full, usable option list. */
     valuesByParent?: Record<string, string[]>;
     /** Same shape as `valuesByParent`, but holding THIS parameter's own value
-     *  keys instead of display text â€” what a grandchild parameter (depending
+     *  keys instead of display text Ã¢â‚¬â€ what a grandchild parameter (depending
      *  on this one) resolves against once a cascade has narrowed this
      *  parameter down to one bucket. Sent explicitly so the server never has
      *  to fall back to guessing keys for us. */
@@ -82,22 +82,22 @@ type FormErrors = {
 };
 
 // ---------------------------------------------------------------------------
-// Parameter editor â€” internal "paired" model
+// Parameter editor Ã¢â‚¬â€ internal "paired" model
 //
 // The API keeps English and Urdu parameters as two independent arrays, lined
 // up only by array position. Editing them as two independent lists (the old
-// design) let that pairing drift silently â€” reorder one side, or add a value
+// design) let that pairing drift silently Ã¢â‚¬â€ reorder one side, or add a value
 // to only one, and English parameter 3 quietly becomes Urdu parameter 4.
 //
-// Internally the editor keeps ONE list of pairs â€” each pair carries both
-// locales' text for one parameter and one set of values â€” so "same count in
+// Internally the editor keeps ONE list of pairs Ã¢â‚¬â€ each pair carries both
+// locales' text for one parameter and one set of values Ã¢â‚¬â€ so "same count in
 // both languages" and "value N has both an English and an Urdu string" are
 // true by construction instead of a submit-time check. It only splits back
 // into { en: [...], ur: [...] } at save time (`pairsToApiParameters`) and
 // only merges the two back together on open (`hydratePairs`).
 // ---------------------------------------------------------------------------
 
-/** One value inside a parameter â€” `key` is what a dependent (child) parameter
+/** One value inside a parameter Ã¢â‚¬â€ `key` is what a dependent (child) parameter
  *  addresses it by, never shown to the admin. */
 type ParameterValue = {
     key: string;
@@ -107,7 +107,7 @@ type ParameterValue = {
 
 type ParameterPair = {
     /** Client-only id, used to reference this parameter as another one's
-     *  parent. Never sent to the API â€” `pairsToApiParameters` turns it into
+     *  parent. Never sent to the API Ã¢â‚¬â€ `pairsToApiParameters` turns it into
      *  the parent's actual name for `dependsOn`. */
     id: string;
     nameEn: string;
@@ -116,7 +116,7 @@ type ParameterPair = {
     allowCustomValue: boolean;
     allowMultiple: boolean;
     /** Another pair's `id`, or null. Must resolve to a pair EARLIER in the
-     *  list â€” enforced wherever this can change (see `wouldBreakOrder`). */
+     *  list Ã¢â‚¬â€ enforced wherever this can change (see `wouldBreakOrder`). */
     dependsOnId: string | null;
     /** Used when `dependsOnId` is null. */
     values: ParameterValue[];
@@ -143,7 +143,7 @@ function emptyPair(): ParameterPair {
     };
 }
 
-/** The values a pair itself "owns" â€” its flat list if it isn't dependent,
+/** The values a pair itself "owns" Ã¢â‚¬â€ its flat list if it isn't dependent,
  *  otherwise every value across every parent bucket (what a parameter
  *  further down the chain would see as this one's options). */
 function ownValues(pair: ParameterPair): ParameterValue[] {
@@ -168,9 +168,9 @@ function descendantsOf(pairs: ParameterPair[], pairId: string): ParameterPair[] 
 }
 
 /**
- * Removes the given value keys from `pairId`'s own store, then â€” because
+ * Removes the given value keys from `pairId`'s own store, then Ã¢â‚¬â€ because
  * those keys may be exactly what a child parameter's `valuesByParent` is
- * keyed on â€” removes the matching buckets from every direct child, and
+ * keyed on Ã¢â‚¬â€ removes the matching buckets from every direct child, and
  * recurses into whichever of THEIR keys just disappeared as a result. This is
  * what keeps a multi-level chain (e.g. Variant depending on Model depending
  * on Make) consistent when a value anywhere in the middle is deleted.
@@ -210,7 +210,7 @@ function removeValuesCascade(
 }
 
 /** Splits the paired model back into the API's two-array shape. Assumes every
- *  pair is already complete (see `validateParameters`) â€” it does not filter. */
+ *  pair is already complete (see `validateParameters`) Ã¢â‚¬â€ it does not filter. */
 function pairsToApiParameters(pairs: ParameterPair[]): CategoryParameters {
     const nameById = new Map(pairs.map((pair) => [pair.id, { en: pair.nameEn.trim(), ur: pair.nameUr.trim() }]));
 
@@ -233,7 +233,7 @@ function pairsToApiParameters(pairs: ParameterPair[]): CategoryParameters {
                 valuesByParent[key] = values.map((value) => (locale === "en" ? value.en : value.ur).trim());
                 // Sent explicitly, bucket by bucket, so the server never has to
                 // guess which of this parameter's own keys belongs to which of
-                // ITS parent's buckets â€” that pairing is what a grandchild
+                // ITS parent's buckets Ã¢â‚¬â€ that pairing is what a grandchild
                 // parameter (e.g. Variant, off Model, off Make) resolves
                 // against once a cascade has narrowed this one down to a
                 // single bucket.
@@ -273,7 +273,7 @@ function hydratePairs(en: CategoryParameter[], ur: CategoryParameter[]): Paramet
 
         const parentIndex = entry?.dependsOn ? nameToIndex.get(entry.dependsOn) : undefined;
         // Guard against stored data that is malformed (a forward or unknown
-        // reference) rather than let it crash the editor â€” it just opens as a
+        // reference) rather than let it crash the editor Ã¢â‚¬â€ it just opens as a
         // flat, non-dependent parameter, which the admin can re-link.
         const dependsOnId =
             parentIndex !== undefined && parentIndex < index ? ids[parentIndex] : null;
@@ -288,7 +288,7 @@ function hydratePairs(en: CategoryParameter[], ur: CategoryParameter[]): Paramet
                 const hasStoredKeys = Array.isArray(storedKeys) && storedKeys.length === values.length;
                 valuesByParent[key] = values.map((text, valueIndex) => ({
                     // Preserve the API's own key for this value when available
-                    // â€” a grandchild parameter's `valuesByParent` is keyed
+                    // Ã¢â‚¬â€ a grandchild parameter's `valuesByParent` is keyed
                     // against THESE. Regenerating them at random here (as this
                     // used to) left a saved cascade with two disconnected key
                     // spaces: this parameter's own values kept the real keys,
@@ -338,7 +338,7 @@ function validateParameters(pairs: ParameterPair[]): string | undefined {
 
         const parent = pairs.find((candidate) => candidate.id === pair.dependsOnId);
         if (!parent) {
-            return `"${label}" depends on a parameter that no longer exists â€” pick another one`;
+            return `"${label}" depends on a parameter that no longer exists Ã¢â‚¬â€ pick another one`;
         }
         const buckets = Object.values(pair.valuesByParent);
         if (buckets.every((values) => values.length === 0)) {
@@ -361,7 +361,7 @@ function buildParametersPayload(pairs: ParameterPair[]): CategoryParameters | un
     return pairsToApiParameters(pairs);
 }
 
-/** A row of paired EN/UR text inputs plus a delete button â€” the atomic unit
+/** A row of paired EN/UR text inputs plus a delete button Ã¢â‚¬â€ the atomic unit
  *  for a value, used both for a flat parameter's list and for one bucket
  *  inside a dependent parameter's master/detail editor. */
 function ValueList({
@@ -493,7 +493,7 @@ function DependentValueEditor({
                                     : "text-gray-11 hover:bg-gray-13"
                             }`}
                         >
-                            {value.en || value.ur || "â€”"}
+                            {value.en || value.ur || "Ã¢â‚¬â€"}
                             <span className="ml-1 text-[11px] text-gray-11">({count})</span>
                         </button>
                     );
@@ -543,7 +543,7 @@ function ParameterPairRow({
 
     function handleDependsOnChange(nextParentId: string) {
         // Switching what this depends on invalidates the old parent-keyed
-        // buckets â€” there's no sound way to carry values across to a
+        // buckets Ã¢â‚¬â€ there's no sound way to carry values across to a
         // different parent, so it starts fresh rather than silently keeping
         // stale data under the wrong parent.
         onChange({
@@ -653,7 +653,7 @@ function ParameterPairRow({
                     disabled={earlierPairs.length === 0}
                     className="mt-1 block w-full max-w-[260px] rounded-[6px] border border-gray-9 bg-white px-2 py-1.5 text-[13px] text-[#001907] outline-none focus:border-green-1 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    <option value="">Not dependent â€” its own value list</option>
+                    <option value="">Not dependent Ã¢â‚¬â€ its own value list</option>
                     {earlierPairs.map((candidate) => (
                         <option key={candidate.id} value={candidate.id}>
                             {candidate.nameEn.trim() || candidate.nameUr.trim() || "(unnamed)"}
@@ -690,7 +690,7 @@ function ParameterPairEditor({
     onChange: (pairs: ParameterPair[]) => void;
 }) {
     function updatePair(index: number, next: ParameterPair) {
-        // Any edit can shrink this pair's own value set â€” deleting a value
+        // Any edit can shrink this pair's own value set Ã¢â‚¬â€ deleting a value
         // chip, deleting a value from one parent-bucket, or changing what
         // this parameter depends on (which resets it to empty). Whenever that
         // happens, cascade the same way `removeValuesCascade` does for an
@@ -759,7 +759,7 @@ type CategoryFormModalProps = {
     open: boolean;
     mode: CategoryFormMode;
     onClose: () => void;
-    /** Pre-selected type for "add" mode â€” e.g. matching whichever tab is active. */
+    /** Pre-selected type for "add" mode Ã¢â‚¬â€ e.g. matching whichever tab is active. */
     defaultType?: CategoryType;
 };
 
@@ -827,14 +827,14 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
         onClose();
     }
 
-    async function handleSubmit() {
+    async function handleSubmit(saveAsDraft = false) {
         const nextErrors: FormErrors = {};
 
-        if (!nameEn.trim()) {
+        if (!saveAsDraft && !nameEn.trim()) {
             nextErrors.nameEn = "English category name is required";
         }
 
-        if (!nameUr.trim()) {
+        if (!saveAsDraft && !nameUr.trim()) {
             nextErrors.nameUr = "Urdu category name is required";
         }
 
@@ -846,7 +846,7 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
             nextErrors.sortNumber = "Sort number must be an integer starting from 1";
         }
 
-        const parametersError = validateParameters(pairs);
+        const parametersError = saveAsDraft ? undefined : validateParameters(pairs);
         if (parametersError) {
             nextErrors.parameters = parametersError;
         }
@@ -874,6 +874,7 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
             name,
             type,
             isDisabled: false,
+            isDraft: saveAsDraft,
             sortNumber: parsedSortNumber,
             ...(parameters ? { parameters } : {}),
         };
@@ -884,6 +885,7 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                 formData.append("type", type);
                 formData.append("icon", iconFile);
                 formData.append("isDisabled", "false");
+                formData.append("isDraft", String(saveAsDraft));
                 formData.append("sortNumber", String(parsedSortNumber));
                 if (parameters) {
                     formData.append("parameters", JSON.stringify(parameters));
@@ -899,12 +901,12 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                     body,
                 }).unwrap();
                 toast.success(
-                    (response as { message?: string })?.message ?? "Category updated successfully",
+                    (response as { message?: string })?.message ?? saveAsDraft ? "Category draft saved" : "Category updated successfully",
                 );
             } else {
                 const response = await createNewCategory(body).unwrap();
                 toast.success(
-                    (response as { message?: string })?.message ?? "Category created successfully",
+                    (response as { message?: string })?.message ?? saveAsDraft ? "Category draft saved" : "Category created successfully",
                 );
             }
             onClose();
@@ -1071,7 +1073,7 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                                     setErrors((prev) => ({ ...prev, nameUr: undefined }));
                                 }
                             }}
-                            placeholder="Ú©ÛŒÙ¹ÛŒÚ¯Ø±ÛŒ Ú©Ø§ Ù†Ø§Ù… Ù„Ú©Ú¾ÛŒÚº"
+                            placeholder="ÃšÂ©Ã›Å’Ã™Â¹Ã›Å’ÃšÂ¯Ã˜Â±Ã›Å’ ÃšÂ©Ã˜Â§ Ã™â€ Ã˜Â§Ã™â€¦ Ã™â€žÃšÂ©ÃšÂ¾Ã›Å’ÃšÂº"
                             dir="rtl"
                             className={`mt-2 w-full border-0 border-b bg-transparent py-2 text-[14px] text-[#001907] outline-none ${errors.nameUr ? "border-red-1 focus:border-red-1" : "border-gray-9 focus:border-green-1"}`}
                         />
@@ -1089,7 +1091,7 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                             </p>
                             <p className="mt-0.5 text-[12px] text-gray-11">
                                 Set &quot;Depends on&quot; to make a parameter&apos;s options change with an
-                                earlier one â€” e.g. Model depends on Make, Variant depends on Model.
+                                earlier one Ã¢â‚¬â€ e.g. Model depends on Make, Variant depends on Model.
                             </p>
                         </div>
                     </div>
@@ -1120,7 +1122,7 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                     </button>                    <DoodleButton
                         type="button"
                         disabled={isSubmitting}
-                        onClick={handleSubmit}
+                        onClick={() => void handleSubmit()}
                         className="h-[40px] min-w-[150px] cursor-pointer rounded-[8px] border border-green-1 bg-green-1 px-4 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {isSubmitting ? (
