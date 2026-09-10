@@ -281,11 +281,22 @@ function hydratePairs(en: CategoryParameter[], ur: CategoryParameter[]): Paramet
 
         if (dependsOnId && entry?.valuesByParent) {
             const urByParent = urEntry?.valuesByParent ?? {};
+            const enKeysByParent = entry.valueKeysByParent ?? {};
             const valuesByParent: Record<string, ParameterValue[]> = {};
             for (const [key, values] of Object.entries(entry.valuesByParent)) {
                 const urValues = urByParent[key] ?? [];
+                const storedKeys = enKeysByParent[key];
+                const hasStoredKeys = Array.isArray(storedKeys) && storedKeys.length === values.length;
                 valuesByParent[key] = values.map((text, valueIndex) => ({
-                    key: randomId("v"),
+                    // Preserve the API's own key for this value when available
+                    // — a grandchild parameter's `valuesByParent` is keyed
+                    // against THESE. Regenerating them at random here (as this
+                    // used to) left a saved cascade with two disconnected key
+                    // spaces: this parameter's own values kept the real keys,
+                    // but the pair only ever saw the random ones, so master/
+                    // detail lookups here and the whole thing further down the
+                    // chain came up empty even though the data was intact.
+                    key: hasStoredKeys ? storedKeys[valueIndex] : randomId("v"),
                     en: text,
                     ur: urValues[valueIndex] ?? "",
                 }));
@@ -295,8 +306,10 @@ function hydratePairs(en: CategoryParameter[], ur: CategoryParameter[]): Paramet
 
         const enValues = Array.isArray(entry?.values) ? entry.values : [];
         const urValues = Array.isArray(urEntry?.values) ? urEntry.values : [];
+        const storedKeys = entry?.valueKeys;
+        const hasStoredKeys = Array.isArray(storedKeys) && storedKeys.length === enValues.length;
         const values: ParameterValue[] = enValues.map((text, valueIndex) => ({
-            key: randomId("v"),
+            key: hasStoredKeys ? storedKeys[valueIndex] : randomId("v"),
             en: text,
             ur: urValues[valueIndex] ?? "",
         }));
