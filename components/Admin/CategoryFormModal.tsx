@@ -989,8 +989,8 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
 
     return (
         <Modal editModalRef={modalRef} open={open} setOpen={handleSetOpen} centered>
-            <div className="hide-scrollbar w-[92vw] max-w-[960px] bg-white rounded-[12px] p-6 shadow-xl ">
-                <div className="flex items-start justify-between gap-4">
+            <div className="flex max-h-[85vh] w-[92vw] max-w-[800px] flex-col rounded-[12px] bg-white shadow-xl">
+                <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-9 px-6 pb-4 pt-6">
                     <h2 className="flex items-center gap-2 text-[18px] font-semibold text-[#001907]">
                         <Tag className="h-5 w-5 text-green-1" strokeWidth={2} />
                         {isEdit ? "Edit category" : "Add category"}
@@ -1006,7 +1006,8 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                     </button>
                 </div>
 
-                <p className="mt-3 text-[14px] leading-6 text-gray-11">
+                <div className="hide-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                <p className="text-[14px] leading-6 text-gray-11">
                     {isEdit
                         ? "You can update the name of this category. Changes will reflect immediately across all associated listings."
                         : "Add a new category. It will be available immediately across all associated listings."}
@@ -1187,7 +1188,8 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                         <p className="mt-3 text-[12px] font-normal text-red-1">{errors.parameters}</p>
                     )}
                 </div>
-                <div className="mt-8 flex justify-end gap-3">
+                </div>
+                <div className="flex shrink-0 justify-end gap-3 border-t border-gray-9 px-6 py-4">
                     <button
                         type="button"
                         onClick={handleClose}
