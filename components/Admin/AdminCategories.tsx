@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronsUpDown, Download, Plus, SquarePen } from "lucide-react";
+import { ChevronsUpDown, Download, Plus, SquarePen, Trash2 } from "lucide-react";
 import { BeatLoader } from "react-spinners";
 import { toast } from "react-hot-toast";
 import Pagination from "@/components/Ui/Pagination";
@@ -32,6 +32,7 @@ type Category = {
     icon?: string;
     parameters?: CategoryParameters;
     sortNumber?: number;
+    groupedCategoryIds?: string[];
 
 };
 
@@ -45,6 +46,7 @@ type ApiCategory = {
     icon?: string;
     parameters?: CategoryParameters;
     sortNumber?: number;
+    groupedCategoryIds?: string[];
 };
 
 type CategoriesResponse = {
@@ -189,12 +191,14 @@ function mapApiCategory(category: ApiCategory): Category {
             }
             : undefined,
         sortNumber: category.sortNumber,
+        groupedCategoryIds: Array.isArray(category.groupedCategoryIds)
+            ? category.groupedCategoryIds.filter((id): id is string => typeof id === "string")
+            : undefined,
     };
 }
 
-type PendingStatusChange = {
+type PendingDelete = {
     category: Category;
-    action: "activate" | "deactivate";
 };
 
 const CATEGORY_TABS: { value: CategoryType; label: string }[] = [
@@ -208,11 +212,11 @@ function AdminCategories() {
     const [activeTab, setActiveTab] = useState<CategoryType>("product");
     const [page, setPage] = useState(1);
     const [updatingCategoryId, setUpdatingCategoryId] = useState<string | null>(null);
-    const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-    const [pendingStatusChange, setPendingStatusChange] = useState<PendingStatusChange | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
     const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-    const statusModalRef = useRef<HTMLDivElement>(null);
+    const deleteModalRef = useRef<HTMLDivElement>(null);
 
     const {
         data: categoriesResponse,
@@ -285,24 +289,26 @@ function AdminCategories() {
         setEditingCategory(null);
     }
 
-    async function handleStatusChange(category: Category, action: "activate" | "deactivate") {
+    // Soft delete — the backend keeps the row (isDisabled: true) so any
+    // listing still referencing this category keeps resolving; it just drops
+    // out of pickers and active listings.
+    async function handleDeleteCategory(category: Category) {
         setUpdatingCategoryId(category.id);
 
         try {
             const response = await updateCategory({
                 id: category.id,
                 body: {
-                    isDisabled: action === "deactivate",
+                    isDisabled: true,
                 },
             }).unwrap();
 
             toast.success(
-                (response as { message?: string })?.message ??
-                `Category ${action === "activate" ? "activated" : "deactivated"} successfully`,
+                (response as { message?: string })?.message ?? "Category deleted successfully",
             );
 
-            setIsStatusModalOpen(false);
-            setPendingStatusChange(null);
+            setIsDeleteModalOpen(false);
+            setPendingDelete(null);
         } catch (err) {
             const errorData = err as { data?: { message?: string } };
             toast.error(errorData?.data?.message ?? "Something went wrong");
@@ -311,34 +317,31 @@ function AdminCategories() {
         }
     }
 
-    function openStatusModal(category: Category) {
-        setPendingStatusChange({
-            category,
-            action: category.status === "active" ? "deactivate" : "activate",
-        });
-        setIsStatusModalOpen(true);
+    function openDeleteModal(category: Category) {
+        setPendingDelete({ category });
+        setIsDeleteModalOpen(true);
     }
 
-    function handleStatusModalOpen(value: React.SetStateAction<boolean>) {
-        const nextOpen = typeof value === "function" ? value(isStatusModalOpen) : value;
+    function handleDeleteModalOpen(value: React.SetStateAction<boolean>) {
+        const nextOpen = typeof value === "function" ? value(isDeleteModalOpen) : value;
         if (!nextOpen) {
-            closeStatusModal();
+            closeDeleteModal();
         } else {
-            setIsStatusModalOpen(true);
+            setIsDeleteModalOpen(true);
         }
     }
 
-    function closeStatusModal() {
+    function closeDeleteModal() {
         if (updatingCategoryId) return;
-        setIsStatusModalOpen(false);
-        setPendingStatusChange(null);
+        setIsDeleteModalOpen(false);
+        setPendingDelete(null);
     }
 
     useEffect(() => {
-        if (!isStatusModalOpen && !updatingCategoryId) {
-            setPendingStatusChange(null);
+        if (!isDeleteModalOpen && !updatingCategoryId) {
+            setPendingDelete(null);
         }
-    }, [isStatusModalOpen, updatingCategoryId]);
+    }, [isDeleteModalOpen, updatingCategoryId]);
 
     return (
         <section className="  ">
@@ -350,70 +353,47 @@ function AdminCategories() {
             />
 
             <Modal
-                editModalRef={statusModalRef}
-                open={isStatusModalOpen}
-                setOpen={handleStatusModalOpen}
+                editModalRef={deleteModalRef}
+                open={isDeleteModalOpen}
+                setOpen={handleDeleteModalOpen}
                 centered
             >
                 <div className="hide-scrollbar w-[92vw] max-w-[390px] rounded-[12px] bg-white p-5 shadow-xl ">
                     <h2 className="text-[16px] font-semibold text-black-1">
-                        {pendingStatusChange?.action === "activate" ? "Activate category" : "Deactivate category"}
+                        Delete category
                     </h2>
                     <p className="mt-2 text-[14px] text-gray-8">
-                        Are you sure you want to {pendingStatusChange?.action === "activate" ? "activate" : "deactivate"}{" "}
+                        Are you sure you want to delete{" "}
                         <span className="font-medium text-[#001907]">
-                            {pendingStatusChange?.category.displayName}
+                            {pendingDelete?.category.displayName}
                         </span>
-                        ?
+                        ? Existing listings that reference it will keep working, but it
+                        will no longer be selectable for new ones.
                     </p>
                     <div className="mt-5 flex gap-3">
                         <button
                             type="button"
-                            onClick={closeStatusModal}
+                            onClick={closeDeleteModal}
                             disabled={Boolean(updatingCategoryId)}
                             className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-green-1 text-[14px] font-medium text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             Cancel
                         </button>
-                        {pendingStatusChange?.action === "activate" ? (
-                            <DoodleButton
-                                type="button"
-                                disabled={Boolean(updatingCategoryId)}
-                                onClick={() => {
-                                    if (!pendingStatusChange) return;
-                                    handleStatusChange(
-                                        pendingStatusChange.category,
-                                        pendingStatusChange.action,
-                                    );
-                                }}
-                                className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-green-1 bg-green-1 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                {updatingCategoryId ? (
-                                    <BeatLoader color="white" size={8} />
-                                ) : (
-                                    "Confirm"
-                                )}
-                            </DoodleButton>
-                        ) : (
-                            <button
-                                type="button"
-                                disabled={Boolean(updatingCategoryId)}
-                                onClick={() => {
-                                    if (!pendingStatusChange) return;
-                                    handleStatusChange(
-                                        pendingStatusChange.category,
-                                        pendingStatusChange.action,
-                                    );
-                                }}
-                                className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-[#E92440] bg-[#E92440] text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                {updatingCategoryId ? (
-                                    <BeatLoader color="white" size={8} />
-                                ) : (
-                                    "Confirm"
-                                )}
-                            </button>
-                        )}
+                        <button
+                            type="button"
+                            disabled={Boolean(updatingCategoryId)}
+                            onClick={() => {
+                                if (!pendingDelete) return;
+                                handleDeleteCategory(pendingDelete.category);
+                            }}
+                            className="h-[40px] flex-1 cursor-pointer rounded-[8px] border border-[#E92440] bg-[#E92440] text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {updatingCategoryId ? (
+                                <BeatLoader color="white" size={8} />
+                            ) : (
+                                "Delete"
+                            )}
+                        </button>
                     </div>
                 </div>
             </Modal>
@@ -520,8 +500,6 @@ function AdminCategories() {
 
                                 {!loading &&
                                     paginatedCategories.map((category) => {
-                                        const statusStyle = STATUS_STYLES[category.status];
-
                                         return (
                                             <tr key={category.id} className="bg-white">
                                                 <td className="py-3.5 pr-4">
@@ -553,15 +531,26 @@ function AdminCategories() {
                                                 </td>
 
                                                 <td className="py-3.5 text-center">
-                                                    <button
-                                                        type="button"
-                                                        aria-label="Edit category"
-                                                        onClick={() => openEditCategoryModal(category)}
-                                                        disabled={!canEdit("categories")}
-                                                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-gray-11 transition-colors hover:bg-green-4 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-11"
-                                                    >
-                                                        <SquarePen className="h-4 w-4" strokeWidth={2} />
-                                                    </button>
+                                                    <div className="inline-flex items-center justify-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            aria-label="Edit category"
+                                                            onClick={() => openEditCategoryModal(category)}
+                                                            disabled={!canEdit("categories")}
+                                                            className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-gray-11 transition-colors hover:bg-green-4 hover:text-green-1 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-11"
+                                                        >
+                                                            <SquarePen className="h-4 w-4" strokeWidth={2} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            aria-label="Delete category"
+                                                            onClick={() => openDeleteModal(category)}
+                                                            disabled={!canEdit("categories")}
+                                                            className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] text-gray-11 transition-colors hover:bg-[#FDD5D5] hover:text-[#E92440] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-11"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" strokeWidth={2} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );

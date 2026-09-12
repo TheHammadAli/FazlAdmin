@@ -11,8 +11,10 @@ import { Check, ChevronDown, ChevronUp, Plus, Tag, X } from "lucide-react";
 import {
     useCreateNewCategoryMutation,
     useUpdateCategoryMutation,
+    useGetAllCategoriesForAdminQuery,
 } from "@/store/services/adminService";
 import noImageIcon from "@/assets/images/new-no-image-placeholder.png";
+import { getFeedCategoryLabel } from "@/utils/getFeedCategoryLabel";
 
 export type CategoryType = "product" | "service" | "shop";
 
@@ -64,9 +66,23 @@ export type CategoryFormCategory = {
     icon?: string;
     parameters?: CategoryParameters;
     sortNumber?: number;
+    /** Only meaningful when type === "shop": ids of the product categories
+     *  this shop category groups (e.g. Vehicle -> Car, Bike). */
+    groupedCategoryIds?: string[];
 };
 
 export type CategoryFormMode = "add" | { type: "edit"; category: CategoryFormCategory };
+
+/** A row from the admin categories list, as needed for the grouped-categories
+ *  picker below — not the full shape, just what's used to render/filter it. */
+type ProductCategoryOption = {
+    _id?: string;
+    id?: string;
+    name?: string | { en?: string; ur?: string };
+    icon?: string;
+    type?: CategoryType;
+    isDisabled?: boolean;
+};
 
 const CATEGORY_TYPE_OPTIONS: { value: CategoryType; label: string }[] = [
     { value: "product", label: "Product" },
@@ -772,6 +788,17 @@ type CategoryFormModalProps = {
     defaultType?: CategoryType;
 };
 
+/** Small "is this being saved in the background" cue next to the
+ *  parameters / grouped-categories section header. */
+function AutosaveIndicator({ status }: { status: "idle" | "saving" | "saved" }) {
+    if (status === "idle") return null;
+    return (
+        <span className="text-[11px] font-normal text-gray-11">
+            {status === "saving" ? "Saving…" : "Saved"}
+        </span>
+    );
+}
+
 function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormModalProps) {
     const isEdit = mode !== "add";
     const editCategory = isEdit ? mode.category : null;
@@ -784,11 +811,43 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
     const [iconPreview, setIconPreview] = useState<string | null>(null);
     const [iconFile, setIconFile] = useState<File | null>(null);
     const [pairs, setPairs] = useState<ParameterPair[]>([]);
+    const [groupedCategoryIds, setGroupedCategoryIds] = useState<string[]>([]);
+    const [groupedCategoryFilter, setGroupedCategoryFilter] = useState("");
     const [errors, setErrors] = useState<FormErrors>({});
 
     const [createNewCategory, { isLoading: isCreatingCategory }] = useCreateNewCategoryMutation();
     const [updateCategory, { isLoading: isUpdatingCategory }] = useUpdateCategoryMutation();
     const isSubmitting = isCreatingCategory || isUpdatingCategory;
+
+    // The id of a category autosaved from THIS "add" session, before the
+    // admin has ever pressed Save — lets every autosave after the first
+    // update the same row instead of creating a new one on every pause, and
+    // lets the eventual explicit Save publish that same row rather than
+    // creating a duplicate.
+    const [autosavedCategoryId, setAutosavedCategoryId] = useState<string | null>(null);
+    const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+    // The hydration effect below also changes `pairs`/`groupedCategoryIds` —
+    // that's loading existing data, not a real edit, so the very next
+    // autosave-effect run after it must not fire.
+    const skipNextAutosaveRef = useRef(true);
+    const autosaveTargetId = editCategory?.id ?? autosavedCategoryId;
+
+    // Only fetched once the admin is actually building a Shop category — the
+    // grouped-categories picker below is the only thing that needs this list.
+    const { data: productCategoriesResponse } = useGetAllCategoriesForAdminQuery(undefined, {
+        skip: !open || type !== "shop",
+    });
+    const productCategoryOptions = ((productCategoriesResponse as { data?: ProductCategoryOption[] } | undefined)
+        ?.data ?? []).filter(
+        (category) => category.type === "product" && !category.isDisabled,
+    );
+    const filteredProductCategoryOptions = groupedCategoryFilter.trim()
+        ? productCategoryOptions.filter((category) =>
+              getFeedCategoryLabel(category.name, "en")
+                  .toLowerCase()
+                  .includes(groupedCategoryFilter.trim().toLowerCase()),
+          )
+        : productCategoryOptions;
 
     useEffect(() => {
         if (!open) return;
@@ -804,8 +863,91 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
         setIconPreview(editCategory?.icon ?? null);
         setIconFile(null);
         setPairs(hydratePairs(editCategory?.parameters?.en ?? [], editCategory?.parameters?.ur ?? []));
+        setGroupedCategoryIds(editCategory?.groupedCategoryIds ?? []);
+        setGroupedCategoryFilter("");
         setErrors({});
+        setAutosavedCategoryId(null);
+        setAutosaveStatus("idle");
+        skipNextAutosaveRef.current = true;
     }, [open, editCategory, defaultType]);
+
+    function toggleGroupedCategory(categoryId: string) {
+        setGroupedCategoryIds((prev) =>
+            prev.includes(categoryId)
+                ? prev.filter((id) => id !== categoryId)
+                : [...prev, categoryId],
+        );
+    }
+
+    // Background save of whatever the parameters (or, for a Shop category,
+    // the grouped-categories list) currently look like — deliberately skips
+    // the full validation the explicit Save button runs, since the whole
+    // point is to persist in-progress, possibly-incomplete work. Creates the
+    // category as a draft on the very first call in "add" mode (same shape
+    // as the explicit "Save as draft" button); every call after that, and
+    // every call in "edit" mode, updates that same row without touching
+    // isDraft/isDisabled — an already-published category stays published
+    // while its parameters are being edited.
+    async function runAutosave() {
+        if (isSubmitting) return;
+
+        const name = { en: nameEn.trim(), ur: nameUr.trim() };
+        const parsedSortNumber = Number(sortNumber.trim());
+        const safeSortNumber =
+            Number.isInteger(parsedSortNumber) && parsedSortNumber >= 1 ? parsedSortNumber : 1;
+        const parameters = buildParametersPayload(pairs);
+        const extra = type === "shop" ? { groupedCategoryIds } : parameters ? { parameters } : {};
+
+        setAutosaveStatus("saving");
+        try {
+            if (autosaveTargetId) {
+                // `type` is included even though it rarely changes mid-edit —
+                // without it, the backend falls back to the row's stored type
+                // when deciding whether groupedCategoryIds applies, which goes
+                // stale the moment the admin switches the Type dropdown after
+                // an earlier autosave already created/updated this row.
+                await updateCategory({
+                    id: autosaveTargetId,
+                    body: { name, type, sortNumber: safeSortNumber, ...extra },
+                }).unwrap();
+            } else {
+                const response = await createNewCategory({
+                    name,
+                    type,
+                    isDisabled: false,
+                    isDraft: true,
+                    sortNumber: safeSortNumber,
+                    ...extra,
+                }).unwrap();
+                const newId =
+                    (response as { data?: { id?: string; _id?: string } })?.data?.id ??
+                    (response as { data?: { id?: string; _id?: string } })?.data?._id;
+                if (newId) setAutosavedCategoryId(newId);
+            }
+            setAutosaveStatus("saved");
+        } catch {
+            // Silent — a background convenience save. The explicit Save
+            // button still surfaces a real error if something is genuinely wrong.
+            setAutosaveStatus("idle");
+        }
+    }
+
+    useEffect(() => {
+        if (!open) return;
+        if (skipNextAutosaveRef.current) {
+            skipNextAutosaveRef.current = false;
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            void runAutosave();
+        }, 1200);
+
+        return () => clearTimeout(timer);
+        // Deliberately scoped to parameter/grouped-category edits only — name,
+        // sort number etc. still persist only on an explicit Save.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pairs, groupedCategoryIds]);
 
     function clearParametersError() {
         setErrors((prev) => (prev.parameters ? { ...prev, parameters: undefined } : prev));
@@ -892,7 +1034,7 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
             isDisabled: false,
             isDraft: saveAsDraft,
             sortNumber: parsedSortNumber,
-            ...(parameters ? { parameters } : {}),
+            ...(type === "shop" ? { groupedCategoryIds } : parameters ? { parameters } : {}),
         };
         const body = iconFile
             ? (() => {
@@ -903,17 +1045,24 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                 formData.append("isDisabled", "false");
                 formData.append("isDraft", String(saveAsDraft));
                 formData.append("sortNumber", String(parsedSortNumber));
-                if (parameters) {
+                if (type === "shop") {
+                    formData.append("groupedCategoryIds", JSON.stringify(groupedCategoryIds));
+                } else if (parameters) {
                     formData.append("parameters", JSON.stringify(parameters));
                 }
                 return formData;
             })()
             : payload;
 
+        // In "add" mode, a background autosave may have already created this
+        // category (as a draft) while the admin was still typing parameters —
+        // publish that same row instead of creating a second one.
+        const targetId = editCategory?.id ?? autosavedCategoryId;
+
         try {
-            if (isEdit && editCategory) {
+            if (targetId) {
                 const response = await updateCategory({
-                    id: editCategory.id,
+                    id: targetId,
                     body,
                 }).unwrap();
                 toast.success(
@@ -1099,25 +1248,95 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                     </div>
                 </div>
 
-                <div id="category-parameters-section" className="mt-8 border-t border-gray-9 pt-6">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
+                {type === "shop" ? (
+                    <div id="category-parameters-section" className="mt-8 border-t border-gray-9 pt-6">
+                        <div className="flex items-center justify-between gap-2">
                             <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
-                                Parameters (optional)
+                                Grouped product categories
                             </p>
-                            <p className="mt-0.5 text-[12px] text-gray-11">
-                                Set &quot;Depends on&quot; to make a parameter&apos;s options change with an
-                                earlier one — e.g. Model depends on Make, Variant depends on Model.
-                            </p>
+                            <AutosaveIndicator status={autosaveStatus} />
+                        </div>
+                        <p className="mt-0.5 text-[12px] text-gray-11">
+                            A shop filed under this category can list products in any of the
+                            product categories checked below — e.g. &quot;Vehicle&quot; grouping
+                            &quot;Car&quot; and &quot;Bike&quot;.
+                        </p>
+                        <div className="mt-4">
+                            <input
+                                type="text"
+                                value={groupedCategoryFilter}
+                                onChange={(event) => setGroupedCategoryFilter(event.target.value)}
+                                placeholder="Search product categories..."
+                                className="w-full border-0 border-b border-gray-9 bg-transparent py-2 text-[14px] text-[#001907] outline-none focus:border-green-1"
+                            />
+                            <div className="hide-scrollbar mt-3 max-h-[260px] overflow-y-auto rounded-[8px] border border-gray-9">
+                                {filteredProductCategoryOptions.length === 0 ? (
+                                    <p className="px-4 py-6 text-center text-[13px] text-gray-11">
+                                        No product categories found
+                                    </p>
+                                ) : (
+                                    filteredProductCategoryOptions.map((category) => {
+                                        const categoryId = category._id ?? category.id ?? "";
+                                        const checked = groupedCategoryIds.includes(categoryId);
+                                        return (
+                                            <label
+                                                key={categoryId}
+                                                className="flex cursor-pointer items-center gap-3 border-b border-gray-9 px-4 py-2.5 last:border-b-0 hover:bg-gray-10"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={() => toggleGroupedCategory(categoryId)}
+                                                    className="h-4 w-4 cursor-pointer accent-green-1"
+                                                />
+                                                {category.icon ? (
+                                                    <Image
+                                                        src={category.icon}
+                                                        unoptimized
+                                                        alt=""
+                                                        width={18}
+                                                        height={18}
+                                                    />
+                                                ) : (
+                                                    <Image src={noImageIcon} alt="" className="h-[18px] w-[18px] object-cover" />
+                                                )}
+                                                <span className="text-[14px] text-[#001907]">
+                                                    {getFeedCategoryLabel(category.name, "en")}
+                                                </span>
+                                            </label>
+                                        );
+                                    })
+                                )}
+                            </div>
+                            {groupedCategoryIds.length > 0 && (
+                                <p className="mt-2 text-[12px] text-gray-11">
+                                    {groupedCategoryIds.length} categor{groupedCategoryIds.length === 1 ? "y" : "ies"} selected
+                                </p>
+                            )}
                         </div>
                     </div>
-                    <div className="mt-4">
-                        <ParameterPairEditor pairs={pairs} onChange={handlePairsChange} />
+                ) : (
+                    <div id="category-parameters-section" className="mt-8 border-t border-gray-9 pt-6">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <p className="text-[12px] font-medium uppercase tracking-wide text-gray-6">
+                                    Parameters (optional)
+                                </p>
+                                <p className="mt-0.5 text-[12px] text-gray-11">
+                                    Set &quot;Depends on&quot; to make a parameter&apos;s options change with an
+                                    earlier one — e.g. Model depends on Make, Variant depends on Model.
+                                </p>
+                            </div>
+                            <AutosaveIndicator status={autosaveStatus} />
+                        </div>
+                        <div className="mt-4">
+                            <ParameterPairEditor pairs={pairs} onChange={handlePairsChange} />
+                        </div>
+                        {errors.parameters && (
+                            <p className="mt-3 text-[12px] font-normal text-red-1">{errors.parameters}</p>
+                        )}
                     </div>
-                    {errors.parameters && (
-                        <p className="mt-3 text-[12px] font-normal text-red-1">{errors.parameters}</p>
-                    )}
-                </div>
+                )}
                 </div>
                 <div className="flex shrink-0 justify-end gap-3 border-t border-gray-9 px-6 py-4">
                     <button

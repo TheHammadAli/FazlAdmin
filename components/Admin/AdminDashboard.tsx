@@ -12,7 +12,6 @@ import {
     CalendarCheck,
     Radio,
     Video,
-    Clock,
     Flag,
     Mail,
     Tags,
@@ -33,6 +32,7 @@ import {
     useGetAllReviewsForAdminQuery,
     useGetAllReportsForAdminQuery,
     useGetTotalLikeCountQuery,
+    useGetEmailLogStatsQuery,
 } from "@/store/services/adminService";
 import DateRangeFilter, { type DateFilterValue } from "@/components/Ui/DateRangeFilter";
 import AdminProfileMenu from "@/components/Admin/AdminProfileMenu";
@@ -107,13 +107,18 @@ type LikesResponse = {
     };
 };
 
+type EmailLogStatsResponse = {
+    data?: {
+        total?: number;
+    };
+};
+
 type StatCard = {
     label: string;
     value: string;
     icon: LucideIcon;
     bg: string;
     color: string;
-    comingSoon?: boolean;
     href?: string;
     // For totals that span several sections — likes are counted across feed
     // videos, listings and services — so the card offers a choice of
@@ -239,6 +244,15 @@ function AdminDashboard() {
     const totalLikes = (likesResponse as LikesResponse | undefined)?.data?.total;
     const loadingLikes = isLikesLoading || isLikesFetching;
 
+    const {
+        data: emailStatsResponse,
+        isLoading: isEmailStatsLoading,
+        isFetching: isEmailStatsFetching,
+    } = useGetEmailLogStatsQuery(undefined);
+
+    const totalEmailsSent = (emailStatsResponse as EmailLogStatsResponse | undefined)?.data?.total;
+    const loadingEmailStats = isEmailStatsLoading || isEmailStatsFetching;
+
     // Label of the card whose destination menu is open, or null when none is.
     // Only one can be open at a time, so a single ref is enough to detect an
     // outside click.
@@ -351,33 +365,6 @@ function AdminDashboard() {
             ],
         },
         {
-            label: "Pending Shop Approvals",
-            value: "12",
-            comingSoon: true,
-            icon: Clock,
-            bg: "bg-[#FDEAB8]",
-            color: "text-[#946200]",
-            href: "/admin/shops",
-        },
-        {
-            label: "Pending Listing Approvals",
-            value: "27",
-            comingSoon: true,
-            icon: Clock,
-            bg: "bg-[#FDEAB8]",
-            color: "text-[#946200]",
-            href: "/admin/listings",
-        },
-        {
-            label: "Pending Service Approvals",
-            value: "9",
-            comingSoon: true,
-            icon: Clock,
-            bg: "bg-[#FDEAB8]",
-            color: "text-[#946200]",
-            href: "/admin/services",
-        },
-        {
             label: "Pending Reports",
             value: loadingReports ? "..." : String(totalOpenReports ?? 0),
             icon: Flag,
@@ -387,8 +374,7 @@ function AdminDashboard() {
         },
         {
             label: "Total Emails Sent",
-            value: "1,368",
-            comingSoon: true,
+            value: loadingEmailStats ? "..." : String(totalEmailsSent ?? 0),
             icon: Mail,
             bg: "bg-green-4",
             color: "text-green-1",
@@ -436,29 +422,63 @@ function AdminDashboard() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {stats.map((stat) => (
-                            <div
-                                key={stat.label}
-                                className="flex flex-col justify-between rounded-[12px] border border-gray-9 p-4"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <IconBadge icon={stat.icon} bg={stat.bg} color={stat.color} />
-                                    <div className="min-w-0">
-                                        <p className="truncate text-[13px] font-normal text-gray-11">
-                                            {stat.label}
-                                        </p>
-                                        <p className="flex items-center gap-2 text-[20px] font-semibold text-[#001907]">
-                                            {stat.value}
-                                            {stat.comingSoon && (
-                                                <span className="rounded-[4px] bg-gray-10 px-1.5 py-0.5 text-[10px] font-medium text-gray-6">
-                                                    soon
-                                                </span>
-                                            )}
-                                        </p>
+                        {stats.map((stat) => {
+                            const cardBody = (
+                                <>
+                                    <div className="flex items-center gap-3">
+                                        <IconBadge icon={stat.icon} bg={stat.bg} color={stat.color} />
+                                        <div className="min-w-0">
+                                            <p className="truncate text-[13px] font-normal text-gray-11">
+                                                {stat.label}
+                                            </p>
+                                            <p className="flex items-center gap-2 text-[20px] font-semibold text-[#001907]">
+                                                {stat.value}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
 
-                                {stat.links ? (
+                                    {stat.href && (
+                                        <span className="mt-3 inline-flex items-center gap-1 self-end text-[12px] font-medium text-green-1">
+                                            View Details
+                                            <ChevronRight className="h-3.5 w-3.5" />
+                                        </span>
+                                    )}
+                                </>
+                            );
+
+                            // A card with a single destination navigates on a click
+                            // anywhere on it, so the whole card is the Link itself.
+                            if (!stat.links) {
+                                return (
+                                    <Link
+                                        key={stat.label}
+                                        href={stat.href ?? "#"}
+                                        className="flex flex-col justify-between rounded-[12px] border border-gray-9 p-4 transition-colors hover:border-green-1"
+                                    >
+                                        {cardBody}
+                                    </Link>
+                                );
+                            }
+
+                            // A card with several destinations (Total Likes) stays a
+                            // plain div, since it opens a menu to choose one instead.
+                            return (
+                                <div
+                                    key={stat.label}
+                                    className="flex flex-col justify-between rounded-[12px] border border-gray-9 p-4"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <IconBadge icon={stat.icon} bg={stat.bg} color={stat.color} />
+                                        <div className="min-w-0">
+                                            <p className="truncate text-[13px] font-normal text-gray-11">
+                                                {stat.label}
+                                            </p>
+                                            <p className="flex items-center gap-2 text-[20px] font-semibold text-[#001907]">
+                                                {stat.value}
+                                            </p>
+                                        </div>
+                                    </div>
+
                                     <div
                                         className="relative mt-3 self-end"
                                         ref={openMenuFor === stat.label ? menuRef : undefined}
@@ -493,19 +513,9 @@ function AdminDashboard() {
                                             </div>
                                         )}
                                     </div>
-                                ) : (
-                                    stat.href && (
-                                        <Link
-                                            href={stat.href}
-                                            className="mt-3 inline-flex items-center gap-1 self-end text-[12px] font-medium text-green-1 hover:underline"
-                                        >
-                                            View Details
-                                            <ChevronRight className="h-3.5 w-3.5" />
-                                        </Link>
-                                    )
-                                )}
-                            </div>
-                        ))}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
