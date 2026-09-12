@@ -449,9 +449,9 @@ function ValueList({
                     }}
                     // A value typed here isn't part of the parameter until it's
                     // committed — without this, clicking straight from this box
-                    // to Save/Save as draft (skipping Enter or the + button)
-                    // silently discarded whatever was typed, saving the
-                    // parameter's name with no values at all.
+                    // to Save (skipping Enter or the + button) silently
+                    // discarded whatever was typed, saving the parameter's name
+                    // with no values at all.
                     onBlur={addValue}
                     className="w-full rounded-[6px] border border-dashed border-gray-9 bg-white px-2 py-1 text-[13px] text-[#001907] outline-none focus:border-green-1"
                 />
@@ -883,11 +883,12 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
     // the grouped-categories list) currently look like — deliberately skips
     // the full validation the explicit Save button runs, since the whole
     // point is to persist in-progress, possibly-incomplete work. Creates the
-    // category as a draft on the very first call in "add" mode (same shape
-    // as the explicit "Save as draft" button); every call after that, and
-    // every call in "edit" mode, updates that same row without touching
-    // isDraft/isDisabled — an already-published category stays published
-    // while its parameters are being edited.
+    // category as a draft on the very first call in "add" mode (there's no
+    // separate "save as draft" action anymore — this is the only path that
+    // ever creates one); every call after that, and every call in "edit"
+    // mode, updates that same row without touching isDraft/isDisabled — an
+    // already-published category stays published while its parameters are
+    // being edited.
     async function runAutosave() {
         if (isSubmitting) return;
 
@@ -958,9 +959,6 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
         clearParametersError();
     }
 
-    function handleSaveDraft() {
-        void handleSubmit(true);
-    }
     function handleSetOpen(value: React.SetStateAction<boolean>) {
         const nextOpen = typeof value === "function" ? value(open) : value;
         if (!nextOpen && !isSubmitting) {
@@ -1346,14 +1344,6 @@ function CategoryFormModal({ open, mode, onClose, defaultType }: CategoryFormMod
                         className="h-[40px] min-w-[100px] cursor-pointer rounded-[8px] border border-green-1 px-4 text-[14px] font-medium text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         Cancel
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleSaveDraft}
-                        disabled={isSubmitting}
-                        className="h-[40px] min-w-[120px] cursor-pointer rounded-[8px] border border-green-1 px-4 text-[14px] font-medium text-green-1 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        Save as draft
                     </button>
                     <DoodleButton
                         type="button"
