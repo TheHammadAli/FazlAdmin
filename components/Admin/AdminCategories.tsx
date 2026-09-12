@@ -230,7 +230,10 @@ function AdminCategories() {
     }, [categoriesResponse]);
 
     const tabCategories = useMemo(
-        () => allCategories.filter((category) => category.type === activeTab),
+        () =>
+            allCategories.filter(
+                (category) => category.type === activeTab && category.status !== "inactive",
+            ),
         [allCategories, activeTab],
     );
 
