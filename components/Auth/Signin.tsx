@@ -15,8 +15,10 @@ import {
 import { baseApi } from "@/store/baseApi";
 import DoodleButton from "@/components/Ui/DoodleButton";
 import Footer from "./Footer";
+import AuthField from "./AuthField";
 import { useDictionary } from "@/dictionaries/DictionaryProvider";
 import { setAdminRoleCookie } from "@/utils/authCookies";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export type Body = {
   email?: string;
@@ -170,54 +172,40 @@ function Signin() {
           </p>
 
           {/* Email */}
-          <div className="space-y-2 mt-5">
-            <p
-              className={`text-[14px] ${emailError ? "text-red-1" : "text-gray-8"
-                }`}
-            >
-              Email
-            </p>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={`h-[28px] w-full border-b ${emailError ? "border-red-1" : "border-gray-9"
-                } focus:outline-none`}
-            />
-            {emailError && (
-              <p className="text-red-1 text-[14px]">{emailError}</p>
-            )}
-          </div>
+          <AuthField
+            className="mt-6"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={emailError}
+            placeholder="you@example.com"
+          />
 
           {/* Password */}
-          <div className="space-y-2 mt-5">
-            <p
-              className={`text-[14px] ${passwordError ? "text-red-1" : "text-gray-8"
-                }`}
-            >
-              Password
-            </p>
-            <div
-              className={`flex items-center border-b ${passwordError ? "border-red-1" : "border-gray-9"
-                }`}
-            >
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-[28px] w-full focus:outline-none"
-              />
-              <span
+          <AuthField
+            className="mt-6"
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={passwordError}
+            placeholder="••••••••"
+            rightElement={
+              <button
+                type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="cursor-pointer underline"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="cursor-pointer text-gray-8"
               >
-                {showPassword ? "Hide" : "Show"}
-              </span>
-            </div>
-            {passwordError && (
-              <p className="text-red-1 text-[14px]">{passwordError}</p>
-            )}
-          </div>
+                {showPassword ? (
+                  <EyeSlashIcon className="h-5 w-5" />
+                ) : (
+                  <EyeIcon className="h-5 w-5" />
+                )}
+              </button>
+            }
+          />
 
           <div className="flex justify-end pt-4 text-[14px] text-green-1">
             <p
